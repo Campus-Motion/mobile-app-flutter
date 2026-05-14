@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/screens/app/activity/index.dart';
+import 'package:mobile_app/screens/app/profile/edit.dart';
 import 'package:mobile_app/screens/app/profile/index.dart';
+import 'package:mobile_app/screens/app/profile/settings.dart';
 import 'package:mobile_app/screens/app/social/index.dart';
 import 'package:mobile_app/screens/auth/sign_in.dart';
 import '../screens/auth/welcome.dart';
@@ -16,6 +18,9 @@ class AppRoutes {
   static const String trail = '/trail';
   static const String social = '/social';
   static const String profile = '/profile';
+  static const String editProfile = '/profile/edit';
+  static const String shareProfile = 'profile/share';
+  static const String parameters = 'profile/parameters';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -33,6 +38,12 @@ class AppRoutes {
         return MaterialPageRoute(builder : (_) => const SocialIndexScreen());
       case profile :
         return MaterialPageRoute(builder: (_) => const ProfileIndexScreen());
+      case editProfile :
+        return MaterialPageRoute(builder : (_) => const ProfileEditScreen());
+      case shareProfile :
+        return MaterialPageRoute(builder : (_) => const HomeIndexScreen()); //TODO : Change path
+      case parameters : 
+        return MaterialPageRoute(builder : (_) => const ProfileSettingsScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

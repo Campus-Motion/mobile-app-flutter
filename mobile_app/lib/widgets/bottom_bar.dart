@@ -28,7 +28,7 @@ class CampusMotionBottomBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildNavItem(0, Icons.home_rounded, "Home"),
-            _buildNavItem(1, Icons.sports_soccer_rounded, "Teams"),
+            _buildNavItem(1, Icons.sports_soccer_rounded, "Sport"),
             _buildNavItem(2, Icons.supervisor_account, "Social"),
             _buildNavItem(3, Icons.person_rounded, "Profile"),
           ],

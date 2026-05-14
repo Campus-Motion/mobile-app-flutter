@@ -73,7 +73,7 @@ class _SignInScreenState extends State<SignInScreen> {
       children: [
         const SizedBox(height: 20),
         const Image(
-          image: AssetImage('assets/images/logo_bleu_blanc.png'),
+          image: AssetImage('assets/images/logo_peach.png'),
           height: 100,
         ),
         const SizedBox(height: 50),

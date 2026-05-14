@@ -12,7 +12,7 @@ class TopAppBar extends StatelessWidget {
       child : Row(children: [
         Image(
           width: 150,
-          image: AssetImage('assets/images/logo_bleu.png')
+          image: AssetImage('assets/images/logo_peach.png')
           ),
 
         Spacer(flex: 1),

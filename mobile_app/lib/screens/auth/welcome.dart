@@ -15,7 +15,7 @@ class WelcomeScreen extends StatelessWidget {
           height: 16,
           ),
         const Image(
-          image:AssetImage('assets/images/logo_bleu.png'),
+          image:AssetImage('assets/images/logo_peach.png'),
 
         ),
         const Spacer(
