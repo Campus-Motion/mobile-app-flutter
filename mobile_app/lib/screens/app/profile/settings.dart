@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/constants/colors.dart';
 import 'package:mobile_app/config/routes.dart';
+import 'package:mobile_app/services/auth_service.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -81,9 +82,21 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
-              onPressed: () {
-                // Navigate back to welcome/login screen and clear stack
-                Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+              onPressed: () async {
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  ),
+                );
+                
+                await AuthService().logout();
+                
+                if (mounted) {
+                  Navigator.pop(context); // Dismiss dialog
+                  Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,

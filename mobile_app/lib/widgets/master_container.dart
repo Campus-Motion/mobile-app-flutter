@@ -9,6 +9,7 @@ class MasterContainer extends StatelessWidget {
   final CrossAxisAlignment crossAxisAlignment;
   final MainAxisAlignment mainAxisAlignment;
   final Widget? bottomNavigationBar;
+  final Widget? floatingActionButton;
   final Future<void> Function()? onRefresh;
 
   const MasterContainer({
@@ -21,6 +22,7 @@ class MasterContainer extends StatelessWidget {
     this.crossAxisAlignment = CrossAxisAlignment.center,
     this.mainAxisAlignment = MainAxisAlignment.start,
     this.bottomNavigationBar,
+    this.floatingActionButton,
     this.onRefresh,
   });
 
@@ -60,6 +62,7 @@ class MasterContainer extends StatelessWidget {
     Widget screen = Scaffold(
       backgroundColor: backgroundColor,
       bottomNavigationBar: bottomNavigationBar,
+      floatingActionButton: floatingActionButton,
       body: SizedBox(
         width: double.infinity,
         height: double.infinity,

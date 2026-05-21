@@ -1,12 +1,108 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
 import 'package:mobile_app/constants/colors.dart';
+import 'package:mobile_app/services/auth_service.dart';
+import 'package:mobile_app/services/user_service.dart';
+import 'package:mobile_app/services/activity_service.dart';
+import 'package:mobile_app/models/user.dart';
+import 'package:mobile_app/models/activity.dart';
+import 'package:mobile_app/models/user_preferences.dart';
 
-class ProfileIndexScreen extends StatelessWidget {
+class ProfileIndexScreen extends StatefulWidget {
   const ProfileIndexScreen({super.key});
+
+  @override
+  State<ProfileIndexScreen> createState() => _ProfileIndexScreenState();
+}
+
+class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
+  final AuthService _authService = AuthService();
+  final UserService _userService = UserService();
+  final ActivityService _activityService = ActivityService();
+
+  User? _user;
+  UserPreferences? _preferences;
+  List<Activity> _activities = [];
+  bool _isLoading = true;
+
+  int _activityCount = 0;
+  double _totalDistanceKm = 0.0;
+  double _totalDurationMinutes = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final user = await _authService.getProfile();
+      UserPreferences? prefs;
+      try {
+        prefs = await _userService.getPreferences();
+      } catch (_) {
+        prefs = UserPreferences.empty();
+      }
+      
+      final activities = await _activityService.getActivities(limit: 50);
+
+      double durationSum = 0.0;
+      double distanceSum = 0.0;
+
+      for (var act in activities) {
+        if (act.duration != null) {
+          durationSum += act.duration!;
+          
+          // Estimate distance based on average speeds for different activities
+          double speedKmh = 5.0; // Default walking/other speed
+          switch (act.type.toLowerCase()) {
+            case 'run':
+              speedKmh = 10.0;
+              break;
+            case 'walk':
+              speedKmh = 5.0;
+              break;
+            case 'cycle':
+              speedKmh = 20.0;
+              break;
+            case 'hike':
+              speedKmh = 4.0;
+              break;
+            case 'swim':
+              speedKmh = 2.0;
+              break;
+          }
+          distanceSum += speedKmh * (act.duration! / 60.0);
+        }
+      }
+
+      setState(() {
+        _user = user;
+        _preferences = prefs;
+        _activities = activities;
+        _activityCount = activities.length;
+        _totalDurationMinutes = durationSum;
+        _totalDistanceKm = distanceSum;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load profile data: $e')),
+      );
+    }
+  }
 
   static dynamic _navigationFunction(BuildContext context, int index){
     switch(index) {
@@ -24,20 +120,87 @@ class ProfileIndexScreen extends StatelessWidget {
   }
 
   void _shareProfile() {
-    Share.share('Check out my Campus Motion profile! Join me and track your campus activities.');
+    final username = _user?.username ?? 'a Campus Motion member';
+    Share.share('Check out $username\'s Campus Motion profile! Join me and track your campus activities.');
+  }
+
+  String _formatDuration(double totalMinutes) {
+    final int hours = (totalMinutes / 60).floor();
+    final int minutes = (totalMinutes % 60).round();
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    }
+    return '${minutes}m';
+  }
+
+  String _getActivityDurationString(double? minutes) {
+    if (minutes == null) return '--';
+    final int hrs = (minutes / 60).floor();
+    final int mins = (minutes % 60).round();
+    if (hrs > 0) {
+      return '${hrs}h ${mins}m';
+    }
+    return '${mins}m';
+  }
+
+  String _getActivityDistanceString(double? minutes, String type) {
+    if (minutes == null) return '--';
+    double speedKmh = 5.0;
+    switch (type.toLowerCase()) {
+      case 'run': speedKmh = 10.0; break;
+      case 'walk': speedKmh = 5.0; break;
+      case 'cycle': speedKmh = 20.0; break;
+      case 'hike': speedKmh = 4.0; break;
+      case 'swim': speedKmh = 2.0; break;
+    }
+    final distance = speedKmh * (minutes / 60.0);
+    return '${distance.toStringAsFixed(1)} km';
+  }
+
+  IconData _getActivityIcon(String type) {
+    switch (type.toLowerCase()) {
+      case 'run':
+        return Icons.directions_run;
+      case 'walk':
+        return Icons.directions_walk;
+      case 'cycle':
+        return Icons.pedal_bike;
+      case 'hike':
+        return Icons.terrain;
+      case 'swim':
+        return Icons.pool;
+      case 'climbing':
+        return Icons.filter_hdr;
+      default:
+        return Icons.fitness_center;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final username = _user?.username ?? 'Forrest Gump';
+    final role = _user?.role ?? 'user';
+    final formattedRole = role[0].toUpperCase() + role.substring(1);
+    
+    // Build bio based on preferences
+    String bioText = "No preferences set yet.";
+    if (_preferences != null && _preferences!.preferredSports.isNotEmpty) {
+      final sports = _preferences!.preferredSports.join(', ');
+      final intensity = _preferences!.intensity;
+      final level = _preferences!.level;
+      bioText = "${level.toUpperCase()} • Prefers: $sports ($intensity)";
+    }
+
     return MasterContainer(
       bottomNavigationBar: CampusMotionBottomBar(currentIndex: 3, onTap: _navigationFunction, context: context),
+      onRefresh: _loadProfileData,
       children : [
         // Top Navigation
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children : [
             OutlinedButton.icon(
-              onPressed : () => Navigator.pushNamed(context, AppRoutes.editProfile),
+              onPressed : () => Navigator.pushNamed(context, AppRoutes.editProfile).then((_) => _loadProfileData()),
               icon : const Icon(Icons.edit, size: 16, color: AppColors.primary),
               label: const Text('Edit', style: TextStyle(color:AppColors.primary)),
               style: OutlinedButton.styleFrom(
@@ -55,7 +218,7 @@ class ProfileIndexScreen extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.settings),
-                  onPressed: () => Navigator.pushNamed(context, AppRoutes.parameters),
+                  onPressed: () => Navigator.pushNamed(context, AppRoutes.parameters).then((_) => _loadProfileData()),
                   color : AppColors.primary
                 )
               ]
@@ -64,84 +227,100 @@ class ProfileIndexScreen extends StatelessWidget {
         ),
         const SizedBox(height: 30),
         
-        // Profile Header
-        Column(
-          children: [
-            const CircleAvatar(
-              backgroundImage: AssetImage('assets/images/splash-icon.png'),
-              radius: 45
-            ),
-            const SizedBox(height: 15),
-            const Text(
-              'Forrest Gump',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)
-            ),
-            const SizedBox(height: 5),
-            const Text(
-              'EPFL Student • Greenbow, AL',
-              style: TextStyle(color: Colors.grey, fontSize: 14)
-            ),
-            const SizedBox(height: 15),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(15),
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 100.0),
+            child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          )
+        else ...[
+          // Profile Header
+          Column(
+            children: [
+              CircleAvatar(
+                backgroundImage: _user?.photoUrl != null
+                    ? NetworkImage(_user!.fullPhotoUrl!)
+                    : const AssetImage('assets/images/splash-icon.png') as ImageProvider,
+                radius: 45,
+                backgroundColor: Colors.grey.shade200,
               ),
-              child: const Text(
-                "Mom always said: Life is like a box of chocolates...",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontStyle: FontStyle.italic, color: Colors.black87),
+              const SizedBox(height: 15),
+              Text(
+                username,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)
               ),
-            ),
-          ],
-        ),
-        
-        const SizedBox(height: 40),
-
-        // Stats Section
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildStatCard('Activities', '142'),
-            _buildStatCard('Distance', '1,204 km'),
-            _buildStatCard('Active Time', '45h 20m'),
-          ],
-        ),
-
-        const SizedBox(height: 40),
-
-        // Recent Activities
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Recent Activities',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              const SizedBox(height: 5),
+              Text(
+                '$formattedRole Member • Campus Motion',
+                style: const TextStyle(color: Colors.grey, fontSize: 14)
+              ),
+              const SizedBox(height: 15),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Text(
+                  bioText,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black87),
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 15),
-        
-        _buildActivityCard(
-          icon: Icons.directions_run,
-          title: 'Morning Run across the US',
-          date: 'Today at 6:00 AM',
-          distance: '25.4 km',
-          duration: '2h 15m',
-        ),
-        _buildActivityCard(
-          icon: Icons.directions_walk,
-          title: 'Campus Walk',
-          date: 'Yesterday',
-          distance: '4.2 km',
-          duration: '45m',
-        ),
-        _buildActivityCard(
-          icon: Icons.pedal_bike,
-          title: 'Lake Geneva Cycling',
-          date: 'May 10, 2026',
-          distance: '45.0 km',
-          duration: '1h 50m',
-        ),
+          
+          const SizedBox(height: 40),
+
+          // Stats Section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildStatCard('Activities', '$_activityCount'),
+              _buildStatCard('Distance', '${_totalDistanceKm.toStringAsFixed(0)} km'),
+              _buildStatCard('Active Time', _formatDuration(_totalDurationMinutes)),
+            ],
+          ),
+
+          const SizedBox(height: 40),
+
+          // Recent Activities
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Recent Activities',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 15),
+          
+          if (_activities.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 30.0),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.directions_run_outlined, size: 48, color: Colors.grey.shade400),
+                    const SizedBox(height: 10),
+                    Text(
+                      'No activities tracked yet.',
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ..._activities.take(5).map((activity) {
+              final formattedDate = DateFormat('MMM d, yyyy').format(activity.createdAt);
+              return _buildActivityCard(
+                icon: _getActivityIcon(activity.type),
+                title: activity.title,
+                date: formattedDate,
+                distance: _getActivityDistanceString(activity.duration, activity.type),
+                duration: _getActivityDurationString(activity.duration),
+              );
+            }),
+        ],
       ]
     );
   }

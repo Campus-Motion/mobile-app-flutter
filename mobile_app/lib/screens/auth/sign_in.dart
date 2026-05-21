@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/constants/colors.dart';
 import 'package:mobile_app/widgets/master_container.dart';
+import 'package:mobile_app/services/auth_service.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -48,14 +49,28 @@ class _SignInScreenState extends State<SignInScreen> {
       return;
     }
 
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+    );
+
     try {
-      // TODO: Implement Email Sign In
-      print('Sign in with Email');
-      // Navigator.pushReplacementNamed(context, AppRoutes.home);
+      await AuthService().login(email, password);
+      if (mounted) {
+        Navigator.pop(context); // Dismiss loading dialog
+        Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+      }
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid email or password.")),
-      );
+      if (mounted) {
+        Navigator.pop(context); // Dismiss loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString().replaceAll('Exception: ', ''))),
+        );
+      }
     }
   }
 
