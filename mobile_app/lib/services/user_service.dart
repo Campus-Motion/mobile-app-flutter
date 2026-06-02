@@ -76,7 +76,7 @@ class UserService {
       final data = json.decode(response.body);
       return UserPreferences.fromJson(data);
     } else {
-      throw Exception('Failed to update preferences' + preferences.toString());
+      throw Exception('Failed to update preferences ' + response.statusCode.toString());
     }
   }
 

@@ -39,7 +39,7 @@ class ApiService {
     
     // Bypass CORS policy during local web development if needed
     if (kIsWeb && kDebugMode) {
-      url = 'https://corsproxy.io/?$url';
+      url = 'https://corsproxy.io/?${Uri.encodeComponent(url)}';
     }
     return url;
   }

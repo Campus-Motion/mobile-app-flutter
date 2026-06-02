@@ -5,6 +5,8 @@ import 'package:mobile_app/widgets/top_bar.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/models/news_item.dart';
 import 'package:mobile_app/services/news_service.dart';
+import 'package:mobile_app/models/event.dart';
+import 'package:mobile_app/services/event_service.dart';
 import 'package:mobile_app/constants/colors.dart';
 import 'package:intl/intl.dart';
 
@@ -17,19 +19,24 @@ class HomeIndexScreen extends StatefulWidget {
 
 class _HomeIndexScreenState extends State<HomeIndexScreen> {
   final NewsService _newsService = NewsService();
+  final EventService _eventService = EventService();
+  
   late Future<List<NewsItem>> _newsFuture;
+  late Future<List<Event>> _eventsFuture;
 
   @override
   void initState() {
     super.initState();
     _newsFuture = _newsService.fetchLatestNews();
+    _eventsFuture = _eventService.getEvents(limit: 5, after : DateTime.now().toIso8601String());
   }
 
   Future<void> _refreshNews() async {
     setState(() {
       _newsFuture = _newsService.fetchLatestNews();
+      _eventsFuture = _eventService.getEvents(limit: 5);
     });
-    await _newsFuture;
+    await Future.wait([_newsFuture, _eventsFuture]);
   }
 
   static dynamic _navigationFunction(BuildContext context, int index){
@@ -118,6 +125,75 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
     );
   }
 
+  Widget _buildUpcomingEventsSlider() {
+    return FutureBuilder<List<Event>>(
+      future: _eventsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 140,
+            child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          );
+        } else if (snapshot.hasError) {
+          return const SizedBox(
+            height: 140,
+            child: Center(child: Text('Failed to load events', style: TextStyle(color: Colors.red))),
+          );
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox(
+            height: 140,
+            child: Center(child: Text('No upcoming events', style: TextStyle(color: Colors.grey))),
+          );
+        }
+
+        final events = snapshot.data!;
+        final dateFormat = DateFormat('MMM d, HH:mm');
+
+        return SizedBox(
+          height: 140,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            itemCount: events.length,
+            itemBuilder: (context, index) {
+              final event = events[index];
+              return _buildEventCard(
+                event.title, 
+                dateFormat.format(event.startTime), 
+                Icons.event, 
+                Colors.teal
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildEventCard(String title, String date, IconData icon, Color color) {
+    return Container(
+      width: 140,
+      margin: const EdgeInsets.only(right: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 32),
+          const Spacer(),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, height: 1.2), maxLines: 2, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 6),
+          Text(date, style: TextStyle(color: Colors.grey.shade800, fontSize: 12, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MasterContainer(
@@ -126,8 +202,30 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
       bottomNavigationBar: CampusMotionBottomBar(currentIndex: 0, onTap: _navigationFunction, context: context),
       children : [
         const TopAppBar(),
+        const SizedBox(height: 20),
+        
+        // Upcoming Events Section
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Upcoming Events',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildUpcomingEventsSlider(),
+        const SizedBox(height: 32),
+
+        // Latest News Section
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children : [

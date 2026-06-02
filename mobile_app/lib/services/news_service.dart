@@ -1,20 +1,12 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
+import 'api_service.dart';
 import '../models/news_item.dart';
 
 class NewsService {
-  static const String baseUrl = 'https://api.campusmotion.ch';
+  final ApiService _apiService = ApiService();
 
   Future<List<NewsItem>> fetchLatestNews() async {
-    String url = '$baseUrl/news';
-    
-    // Bypass CORS policy during local web development
-    if (kIsWeb && kDebugMode) {
-      url = 'https://corsproxy.io/?$url';
-    }
-
-    final response = await http.get(Uri.parse(url));
+    final response = await _apiService.get('/news');
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);

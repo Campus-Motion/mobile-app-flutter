@@ -23,15 +23,21 @@ class NewsItem {
 
   factory NewsItem.fromJson(Map<String, dynamic> json) {
     return NewsItem(
-      id: json['id'] as int,
-      title: json['title'] as String,
-      body: json['body'] as String,
+      id: json['id'] as int? ?? 0,
+      title: json['title'] as String? ?? '',
+      body: json['body'] as String? ?? '',
       photoUrl: json['photo_url'] as String?,
-      authorId: json['author_id'] as int,
-      isPublished: json['is_published'] as bool,
-      publishedAt: DateTime.parse(json['published_at'] as String),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : null,
+      authorId: json['author_id'] as int? ?? 0,
+      isPublished: json['is_published'] as bool? ?? false,
+      publishedAt: json['published_at'] != null 
+          ? DateTime.tryParse(json['published_at'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      createdAt: json['created_at'] != null 
+          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      updatedAt: json['updated_at'] != null 
+          ? DateTime.tryParse(json['updated_at'].toString()) 
+          : null,
     );
   }
 

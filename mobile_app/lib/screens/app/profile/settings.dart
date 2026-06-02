@@ -3,6 +3,8 @@ import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/constants/colors.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/services/auth_service.dart';
+import 'package:mobile_app/services/user_service.dart';
+import 'package:mobile_app/models/user_preferences.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -12,9 +14,49 @@ class ProfileSettingsScreen extends StatefulWidget {
 }
 
 class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
-  bool _isMetric = true;
-  bool _pushNotifications = true;
-  bool _privateAccount = false;
+  final UserService _userService = UserService();
+  UserPreferences? _preferences;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    try {
+      final prefs = await _userService.getPreferences();
+      setState(() {
+        _preferences = prefs;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load preferences')),
+        );
+      }
+    }
+  }
+
+  Future<void> _updatePref(UserPreferences newPrefs) async {
+    final oldPrefs = _preferences;
+    setState(() => _preferences = newPrefs);
+    try {
+      await _userService.updatePreferences(newPrefs);
+    } catch (e) {
+      setState(() => _preferences = oldPrefs);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save preferences')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,76 +84,119 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           ),
         ),
 
-        // Account Section
-        _buildSectionHeader('Account'),
-        _buildListTile('Change Email/Password', Icons.lock_outline, () {}),
-        _buildListTile('Connect Devices', Icons.devices, () {}),
-        
-        // Preferences Section
-        _buildSectionHeader('Preferences'),
-        SwitchListTile(
-          title: const Text('Use Metric Units (km/kg)'),
-          value: _isMetric,
-          activeColor: AppColors.primary,
-          onChanged: (val) => setState(() => _isMetric = val),
-        ),
-        SwitchListTile(
-          title: const Text('Push Notifications'),
-          value: _pushNotifications,
-          activeColor: AppColors.primary,
-          onChanged: (val) => setState(() => _pushNotifications = val),
-        ),
-
-        // Privacy Section
-        _buildSectionHeader('Privacy'),
-        SwitchListTile(
-          title: const Text('Private Account'),
-          subtitle: const Text('Only approved followers can see your activities'),
-          value: _privateAccount,
-          activeColor: AppColors.primary,
-          onChanged: (val) => setState(() => _privateAccount = val),
-        ),
-        _buildListTile('Blocked Users', Icons.block, () {}),
-
-        const SizedBox(height: 40),
-
-        // Logout Button
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: SizedBox(
-            width: double.infinity,
-            height: 55,
-            child: ElevatedButton(
-              onPressed: () async {
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  ),
-                );
-                
-                await AuthService().logout();
-                
-                if (mounted) {
-                  Navigator.pop(context); // Dismiss dialog
-                  Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.red,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  side: const BorderSide(color: Colors.red),
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.all(40.0),
+            child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          )
+        else if (_preferences != null) ...[
+          // Account Section
+          _buildSectionHeader('Account'),
+          _buildListTile('Change Email/Password', Icons.lock_outline, () {}),
+          _buildListTile('Connect Devices', Icons.devices, () {}),
+          
+          // Sport Preferences Section
+          _buildSectionHeader('Sport Preferences'),
+          SwitchListTile(
+            title: const Text('Open to Group Activities'),
+            value: _preferences!.openToGroups,
+            activeColor: AppColors.primary,
+            onChanged: (val) => _updatePref(_preferences!.copyWith(openToGroups: val)),
+          ),
+          SwitchListTile(
+            title: const Text('Open to New Sports'),
+            value: _preferences!.openToNewSports,
+            activeColor: AppColors.primary,
+            onChanged: (val) => _updatePref(_preferences!.copyWith(openToNewSports: val)),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Max Distance: ${_preferences!.maxDistanceKm.toStringAsFixed(1)} km', 
+                  style: const TextStyle(fontSize: 16)
                 ),
-                elevation: 0,
-              ),
-              child: const Text('Log Out', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Slider(
+                  value: _preferences!.maxDistanceKm,
+                  min: 1.0,
+                  max: 100.0,
+                  activeColor: AppColors.primary,
+                  onChanged: (val) {
+                    setState(() {
+                      _preferences = _preferences!.copyWith(maxDistanceKm: val);
+                    });
+                  },
+                  onChangeEnd: (val) {
+                    _updatePref(_preferences!.copyWith(maxDistanceKm: val));
+                  },
+                ),
+              ],
             ),
           ),
-        ),
-        const SizedBox(height: 40),
+
+          // Activity Goal
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Primary Goal', style: TextStyle(fontSize: 16)),
+                DropdownButton<String>(
+                  value: _preferences!.goal,
+                  items: const [
+                    DropdownMenuItem(value: 'stay_active', child: Text('Stay Active')),
+                    DropdownMenuItem(value: 'lose_weight', child: Text('Lose Weight')),
+                    DropdownMenuItem(value: 'compete', child: Text('Compete')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) _updatePref(_preferences!.copyWith(goal: val));
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 40),
+
+          // Logout Button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: () async {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                  );
+                  
+                  await AuthService().logout();
+                  
+                  if (mounted) {
+                    Navigator.pop(context); // Dismiss dialog
+                    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    side: const BorderSide(color: Colors.red),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text('Log Out', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 40),
+        ],
       ],
     );
   }

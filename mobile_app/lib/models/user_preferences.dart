@@ -55,4 +55,26 @@ class UserPreferences {
       maxDistanceKm: 25.0,
     );
   }
+
+  UserPreferences copyWith({
+    int? userId,
+    List<String>? preferredSports,
+    String? intensity,
+    String? goal,
+    String? level,
+    bool? openToGroups,
+    bool? openToNewSports,
+    double? maxDistanceKm,
+  }) {
+    return UserPreferences(
+      userId: userId ?? this.userId,
+      preferredSports: preferredSports ?? this.preferredSports,
+      intensity: intensity ?? this.intensity,
+      goal: goal ?? this.goal,
+      level: level ?? this.level,
+      openToGroups: openToGroups ?? this.openToGroups,
+      openToNewSports: openToNewSports ?? this.openToNewSports,
+      maxDistanceKm: maxDistanceKm ?? this.maxDistanceKm,
+    );
+  }
 }
