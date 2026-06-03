@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class HealthData {
   final String born; // ISO8601 date YYYY-MM-DD
   final double? weightKg;
@@ -19,32 +21,53 @@ class HealthData {
     this.deletionRequestedAt,
   });
 
-  factory HealthData.fromJson(Map<String, dynamic> json) {
+  factory HealthData.fromJson(Map<String, dynamic> jsonMap) {
+    double? wKg = _parseDouble(jsonMap['weight_kg']);
+    double? hCm = _parseDouble(jsonMap['height_cm']);
+
+    if (jsonMap['sensitive_data'] != null) {
+      try {
+        final sensitive = json.decode(jsonMap['sensitive_data']);
+        if (sensitive['weight_kg'] != null) wKg = _parseDouble(sensitive['weight_kg']);
+        if (sensitive['height_cm'] != null) hCm = _parseDouble(sensitive['height_cm']);
+      } catch (_) {}
+    }
+
     return HealthData(
-      born: json['born'] as String? ?? '1998-11-05',
-      weightKg: json['weight_kg'] != null ? (json['weight_kg'] as num).toDouble() : null,
-      heightCm: json['height_cm'] != null ? (json['height_cm'] as num).toDouble() : null,
-      sensitiveData: json['sensitive_data'] as String?,
-      clientKeyVersion: json['client_key_version'] as int?,
-      consentGivenAt: json['consent_given_at'] != null 
-          ? DateTime.parse(json['consent_given_at'] as String) 
+      born: DateTime.tryParse(jsonMap['born'] as String? ?? '1998-11-05').toString(),
+      weightKg: wKg,
+      heightCm: hCm,
+      sensitiveData: jsonMap['sensitive_data'] as String?,
+      clientKeyVersion: jsonMap['client_key_version'] as int?,
+      consentGivenAt: jsonMap['consent_given_at'] != null 
+          ? DateTime.parse(jsonMap['consent_given_at'] as String) 
           : null,
-      retainUntil: json['retain_until'] as String?,
-      deletionRequestedAt: json['deletion_requested_at'] != null 
-          ? DateTime.parse(json['deletion_requested_at'] as String) 
+      retainUntil: jsonMap['retain_until'] as String?,
+      deletionRequestedAt: jsonMap['deletion_requested_at'] != null 
+          ? DateTime.parse(jsonMap['deletion_requested_at'] as String) 
           : null,
     );
   }
 
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
   Map<String, dynamic> toJson() {
+    final Map<String, dynamic> sensitiveMap = {};
+    if (weightKg != null) sensitiveMap['weight_kg'] = weightKg;
+    if (heightCm != null) sensitiveMap['height_cm'] = heightCm;
+
     return {
       'born': born,
-      if (weightKg != null) 'weight_kg': weightKg,
-      if (heightCm != null) 'height_cm': heightCm,
-      if (sensitiveData != null) 'sensitive_data': sensitiveData,
-      if (clientKeyVersion != null) 'client_key_version': clientKeyVersion,
-      if (consentGivenAt != null) 'consent_given_at': consentGivenAt!.toIso8601String(),
+      'sensitive_data': json.encode(sensitiveMap),
+      'client_key_version': clientKeyVersion ?? 1,
+      if (consentGivenAt != null) 'consent_given_at': consentGivenAt!.toUtc().toIso8601String(),
       if (retainUntil != null) 'retain_until': retainUntil,
     };
   }
 }
+

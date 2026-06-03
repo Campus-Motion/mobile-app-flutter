@@ -158,7 +158,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         born: _bornController.text.isNotEmpty ? _bornController.text : '1998-11-05',
         weightKg: weight,
         heightCm: height,
-        consentGivenAt: _health?.consentGivenAt ?? DateTime.now(),
+        //consentGivenAt: _health?.consentGivenAt ?? DateTime.now(),
         retainUntil: _health?.retainUntil ?? '2028-03-31',
       );
 

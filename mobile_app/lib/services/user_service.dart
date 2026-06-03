@@ -100,7 +100,7 @@ class UserService {
       final data = json.decode(response.body);
       return HealthData.fromJson(data);
     } else {
-      throw Exception('Failed to create health record');
+      throw Exception('Failed to create health record: ${response.statusCode} - ${response.body}');
     }
   }
 
@@ -111,7 +111,7 @@ class UserService {
       final data = json.decode(response.body);
       return HealthData.fromJson(data);
     } else {
-      throw Exception('Failed to update health record');
+      throw Exception('Failed to update health record: ${response.statusCode} - ${response.body}');
     }
   }
 

@@ -85,7 +85,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
     try {
       final currentUserId = _authService.currentUser?.id;
       final currentUsername = _authService.currentUser?.username;
-      final currentDate = DateTime.now().toIso8601String();
+      final currentDate = DateTime.now().subtract(Duration(hours:1)).toIso8601String();
       final events = await _eventService.getEvents(limit: 30, after:currentDate);
 
       final isEnrolledFlags = await Future.wait(events.map((event) async {

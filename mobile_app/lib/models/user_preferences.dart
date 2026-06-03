@@ -28,8 +28,14 @@ class UserPreferences {
       level: json['level'] as String? ?? 'intermediate',
       openToGroups: json['open_to_groups'] as bool? ?? true,
       openToNewSports: json['open_to_new_sports'] as bool? ?? false,
-      maxDistanceKm: (json['max_distance_km'] as num? ?? 25.0).toDouble(),
+      maxDistanceKm: _parseMaxDistance(json['max_distance_km']),
     );
+  }
+
+  static double _parseMaxDistance(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 25.0;
+    return 25.0;
   }
 
   Map<String, dynamic> toJson() {
