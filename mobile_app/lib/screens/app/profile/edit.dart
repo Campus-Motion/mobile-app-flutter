@@ -22,6 +22,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   User? _user;
   UserPreferences? _preferences;
   HealthData? _health;
+  bool _hasHealthConsent = false;
 
   // Form Fields
   late TextEditingController _usernameController;
@@ -81,6 +82,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         _user = user;
         _preferences = prefs;
         _health = health;
+        _hasHealthConsent = health?.consentGivenAt != null;
 
         _usernameController.text = user.username;
         _emailController.text = user.email ?? '';
@@ -106,6 +108,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   Future<void> _selectDate() async {
+    if (!_hasHealthConsent) return;
     DateTime initialDate = DateTime.tryParse(_bornController.text) ?? DateTime(1998, 11, 5);
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -152,20 +155,26 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       await _userService.updatePreferences(updatedPrefs);
 
       // 3. Save user health data
-      final weight = double.tryParse(_weightController.text);
-      final height = double.tryParse(_heightController.text);
-      final updatedHealth = HealthData(
-        born: _bornController.text.isNotEmpty ? _bornController.text : '1998-11-05',
-        weightKg: weight,
-        heightCm: height,
-        //consentGivenAt: _health?.consentGivenAt ?? DateTime.now(),
-        retainUntil: _health?.retainUntil ?? '2028-03-31',
-      );
+      if (_hasHealthConsent) {
+        final weight = double.tryParse(_weightController.text);
+        final height = double.tryParse(_heightController.text);
+        final updatedHealth = HealthData(
+          born: _bornController.text.isNotEmpty ? _bornController.text : '1998-11-05',
+          weightKg: weight,
+          heightCm: height,
+          consentGivenAt: _health?.consentGivenAt ?? DateTime.now(),
+          retainUntil: _health?.retainUntil ?? '2028-03-31',
+        );
 
-      if (_health == null) {
-        await _userService.createHealth(updatedHealth);
+        if (_health == null) {
+          await _userService.createHealth(updatedHealth);
+        } else {
+          await _userService.updateHealth(updatedHealth);
+        }
       } else {
-        await _userService.updateHealth(updatedHealth);
+        if (_health != null) {
+          await _userService.deleteHealth();
+        }
       }
 
       if (mounted) {
@@ -318,20 +327,41 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
                 // 3. Physical Data (Private)
                 const Text('Physical Data (Private & Encrypted)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey)),
-                const SizedBox(height: 15),
+                const SizedBox(height: 10),
+                CheckboxListTile(
+                  title: const Text(
+                    'I consent to the collection and processing of my physical/health data (weight, height, age) to personalize my fitness experience.',
+                    style: TextStyle(fontSize: 13, color: Colors.black87),
+                  ),
+                  value: _hasHealthConsent,
+                  onChanged: (val) {
+                    setState(() {
+                      _hasHealthConsent = val ?? false;
+                      if (!_hasHealthConsent) {
+                        _weightController.clear();
+                        _heightController.clear();
+                        _bornController.text = '1998-11-05';
+                      }
+                    });
+                  },
+                  activeColor: AppColors.primary,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+                const SizedBox(height: 10),
                 
                 Row(
                   children: [
-                    Expanded(child: _buildTextField('Weight (kg)', _weightController, (val) {}, keyboardType: TextInputType.number)),
+                    Expanded(child: _buildTextField('Weight (kg)', _weightController, (val) {}, keyboardType: TextInputType.number, enabled: _hasHealthConsent)),
                     const SizedBox(width: 15),
-                    Expanded(child: _buildTextField('Height (cm)', _heightController, (val) {}, keyboardType: TextInputType.number)),
+                    Expanded(child: _buildTextField('Height (cm)', _heightController, (val) {}, keyboardType: TextInputType.number, enabled: _hasHealthConsent)),
                   ],
                 ),
                 
                 GestureDetector(
                   onTap: _selectDate,
                   child: AbsorbPointer(
-                    child: _buildTextField('Date of Birth', _bornController, (val) {}, icon: Icons.calendar_today),
+                    child: _buildTextField('Date of Birth', _bornController, (val) {}, icon: Icons.calendar_today, enabled: _hasHealthConsent),
                   ),
                 ),
                 
@@ -344,12 +374,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, Function(String) onSave, {TextInputType keyboardType = TextInputType.text, IconData? icon}) {
+  Widget _buildTextField(String label, TextEditingController controller, Function(String) onSave, {TextInputType keyboardType = TextInputType.text, IconData? icon, bool enabled = true}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
+        enabled: enabled,
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(color: Colors.grey),

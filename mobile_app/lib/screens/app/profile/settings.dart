@@ -1,10 +1,15 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/constants/colors.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/user_service.dart';
+import 'package:mobile_app/services/activity_service.dart';
+import 'package:mobile_app/widgets/privacy_policy_dialog.dart';
 import 'package:mobile_app/models/user_preferences.dart';
+import 'package:mobile_app/models/health.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -33,11 +38,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       });
     } catch (e) {
       setState(() {
+        _preferences = UserPreferences.empty();
         _isLoading = false;
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load preferences')),
+          const SnackBar(content: Text('Failed to load preferences. Using defaults.')),
         );
       }
     }
@@ -54,6 +60,176 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to save preferences')),
         );
+      }
+    }
+  }
+
+  Future<void> _exportData(BuildContext context) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+    );
+
+    try {
+      final user = await _userService.getMe();
+      
+      UserPreferences prefs;
+      try {
+        prefs = await _userService.getPreferences();
+      } catch (_) {
+        prefs = UserPreferences.empty();
+      }
+
+      HealthData? health;
+      try {
+        health = await _userService.getHealth();
+      } catch (_) {
+        health = null;
+      }
+
+      List<dynamic> activitiesJson = [];
+      try {
+        final activities = await ActivityService().getActivities(limit: 100);
+        activitiesJson = activities.map((a) => a.toJson()).toList();
+      } catch (_) {}
+
+      final exportMap = {
+        'exported_at': DateTime.now().toUtc().toIso8601String(),
+        'app': 'Campus Motion',
+        'user': user.toJson(),
+        'preferences': prefs.toJson(),
+        'health_data': health?.toJson(),
+        'activities': activitiesJson,
+      };
+
+      final jsonString = const JsonEncoder.withIndent('  ').convert(exportMap);
+
+      if (mounted) {
+        Navigator.pop(context); // Dismiss loading dialog
+      }
+
+      await Share.share(
+        jsonString,
+        subject: 'Campus Motion Data Export',
+      );
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Dismiss loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to export data: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteHealth(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Health Data'),
+        content: const Text(
+          'Are you sure you want to permanently delete your physical and health data (weight, height, age) from our servers? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+
+      try {
+        await _userService.deleteHealth();
+        if (mounted) {
+          Navigator.pop(context); // Dismiss loading dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Health data deleted successfully.')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.pop(context); // Dismiss loading dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete health data: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Delete Account',
+          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'WARNING: This will permanently delete your account, preferences, activities, and physical records. All data will be immediately erased from our servers in compliance with GDPR. This action is irreversible.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Permanently Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+
+      try {
+        await _userService.deleteMe();
+        await AuthService().logout();
+        
+        if (mounted) {
+          Navigator.pop(context); // Dismiss loading dialog
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Your account and all associated data have been permanently deleted.')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.pop(context); // Dismiss loading dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete account: $e')),
+          );
+        }
       }
     }
   }
@@ -147,7 +323,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   items: const [
                     DropdownMenuItem(value: 'stay_active', child: Text('Stay Active')),
                     DropdownMenuItem(value: 'lose_weight', child: Text('Lose Weight')),
+                    DropdownMenuItem(value: 'build_muscle', child: Text('Build Muscle')),
+                    DropdownMenuItem(value: 'improve_endurance', child: Text('Improve Endurance')),
                     DropdownMenuItem(value: 'compete', child: Text('Compete')),
+                    DropdownMenuItem(value: 'have_fun', child: Text('Have Fun')),
                   ],
                   onChanged: (val) {
                     if (val != null) _updatePref(_preferences!.copyWith(goal: val));
@@ -156,6 +335,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               ],
             ),
           ),
+
+          // Privacy & Data Section
+          _buildSectionHeader('Privacy & Data'),
+          _buildListTile('Privacy Policy', Icons.privacy_tip_outlined, () {
+            PrivacyPolicyDialog.show(context);
+          }),
+          _buildListTile('Export My Data', Icons.download_outlined, () => _exportData(context)),
+          _buildListTile('Delete Health Data', Icons.delete_outline, () => _confirmDeleteHealth(context)),
+          _buildListTile('Delete Account', Icons.no_accounts_outlined, () => _confirmDeleteAccount(context)),
 
           const SizedBox(height: 40),
 

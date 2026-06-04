@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/constants/colors.dart';
 import 'package:mobile_app/widgets/master_container.dart';
+import 'package:mobile_app/widgets/privacy_policy_dialog.dart';
 import 'package:mobile_app/services/auth_service.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -226,7 +228,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 16),
+        Center(
+          child: Text.rich(
+            TextSpan(
+              text: 'By creating an account, you agree to our ',
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
+              children: [
+                const TextSpan(text: 'Terms of Service'),
+                const TextSpan(text: ' and '),
+                TextSpan(
+                  text: 'Privacy Policy',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                  ),
+                  recognizer: TapGestureRecognizer()
+                    ..onTap = () {
+                      PrivacyPolicyDialog.show(context);
+                    },
+                ),
+                const TextSpan(text: '.'),
+              ],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: 16),
 
         ElevatedButton(
           onPressed: _handleSignUp,
