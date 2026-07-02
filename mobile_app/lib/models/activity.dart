@@ -40,7 +40,6 @@ class Activity {
       'type': type,
       if (body != null) 'body': body,
       'is_public': isPublic,
-      if (duration != null) 'duration': duration,
     };
   }
 }

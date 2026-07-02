@@ -52,7 +52,7 @@ class ActivityService {
       final data = json.decode(response.body);
       return Activity.fromJson(data);
     } else {
-      throw Exception('Failed to create activity');
+      throw Exception('Failed to create activity: ${response.statusCode} - ${response.body}');
     }
   }
 

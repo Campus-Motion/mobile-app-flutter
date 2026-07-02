@@ -235,7 +235,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
     titleController.text = '$timeOfDay Run';
 
     final durationController = TextEditingController();
-    bool isPublic = true;
+    bool isPublic = false;
 
     showModalBottomSheet(
       context: context,
