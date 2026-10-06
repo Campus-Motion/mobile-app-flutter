@@ -52,7 +52,7 @@ class AuthService {
       } else {
         if (kDebugMode && response.statusCode >= 500) {
           debugPrint('[AuthService] Server error on login (${response.statusCode}). Falling back to demo mode.');
-          return enterDemoMode();
+          return await enterDemoMode();
         }
         final message = _parseErrorMessage(response);
         throw Exception(message ?? 'Invalid email or password');
@@ -60,7 +60,7 @@ class AuthService {
     } catch (e) {
       if (kDebugMode && !ApiService.mockMode) {
         debugPrint('[AuthService] Login network failure ($e). Falling back to developer demo bypass.');
-        return enterDemoMode();
+        return await enterDemoMode();
       }
       rethrow;
     }
