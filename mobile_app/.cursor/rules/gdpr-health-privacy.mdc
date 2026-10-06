@@ -1,0 +1,30 @@
+---
+description: GDPR and Student Health Data privacy rules for Campus Motion
+globs: mobile_app/lib/**/*.dart
+---
+
+# GDPR & Health Data Privacy Rules
+
+Campus Motion handles student health and workout data. Strict GDPR compliance is mandatory.
+
+## Invariants
+
+1. **Article 9 Explicit Opt-In Consent**:
+   - Before collecting, updating, or displaying sensitive physical health metrics (`weight_kg`, `height_cm`, date of birth), verify explicit opt-in consent.
+   - Consent must be revokable at any time from Profile Settings.
+
+2. **Encryption & Encapsulation**:
+   - Sensitive health metrics must be stored in `sensitive_data` JSON string with client encryption key versioning (`client_key_version: 1`).
+
+3. **Privacy by Default**:
+   - New user activities (`Activity`) must default to `is_public: false`.
+
+4. **Right to Erasure & Portability**:
+   - Never remove or bypass user deletion endpoints:
+     - `UserService().deleteHealth()` (erasure of health metrics)
+     - `UserService().deleteMe()` (complete account deletion)
+   - Preserve data export functionality in JSON format via `_exportData()`.
+
+5. **No Secrets or Third-Party Leakage**:
+   - NEVER commit `.env`, `google-services.json`, or API tokens.
+   - NEVER send telemetry or student data to external analytics without explicit staff review.
