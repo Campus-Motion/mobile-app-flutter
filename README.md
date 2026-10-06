@@ -62,7 +62,7 @@ flutter run
 Campus Motion is designed to empower students of all skill levels to contribute using AI coding agents (Cursor, Claude Code, Antigravity, Copilot, ChatGPT).
 
 ### How to Work on an Issue:
-1. **Branch**: Create a branch `git checkout -b feat/your-feature-name` from `main`.
+1. **Branch**: Create a branch `git checkout -b {task}/{your-feature-name}` from `main`.
 2. **Prompt**: Copy the prompt from [`docs/AGENT_PROMPT_TEMPLATE.md`](docs/AGENT_PROMPT_TEMPLATE.md) and paste it into your AI assistant with the GitHub issue description.
 3. **Verify**: Run `flutter analyze` and `flutter test`. Ensure zero errors.
 4. **Pull Request**: Open a PR. GitHub Actions CI will automatically verify your code.
