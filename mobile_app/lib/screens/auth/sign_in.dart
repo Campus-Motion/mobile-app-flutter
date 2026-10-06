@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/constants/colors.dart';
 import 'package:mobile_app/widgets/master_container.dart';
+import 'package:mobile_app/widgets/app_button.dart';
 import 'package:mobile_app/services/auth_service.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -237,6 +238,18 @@ class _SignInScreenState extends State<SignInScreen> {
               borderRadius: BorderRadius.circular(12.0),
             ),
           ),
+        ),
+        const SizedBox(height: 16),
+
+        AppButton(
+          text: 'Demo Mode (Offline Bypass)',
+          variant: AppButtonVariant.secondary,
+          icon: Icons.bolt,
+          onPressed: () async {
+            await AuthService().enterDemoMode();
+            if (!context.mounted) return;
+            Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+          },
         ),
         const SizedBox(height: 32),
 

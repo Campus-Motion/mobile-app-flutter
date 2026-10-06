@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'user_service.dart';
 import 'api_service.dart';
 import '../models/user.dart';
@@ -13,6 +14,15 @@ class AuthService {
 
   User? get currentUser => _currentUser;
 
+  /// Activates the developer mock bypass and sets up a local demo session.
+  Future<User> enterDemoMode() async {
+    _apiService.enableMockMode();
+    _apiService.setToken('mock-dev-jwt-token');
+    final user = await UserService().getMe();
+    _currentUser = user;
+    return user;
+  }
+
   Future<User?> getProfile() async {
     try {
       final user = await UserService().getMe();
@@ -24,23 +34,35 @@ class AuthService {
   }
 
   Future<User> login(String email, String password) async {
-    final response = await _apiService.post('/auth/login', {
-      'email': email,
-      'password': password,
-    });
+    try {
+      final response = await _apiService.post('/auth/login', {
+        'email': email,
+        'password': password,
+      });
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final token = data['access_token'] as String;
-      _apiService.setToken(token);
-      
-      // Fetch the current user profile
-      final user = await UserService().getMe();
-      _currentUser = user;
-      return user;
-    } else {
-      final message = _parseErrorMessage(response);
-      throw Exception(message ?? 'Invalid email or password');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final token = data['access_token'] as String;
+        _apiService.setToken(token);
+        
+        // Fetch the current user profile
+        final user = await UserService().getMe();
+        _currentUser = user;
+        return user;
+      } else {
+        if (kDebugMode && response.statusCode >= 500) {
+          debugPrint('[AuthService] Server error on login (${response.statusCode}). Falling back to demo mode.');
+          return enterDemoMode();
+        }
+        final message = _parseErrorMessage(response);
+        throw Exception(message ?? 'Invalid email or password');
+      }
+    } catch (e) {
+      if (kDebugMode && !ApiService.mockMode) {
+        debugPrint('[AuthService] Login network failure ($e). Falling back to developer demo bypass.');
+        return enterDemoMode();
+      }
+      rethrow;
     }
   }
 
