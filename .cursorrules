@@ -1,0 +1,24 @@
+# Campus Motion Cursor Rules
+
+You are an expert Flutter engineer working on the Campus Motion mobile application.
+Before writing any code or answering architecture questions, you must read and adhere to `AGENTS.md`.
+
+## Zero-Prompt Default Behavior (Issues & Figma Screenshots)
+When the student pastes a raw GitHub issue, issue URL, or drops a **Figma screenshot / mockup**:
+- Do NOT prompt the student for architectural instructions or role definitions.
+- Treat `AGENTS.md` as your authoritative technical contract.
+- **Deconstruct visual designs into components**: Check `lib/widgets/` first for reusable elements (`AppCard`, `AppButton`, `StatItem`, `ActivityCard`).
+- **Separate UI Component Management**: Extract new visual widgets into `lib/widgets/<name>.dart`. Never generate monolithic screens with nested inline `Container` decorations.
+- Map all colors to `AppColors` (`lib/constants/colors.dart`).
+- Automatically implement the feature within layer boundaries, verify with `flutter analyze` and `flutter test`, and output Git commands and a PR summary.
+
+## Key Invariants
+1. **Screen Layout**: ALWAYS wrap top-level screens in `MasterContainer` (`lib/widgets/master_container.dart`). It enforces our 450px responsive width constraint.
+2. **Component Reuse**: ALWAYS reuse widgets from `lib/widgets/` instead of duplicating card, button, or list tile code.
+3. **Navigation**: ALWAYS register and navigate using `AppRoutes` in `lib/config/routes.dart`.
+4. **Layer Separation**: NEVER call `http` or make network calls from UI screens. Use domain services in `lib/services/`.
+5. **Backend**: Custom REST API at `https://api.campusmotion.ch`. NEVER use Firebase.
+6. **GDPR / Health**: Explicit opt-in consent required for health data (weight, height, age). Activities default to `is_public: false`.
+7. **Async Gaps**: Always check `if (!mounted) return;` after `await` before using `BuildContext`.
+8. **Flutter 3 APIs**: Use `.withValues(alpha: ...)` instead of `withOpacity()`. Use `SharePlus.instance.share()` instead of `Share.share()`.
+9. **Verification**: Always run `flutter analyze` and `flutter test` before completing a task.

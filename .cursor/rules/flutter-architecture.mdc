@@ -1,0 +1,42 @@
+---
+description: Architecture, UI hierarchy, component reuse, and navigation rules for Campus Motion Flutter app
+globs: mobile_app/lib/**/*.dart
+---
+
+# Campus Motion Architecture & UI Component Rules
+
+## 1. UI Component Separation & Code Reusability
+- **Screens (`lib/screens/`) are orchestrators**: Screen files must manage state and compose components. They must NOT contain deeply nested visual layout blocks or repetitive `_buildCard()` helper methods.
+- **Widgets (`lib/widgets/`) are primitives**: Extract all reusable cards, buttons, badges, chips, and list tiles into `lib/widgets/`.
+- **Component Inventory**: Check `lib/widgets/` before building any UI:
+  - Cards $\rightarrow$ [`AppCard`](lib/widgets/app_card.dart)
+  - Action buttons $\rightarrow$ [`AppButton`](lib/widgets/app_button.dart)
+  - Statistic displays $\rightarrow$ [`StatItem`](lib/widgets/stat_item.dart)
+  - Activity items $\rightarrow$ [`ActivityCard`](lib/widgets/activity_card.dart)
+- **Figma / Screenshot Translation**: When implementing from a screenshot or mockup, ALWAYS decompose into reusable components in `lib/widgets/` first, then assemble the screen. Never write massive monolithic 500+ line screen files.
+
+## 2. Design Tokens & Styling
+- Use `AppColors` from `lib/constants/colors.dart` exclusively.
+- Never write ad-hoc inline hex codes like `Color(0xFF...)` or un-themed `Colors.blue`.
+- Standard spacing scale: `8`, `12`, `16`, `20`, `24`, `32`.
+- Standard corner radii: Cards = `20.0`, Buttons = `14.0`, Chips = `8.0`.
+
+## 3. Screen Structure & Responsive Shell
+- Every top-level application screen MUST be wrapped in `MasterContainer` (`lib/widgets/master_container.dart`).
+- `MasterContainer` enforces a 450px maximum width constraint with centering for web/tablet responsiveness, handles safe-area insets, pull-to-refresh (`onRefresh`), and hosts the `CampusMotionBottomBar`.
+
+## 4. Navigation & Routing
+- All screens MUST be declared in `AppRoutes` in `lib/config/routes.dart`.
+- Navigate using named routes: `Navigator.pushNamed(context, AppRoutes.<name>)`.
+- Avoid direct anonymous `MaterialPageRoute(builder: ...)` calls within screens for top-level navigation.
+
+## 5. Layer Separation
+- **Screens (`lib/screens/`)**: Presentational only. Must NEVER import `package:http/http.dart` or make direct network calls.
+- **Services (`lib/services/`)**: Singletons extending application domain logic. Responsible for calling `ApiService` and converting JSON into model objects.
+- **Models (`lib/models/`)**: Pure Dart classes with `fromJson` and `toJson`. Must be null-safe and strictly typed.
+- **Networking (`lib/services/api_service.dart`)**: Single gateway for HTTP calls and Bearer auth header injection.
+
+## 6. Flutter 3 Modern APIs & Async Safety
+- Guard async gaps: Always use `if (!mounted) return;` after `await` before accessing `BuildContext` (e.g. `Navigator`, `ScaffoldMessenger`).
+- Use `.withValues(alpha: 0.1)` instead of deprecated `.withOpacity(0.1)`.
+- Use `SharePlus.instance.share(...)` instead of deprecated `Share.share(...)`.

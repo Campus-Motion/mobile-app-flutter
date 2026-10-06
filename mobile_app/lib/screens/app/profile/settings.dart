@@ -64,7 +64,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
   }
 
-  Future<void> _exportData(BuildContext context) async {
+  Future<void> _exportData() async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -107,25 +107,25 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
       final jsonString = const JsonEncoder.withIndent('  ').convert(exportMap);
 
-      if (mounted) {
-        Navigator.pop(context); // Dismiss loading dialog
-      }
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading dialog
 
-      await Share.share(
-        jsonString,
-        subject: 'Campus Motion Data Export',
+      await SharePlus.instance.share(
+        ShareParams(
+          text: jsonString,
+          subject: 'Campus Motion Data Export',
+        ),
       );
     } catch (e) {
-      if (mounted) {
-        Navigator.pop(context); // Dismiss loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to export data: $e')),
-        );
-      }
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to export data: $e')),
+      );
     }
   }
 
-  Future<void> _confirmDeleteHealth(BuildContext context) async {
+  Future<void> _confirmDeleteHealth() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -147,6 +147,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       ),
     );
 
+    if (!mounted) return;
     if (confirmed == true) {
       showDialog(
         context: context,
@@ -158,24 +159,22 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
       try {
         await _userService.deleteHealth();
-        if (mounted) {
-          Navigator.pop(context); // Dismiss loading dialog
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Health data deleted successfully.')),
-          );
-        }
+        if (!mounted) return;
+        Navigator.pop(context); // Dismiss loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Health data deleted successfully.')),
+        );
       } catch (e) {
-        if (mounted) {
-          Navigator.pop(context); // Dismiss loading dialog
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete health data: $e')),
-          );
-        }
+        if (!mounted) return;
+        Navigator.pop(context); // Dismiss loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete health data: $e')),
+        );
       }
     }
   }
 
-  Future<void> _confirmDeleteAccount(BuildContext context) async {
+  Future<void> _confirmDeleteAccount() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -203,6 +202,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       ),
     );
 
+    if (!mounted) return;
     if (confirmed == true) {
       showDialog(
         context: context,
@@ -216,22 +216,36 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         await _userService.deleteMe();
         await AuthService().logout();
         
-        if (mounted) {
-          Navigator.pop(context); // Dismiss loading dialog
-          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Your account and all associated data have been permanently deleted.')),
-          );
-        }
+        if (!mounted) return;
+        Navigator.pop(context); // Dismiss loading dialog
+        Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Your account and all associated data have been permanently deleted.')),
+        );
       } catch (e) {
-        if (mounted) {
-          Navigator.pop(context); // Dismiss loading dialog
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete account: $e')),
-          );
-        }
+        if (!mounted) return;
+        Navigator.pop(context); // Dismiss loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete account: $e')),
+        );
       }
     }
+  }
+
+  Future<void> _logout() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+    );
+
+    await AuthService().logout();
+
+    if (!mounted) return;
+    Navigator.pop(context); // Dismiss dialog
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
   }
 
   @override
@@ -276,13 +290,13 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           SwitchListTile(
             title: const Text('Open to Group Activities'),
             value: _preferences!.openToGroups,
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
             onChanged: (val) => _updatePref(_preferences!.copyWith(openToGroups: val)),
           ),
           SwitchListTile(
             title: const Text('Open to New Sports'),
             value: _preferences!.openToNewSports,
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
             onChanged: (val) => _updatePref(_preferences!.copyWith(openToNewSports: val)),
           ),
           Padding(
@@ -341,9 +355,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           _buildListTile('Privacy Policy', Icons.privacy_tip_outlined, () {
             PrivacyPolicyDialog.show(context);
           }),
-          _buildListTile('Export My Data', Icons.download_outlined, () => _exportData(context)),
-          _buildListTile('Delete Health Data', Icons.delete_outline, () => _confirmDeleteHealth(context)),
-          _buildListTile('Delete Account', Icons.no_accounts_outlined, () => _confirmDeleteAccount(context)),
+          _buildListTile('Export My Data', Icons.download_outlined, () => _exportData()),
+          _buildListTile('Delete Health Data', Icons.delete_outline, () => _confirmDeleteHealth()),
+          _buildListTile('Delete Account', Icons.no_accounts_outlined, () => _confirmDeleteAccount()),
 
           const SizedBox(height: 40),
 
@@ -354,22 +368,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () async {
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => const Center(
-                      child: CircularProgressIndicator(color: AppColors.primary),
-                    ),
-                  );
-                  
-                  await AuthService().logout();
-                  
-                  if (mounted) {
-                    Navigator.pop(context); // Dismiss dialog
-                    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
-                  }
-                },
+                onPressed: _logout,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.red,

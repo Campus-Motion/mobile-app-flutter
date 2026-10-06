@@ -69,14 +69,13 @@ class UserService {
   }
 
   Future<UserPreferences> updatePreferences(UserPreferences preferences) async {
-    print(preferences.toJson);
     final response = await _apiService.put('/users/me/preferences', preferences.toJson());
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return UserPreferences.fromJson(data);
     } else {
-      throw Exception('Failed to update preferences ' + response.statusCode.toString());
+      throw Exception('Failed to update preferences: ${response.statusCode}');
     }
   }
 

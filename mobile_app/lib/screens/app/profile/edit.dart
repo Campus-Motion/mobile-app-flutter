@@ -98,6 +98,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -308,7 +309,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     return FilterChip(
                       label: Text(sport),
                       selected: isSelected,
-                      selectedColor: AppColors.primary.withOpacity(0.2),
+                      selectedColor: AppColors.primary.withValues(alpha: 0.2),
                       checkmarkColor: AppColors.primary,
                       onSelected: (selected) {
                         setState(() {
@@ -417,7 +418,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         onChanged: onChanged,
         decoration: InputDecoration(
           labelText: label,

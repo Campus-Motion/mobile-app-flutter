@@ -1,0 +1,18 @@
+---
+description: Code quality, linting, and testing rules for Campus Motion
+globs: mobile_app/**/*.dart
+---
+
+# Code Quality & Testing Rules
+
+## 1. Static Analysis
+- Must pass `flutter analyze` with 0 errors and 0 warnings.
+- Do NOT add `// ignore:` comments or weaken `analysis_options.yaml` without explicit approval.
+- Avoid `print()` statements in production code; use logging or `debugPrint()`.
+
+## 2. Test Discipline
+- Every new feature or bug fix must include corresponding tests:
+  - Unit tests in `test/` for domain services (mocking HTTP using `http.Client` or test responses).
+  - Widget tests in `test/` for new screens and reusable widgets.
+- Widget tests must wrap tested widgets in `MaterialApp` and test responsive containment (`MasterContainer`).
+- Verify tests pass with `flutter test`.

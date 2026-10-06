@@ -95,6 +95,7 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -121,7 +122,11 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
 
   void _shareProfile() {
     final username = _user?.username ?? 'a Campus Motion member';
-    Share.share('Check out $username\'s Campus Motion profile! Join me and track your campus activities.');
+    SharePlus.instance.share(
+      ShareParams(
+        text: 'Check out $username\'s Campus Motion profile! Join me and track your campus activities.',
+      ),
+    );
   }
 
   String _formatDuration(double totalMinutes) {
@@ -350,7 +355,7 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -361,7 +366,7 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: AppColors.primary),

@@ -1,0 +1,27 @@
+---
+description: Architecture, UI hierarchy, and navigation rules for Campus Motion Flutter app
+globs: mobile_app/lib/**/*.dart
+---
+
+# Campus Motion Architecture Rules
+
+## 1. Screen Structure & Layout
+- Every top-level application screen MUST be wrapped in `MasterContainer` (`lib/widgets/master_container.dart`).
+- `MasterContainer` enforces a 450px maximum width constraint with centering for web/tablet responsiveness, handles safe-area insets, pull-to-refresh (`onRefresh`), and hosts the `CampusMotionBottomBar`.
+- Use `AppColors` from `lib/constants/colors.dart` (Primary is `0xFFDE7356`). Do not hardcode arbitrary primary hex codes.
+
+## 2. Navigation & Routing
+- All screens MUST be declared in `AppRoutes` in `lib/config/routes.dart`.
+- Navigate using named routes: `Navigator.pushNamed(context, AppRoutes.<name>)`.
+- Avoid direct anonymous `MaterialPageRoute(builder: ...)` calls within screens for top-level navigation.
+
+## 3. Layer Separation
+- **Screens (`lib/screens/`)**: Presentational only. Must NEVER import `package:http/http.dart` or make direct network calls.
+- **Services (`lib/services/`)**: Singletons extending application domain logic. Responsible for calling `ApiService` and converting JSON into model objects.
+- **Models (`lib/models/`)**: Pure Dart classes with `fromJson` and `toJson`. Must be null-safe and strictly typed.
+- **Networking (`lib/services/api_service.dart`)**: Single gateway for HTTP calls and Bearer auth header injection.
+
+## 4. Flutter 3 Modern APIs & Async Safety
+- Guard async gaps: Always use `if (!mounted) return;` after `await` before accessing `BuildContext` (e.g. `Navigator`, `ScaffoldMessenger`).
+- Use `.withValues(alpha: 0.1)` instead of deprecated `.withOpacity(0.1)`.
+- Use `SharePlus.instance.share(...)` instead of deprecated `Share.share(...)`.

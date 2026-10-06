@@ -18,7 +18,7 @@ class EventService {
 
     String queryString = '';
     if (params.isNotEmpty) {
-      queryString = '?' + Uri(queryParameters: params).query;
+      queryString = '?${Uri(queryParameters: params).query}';
     }
 
     final response = await _apiService.get('/events$queryString');
