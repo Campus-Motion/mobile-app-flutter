@@ -123,6 +123,9 @@ class UserService {
   }
 
   Future<String> uploadPhoto(List<int> bytes, String filename) async {
+    if (ApiService.mockMode) {
+      return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
+    }
     final uri = Uri.parse('${ApiService.baseUrl}/users/me/photo');
     final request = http.MultipartRequest('POST', uri);
     
