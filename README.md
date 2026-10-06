@@ -1,4 +1,4 @@
-# Campus Motion - Mobile App (v2)
+# Campus Motion - Mobile App
 
 Welcome to the **Campus Motion** mobile application repository!
 
@@ -59,7 +59,7 @@ flutter run
 
 ## 🤖 AI-Assisted Development Workflow
 
-Campus Motion is designed to empower students of all skill levels to contribute using AI coding agents (Cursor, Claude Code, Antigravity, Copilot, ChatGPT).
+Campus Motion is designed to empower students of all skill levels to contribute, and if they want, by using AI coding agents (Cursor, Claude Code, Antigravity, Copilot, ChatGPT).
 
 ### How to Work on an Issue:
 1. **Branch**: Create a branch `git checkout -b {task}/{your-feature-name}` from `main`.
