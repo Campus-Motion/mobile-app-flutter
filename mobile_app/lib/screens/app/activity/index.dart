@@ -68,6 +68,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
         _isLoadingActivities = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoadingActivities = false;
       });
@@ -123,6 +124,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
         _isLoadingEvents = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoadingEvents = false;
       });
@@ -243,15 +245,15 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (context) {
+      builder: (modalContext) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
+          builder: (modalContext, setModalState) {
             return Padding(
               padding: EdgeInsets.only(
                 left: 24,
                 right: 24,
                 top: 24,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                bottom: MediaQuery.of(modalContext).viewInsets.bottom + 24,
               ),
               child: Form(
                 key: formKey,
@@ -283,7 +285,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
 
                     // Type Dropdown
                     DropdownButtonFormField<String>(
-                      value: selectedType,
+                      initialValue: selectedType,
                       decoration: InputDecoration(
                         labelText: 'Activity Type',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -335,7 +337,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
                       title: const Text('Make Activity Public'),
                       subtitle: const Text('Visible to other campus users in their social feeds'),
                       value: isPublic,
-                      activeColor: AppColors.primary,
+                      activeThumbColor: AppColors.primary,
                       onChanged: (val) {
                         setModalState(() {
                           isPublic = val;
@@ -351,7 +353,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
                       child: ElevatedButton(
                         onPressed: () async {
                           if (formKey.currentState!.validate()) {
-                            Navigator.pop(context); // Close bottom sheet
+                            Navigator.pop(modalContext); // Close bottom sheet
                             
                             showDialog(
                               context: context,
@@ -373,20 +375,18 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
                               );
                               await _activityService.createActivity(activity);
                               
-                              if (mounted) {
-                                Navigator.pop(context); // Dismiss loading spinner
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Activity logged successfully!')),
-                                );
-                                _loadActivities();
-                              }
+                              if (!mounted) return;
+                              Navigator.pop(context); // Dismiss loading spinner
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Activity logged successfully!')),
+                              );
+                              _loadActivities();
                             } catch (e) {
-                              if (mounted) {
-                                Navigator.pop(context); // Dismiss loading spinner
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Failed to log activity: $e')),
-                                );
-                              }
+                              if (!mounted) return;
+                              Navigator.pop(context); // Dismiss loading spinner
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to log activity: $e')),
+                              );
                             }
                           }
                         },
@@ -618,7 +618,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
+                      color: color.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(_getActivityIcon(activity.type), color: color, size: 28),
@@ -806,9 +806,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
         margin: const EdgeInsets.symmetric(horizontal: 8),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.3), width: 1),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -844,7 +844,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),

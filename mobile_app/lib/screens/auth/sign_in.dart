@@ -29,7 +29,7 @@ class _SignInScreenState extends State<SignInScreen> {
   Future<void> _handleGoogleLogin() async {
     try {
       // TODO: Implement Google Sign In
-      print('Sign in with Google');
+      debugPrint('Sign in with Google');
       // Navigator.pushReplacementNamed(context, AppRoutes.home);
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(

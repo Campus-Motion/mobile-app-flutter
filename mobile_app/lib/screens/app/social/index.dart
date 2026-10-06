@@ -57,6 +57,7 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -119,31 +120,26 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
     try {
       if (isFollowing) {
         await _userService.unfollowUser(user.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unfollowed ${user.username}')),
-        );
       } else {
         await _userService.followUser(user.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Followed ${user.username}!')),
-        );
       }
 
-      if (mounted) {
-        Navigator.pop(context); // Dismiss loading dialog
-        _loadSocialData(); // Refresh followers/following lists
-        // Refresh searched user to update follow state
-        if (_searchedUser != null && _searchedUser!.id == user.id) {
-          _searchUser();
-        }
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isFollowing ? 'Unfollowed ${user.username}' : 'Followed ${user.username}!')),
+      );
+      _loadSocialData(); // Refresh followers/following lists
+      // Refresh searched user to update follow state
+      if (_searchedUser != null && _searchedUser!.id == user.id) {
+        _searchUser();
       }
     } catch (e) {
-      if (mounted) {
-        Navigator.pop(context); // Dismiss loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Action failed: $e')),
-        );
-      }
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Action failed: $e')),
+      );
     }
   }
 
@@ -389,7 +385,7 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
                 border: Border.all(color: Colors.grey.shade200),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
