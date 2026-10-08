@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/config/routes.dart';
+import 'package:mobile_app/constants/colors.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -27,7 +28,7 @@ class MyApp extends StatelessWidget {
       title: 'CampusMotion',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
       ),
       //Routes
       initialRoute: AppRoutes.login,
