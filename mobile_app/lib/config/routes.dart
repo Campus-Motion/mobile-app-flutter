@@ -5,6 +5,7 @@ import 'package:mobile_app/screens/app/profile/index.dart';
 import 'package:mobile_app/screens/app/profile/settings.dart';
 import 'package:mobile_app/screens/app/social/index.dart';
 import 'package:mobile_app/screens/auth/sign_in.dart';
+import 'package:mobile_app/screens/app/events/details.dart';
 import '../screens/auth/welcome.dart';
 import '../screens/auth/sign_up.dart';
 import '../screens/app/home/index.dart'; // Add import for Dashboard (HomeIndexScreen)
@@ -21,6 +22,7 @@ class AppRoutes {
   static const String editProfile = '/profile/edit';
   static const String shareProfile = 'profile/share';
   static const String parameters = 'profile/parameters';
+  static const String eventDetails = '/events/details';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -44,6 +46,12 @@ class AppRoutes {
         return MaterialPageRoute(builder : (_) => const HomeIndexScreen()); //TODO : Change path
       case parameters : 
         return MaterialPageRoute(builder : (_) => const ProfileSettingsScreen());
+      case eventDetails:
+        final eventId = settings.arguments is int ? settings.arguments as int : null;
+        return MaterialPageRoute(
+          builder: (_) => EventDetailsScreen(eventId: eventId),
+          settings: settings,
+        );
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

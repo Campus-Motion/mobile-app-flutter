@@ -238,11 +238,11 @@ class MockDataService {
     final singleEventMatch = RegExp(r'^/events/(\d+)$').firstMatch(cleanPath);
     if (singleEventMatch != null) {
       final eventId = int.parse(singleEventMatch.group(1)!);
-      final event = _mockEvents.firstWhere(
-        (e) => e['id'] == eventId,
-        orElse: () => _mockEvents.first,
-      );
-      return http.Response(json.encode(event), 200, headers: _jsonHeaders);
+      final index = _mockEvents.indexWhere((e) => e['id'] == eventId);
+      if (index != -1) {
+        return http.Response(json.encode(_mockEvents[index]), 200, headers: _jsonHeaders);
+      }
+      return http.Response(json.encode({'message': 'Event not found'}), 404, headers: _jsonHeaders);
     }
 
     if (cleanPath == '/activities') {

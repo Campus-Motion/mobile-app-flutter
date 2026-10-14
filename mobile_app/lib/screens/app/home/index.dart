@@ -87,7 +87,21 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
             clipBehavior: Clip.none,
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             itemCount: events.length,
-            itemBuilder: (context, index) => EventPreviewCard(event: events[index]),
+            itemBuilder: (context, index) {
+              final event = events[index];
+              return EventPreviewCard(
+                event: event,
+                onTap: () async {
+                  await Navigator.pushNamed(
+                    context,
+                    AppRoutes.eventDetails,
+                    arguments: event.id,
+                  );
+                  if (!mounted) return;
+                  _refreshNews();
+                },
+              );
+            },
           ),
         );
       },

@@ -779,6 +779,11 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
 
   Widget _buildEnrolledCard(int id, String title, String time, IconData icon, Color color) {
     return GestureDetector(
+      onTap: () async {
+        await Navigator.pushNamed(context, AppRoutes.eventDetails, arguments: id);
+        if (!mounted) return;
+        _loadEventsData();
+      },
       onLongPress: () {
         showDialog(
           context: context,
@@ -837,7 +842,13 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
   }
 
   Widget _buildUpcomingEventCard({required int id, required String title, required String date, required String location, required int spotsLeft}) {
-    return Container(
+    return GestureDetector(
+      onTap: () async {
+        await Navigator.pushNamed(context, AppRoutes.eventDetails, arguments: id);
+        if (!mounted) return;
+        _loadEventsData();
+      },
+      child: Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -910,8 +921,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen> with SingleTi
           )
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   IconData _getEventIcon(String title) {
     final t = title.toLowerCase();
