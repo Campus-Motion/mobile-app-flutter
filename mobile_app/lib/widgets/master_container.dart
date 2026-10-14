@@ -35,24 +35,20 @@ class MasterContainer extends StatelessWidget {
     );
 
     if (padding != EdgeInsets.zero) {
-      content = Padding(
-        padding: padding,
-        child: content,
-      );
+      content = Padding(padding: padding, child: content);
     }
 
     if (scrollable) {
       content = SingleChildScrollView(
-        physics: onRefresh != null ? const AlwaysScrollableScrollPhysics() : null,
+        physics: onRefresh != null
+            ? const AlwaysScrollableScrollPhysics()
+            : null,
         child: content,
       );
     }
 
     if (onRefresh != null) {
-      content = RefreshIndicator(
-        onRefresh: onRefresh!,
-        child: content,
-      );
+      content = RefreshIndicator(onRefresh: onRefresh!, child: content);
     }
 
     if (useSafeArea) {
@@ -71,7 +67,8 @@ class MasterContainer extends StatelessWidget {
     );
 
     return Container(
-      color: backgroundColor, // Background for the non-constrained area on web/desktop
+      color:
+          backgroundColor, // Background for the non-constrained area on web/desktop
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(

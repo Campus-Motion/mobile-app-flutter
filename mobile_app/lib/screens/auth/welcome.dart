@@ -14,27 +14,20 @@ class WelcomeScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 20.0),
       scrollable: false,
       children: [
-        const SizedBox(
-          height: 16,
-        ),
-        const Image(
-          image: AssetImage('assets/images/logo_peach.png'),
-        ),
-        const Spacer(
-          flex: 1,
-        ),
+        const SizedBox(height: 16),
+        const Image(image: AssetImage('assets/images/logo_peach.png')),
+        const Spacer(flex: 1),
         TextButton(
           onPressed: () => Navigator.pushNamed(context, AppRoutes.signup),
           style: TextButton.styleFrom(
             minimumSize: const Size(300, 50),
             backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white, // Setting text color to white for better contrast
+            foregroundColor:
+                Colors.white, // Setting text color to white for better contrast
           ),
           child: const Text('Sign Up'),
         ),
-        const SizedBox(
-          height: 16,
-        ),
+        const SizedBox(height: 16),
         OutlinedButton(
           onPressed: () => Navigator.pushNamed(context, AppRoutes.signin),
           style: OutlinedButton.styleFrom(
@@ -45,9 +38,7 @@ class WelcomeScreen extends StatelessWidget {
           ),
           child: const Text('Sign In'),
         ),
-        const SizedBox(
-          height: 16,
-        ),
+        const SizedBox(height: 16),
         AppButton(
           text: 'Demo Mode (Offline Bypass)',
           variant: AppButtonVariant.secondary,

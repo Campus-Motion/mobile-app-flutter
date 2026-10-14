@@ -31,10 +31,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: AppButton(
-              text: 'Save',
-              onPressed: () => pressed = true,
-            ),
+            body: AppButton(text: 'Save', onPressed: () => pressed = true),
           ),
         ),
       );
@@ -48,11 +45,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: StatItem(
-              value: '12.5',
-              unit: 'km',
-              label: 'Total Distance',
-            ),
+            body: StatItem(value: '12.5', unit: 'km', label: 'Total Distance'),
           ),
         ),
       );
@@ -75,11 +68,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: ActivityCard(
-              activity: sampleActivity,
-            ),
-          ),
+          home: Scaffold(body: ActivityCard(activity: sampleActivity)),
         ),
       );
 

@@ -72,7 +72,11 @@ class ActivityCard extends StatelessWidget {
                 color: color.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: Icon(getActivityIcon(activity.type), color: color, size: 26),
+              child: Icon(
+                getActivityIcon(activity.type),
+                color: color,
+                size: 26,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(

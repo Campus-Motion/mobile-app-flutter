@@ -44,14 +44,16 @@ class AuthService {
         final data = json.decode(response.body);
         final token = data['access_token'] as String;
         _apiService.setToken(token);
-        
+
         // Fetch the current user profile
         final user = await UserService().getMe();
         _currentUser = user;
         return user;
       } else {
         if (kDebugMode && response.statusCode >= 500) {
-          debugPrint('[AuthService] Server error on login (${response.statusCode}). Falling back to demo mode.');
+          debugPrint(
+            '[AuthService] Server error on login (${response.statusCode}). Falling back to demo mode.',
+          );
           return await enterDemoMode();
         }
         final message = _parseErrorMessage(response);
@@ -59,7 +61,9 @@ class AuthService {
       }
     } catch (e) {
       if (kDebugMode && !ApiService.mockMode) {
-        debugPrint('[AuthService] Login network failure ($e). Falling back to developer demo bypass.');
+        debugPrint(
+          '[AuthService] Login network failure ($e). Falling back to developer demo bypass.',
+        );
         return await enterDemoMode();
       }
       rethrow;
@@ -81,7 +85,10 @@ class AuthService {
     }
   }
 
-  Future<void> changePassword(String currentPassword, String newPassword) async {
+  Future<void> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
     final response = await _apiService.put('/auth/password', {
       'current_password': currentPassword,
       'new_password': newPassword,

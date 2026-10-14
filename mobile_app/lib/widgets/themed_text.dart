@@ -8,9 +8,6 @@ class ThemedText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: style ?? Theme.of(context).textTheme.bodyMedium,
-    );
+    return Text(text, style: style ?? Theme.of(context).textTheme.bodyMedium);
   }
 }

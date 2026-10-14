@@ -22,7 +22,9 @@ class UserPreferences {
   factory UserPreferences.fromJson(Map<String, dynamic> json) {
     return UserPreferences(
       userId: json['user_id'] as int?,
-      preferredSports: List<String>.from(json['preferred_sports'] as List? ?? []),
+      preferredSports: List<String>.from(
+        json['preferred_sports'] as List? ?? [],
+      ),
       intensity: json['intensity'] as String? ?? 'moderate',
       goal: json['goal'] as String? ?? 'stay_active',
       level: json['level'] as String? ?? 'intermediate',
