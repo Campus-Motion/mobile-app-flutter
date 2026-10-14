@@ -6,10 +6,15 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     name: Lint & Test Suite
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     defaults:
       run:
@@ -34,8 +39,23 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Run Static Analysis
-        run: flutter analyze
+      - name: Check Code Formatting
+        run: dart format --output=none --set-exit-if-changed .
 
-      - name: Run Test Suite
-        run: flutter test
+      - name: Run Static Analysis
+        run: flutter analyze --fatal-infos
+
+      - name: Run Test Suite with Coverage
+        run: flutter test --coverage
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: mobile_app/coverage/lcov.info
+          if-no-files-found: ignore
+
+      - name: Verify Minimum Line Coverage
+        run: dart run tool/check_coverage.dart
+
