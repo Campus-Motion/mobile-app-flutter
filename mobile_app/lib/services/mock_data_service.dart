@@ -99,6 +99,16 @@ class MockDataService {
       'participant_count': 14,
       'created_at': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
     },
+    {
+      'id': 104,
+      'title': 'Past Campus Welcome Run',
+      'body': 'Completed 5km campus welcome run.',
+      'start_time': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
+      'end_time': DateTime.now().subtract(const Duration(days: 2, hours: -1)).toIso8601String(),
+      'distance_m': 5000.0,
+      'participant_count': 18,
+      'created_at': DateTime.now().subtract(const Duration(days: 5)).toIso8601String(),
+    },
   ];
 
   // Mock Activities
@@ -225,7 +235,25 @@ class MockDataService {
     }
 
     if (cleanPath == '/events') {
-      return http.Response(json.encode({'data': _mockEvents}), 200, headers: _jsonHeaders);
+      var events = List<Map<String, dynamic>>.from(_mockEvents);
+      final afterParam = uri.queryParameters['after'];
+      if (afterParam != null) {
+        final afterDate = DateTime.tryParse(afterParam);
+        if (afterDate != null) {
+          events = events.where((e) {
+            final start = DateTime.tryParse(e['start_time'] as String? ?? '');
+            return start != null && start.isAfter(afterDate);
+          }).toList();
+        }
+      }
+      final limitParam = uri.queryParameters['limit'];
+      if (limitParam != null) {
+        final limit = int.tryParse(limitParam);
+        if (limit != null && events.length > limit) {
+          events = events.sublist(0, limit);
+        }
+      }
+      return http.Response(json.encode({'data': events}), 200, headers: _jsonHeaders);
     }
 
     final eventParticipantsMatch = RegExp(r'^/events/(\d+)/participants$').firstMatch(cleanPath);
