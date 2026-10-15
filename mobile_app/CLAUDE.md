@@ -25,11 +25,16 @@ When the user provides a raw GitHub issue or **drops a Figma screenshot / mockup
 All commands are run from the Flutter project directory: `mobile_app/` (or relative path `mobile-app-flutter/mobile-app-v2/mobile_app/`).
 
 - **Install Dependencies**: `flutter pub get`
-- **Static Analysis**: `flutter analyze`
+- **Format Verification**: `dart format --output=none --set-exit-if-changed .`
+- **Format Code**: `dart format .`
+- **Static Analysis**: `flutter analyze --fatal-infos`
 - **Run All Tests**: `flutter test`
+- **Run All Tests with Coverage**: `flutter test --coverage`
+- **Verify Coverage Floor**: `dart run tool/check_coverage.dart`
 - **Run Specific Test**: `flutter test test/<test_name>.dart`
 - **Run App (Web)**: `flutter run -d chrome`
 - **Run App (Mobile)**: `flutter run`
+
 
 ---
 

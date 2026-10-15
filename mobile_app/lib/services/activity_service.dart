@@ -9,7 +9,12 @@ class ActivityService {
 
   final ApiService _apiService = ApiService();
 
-  Future<List<Activity>> getActivities({int? limit, int? cursor, String? type, bool? public}) async {
+  Future<List<Activity>> getActivities({
+    int? limit,
+    int? cursor,
+    String? type,
+    bool? public,
+  }) async {
     final params = <String, String>{};
     if (limit != null) params['limit'] = limit.toString();
     if (cursor != null) params['cursor'] = cursor.toString();
@@ -52,7 +57,9 @@ class ActivityService {
       final data = json.decode(response.body);
       return Activity.fromJson(data);
     } else {
-      throw Exception('Failed to create activity: ${response.statusCode} - ${response.body}');
+      throw Exception(
+        'Failed to create activity: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 

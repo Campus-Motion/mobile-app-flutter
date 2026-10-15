@@ -23,7 +23,7 @@ class HomeIndexScreen extends StatefulWidget {
 class _HomeIndexScreenState extends State<HomeIndexScreen> {
   final NewsService _newsService = NewsService();
   final EventService _eventService = EventService();
-  
+
   late Future<List<NewsItem>> _newsFuture;
   late Future<List<Event>> _eventsFuture;
 
@@ -31,7 +31,10 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
   void initState() {
     super.initState();
     _newsFuture = _newsService.fetchLatestNews();
-    _eventsFuture = _eventService.getEvents(limit: 5, after : DateTime.now().toIso8601String());
+    _eventsFuture = _eventService.getEvents(
+      limit: 5,
+      after: DateTime.now().toIso8601String(),
+    );
   }
 
   Future<void> _refreshNews() async {
@@ -42,17 +45,17 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
     await Future.wait([_newsFuture, _eventsFuture]);
   }
 
-  static dynamic _navigationFunction(BuildContext context, int index){
-    switch(index) {
-      case 0 : 
+  static dynamic _navigationFunction(BuildContext context, int index) {
+    switch (index) {
+      case 0:
         return Navigator.pushNamed(context, AppRoutes.dashboard);
-      case 1 :
+      case 1:
         return Navigator.pushNamed(context, AppRoutes.trail);
-      case 2 :
+      case 2:
         return Navigator.pushNamed(context, AppRoutes.social);
-      case 3 : 
+      case 3:
         return Navigator.pushNamed(context, AppRoutes.profile);
-      case _ :
+      case _:
         return Navigator.pushNamed(context, AppRoutes.dashboard);
     }
   }
@@ -64,17 +67,29 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox(
             height: EventPreviewCard.size,
-            child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
           );
         } else if (snapshot.hasError) {
           return const SizedBox(
             height: EventPreviewCard.size,
-            child: Center(child: Text('Failed to load events', style: TextStyle(color: AppColors.error))),
+            child: Center(
+              child: Text(
+                'Failed to load events',
+                style: TextStyle(color: AppColors.error),
+              ),
+            ),
           );
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const SizedBox(
             height: EventPreviewCard.size,
-            child: Center(child: Text('No upcoming events', style: TextStyle(color: AppColors.textMuted))),
+            child: Center(
+              child: Text(
+                'No upcoming events',
+                style: TextStyle(color: AppColors.textMuted),
+              ),
+            ),
           );
         }
 
@@ -87,7 +102,8 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
             clipBehavior: Clip.none,
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             itemCount: events.length,
-            itemBuilder: (context, index) => EventPreviewCard(event: events[index]),
+            itemBuilder: (context, index) =>
+                EventPreviewCard(event: events[index]),
           ),
         );
       },
@@ -99,11 +115,15 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
     return MasterContainer(
       padding: EdgeInsets.zero,
       onRefresh: _refreshNews,
-      bottomNavigationBar: CampusMotionBottomBar(currentIndex: 0, onTap: _navigationFunction, context: context),
-      children : [
+      bottomNavigationBar: CampusMotionBottomBar(
+        currentIndex: 0,
+        onTap: _navigationFunction,
+        context: context,
+      ),
+      children: [
         const TopAppBar(),
         const SizedBox(height: 20),
-        
+
         // Upcoming Events Section
         const SectionHeader(
           title: 'Upcoming Events',
@@ -118,7 +138,7 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children : [
+            children: [
               const SectionHeader(title: 'Latest News'),
               const SizedBox(height: 24),
               FutureBuilder<List<NewsItem>>(
@@ -127,7 +147,11 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Padding(
                       padding: EdgeInsets.all(40.0),
-                      child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      ),
                     );
                   } else if (snapshot.hasError) {
                     return Center(
@@ -135,11 +159,18 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
                         padding: const EdgeInsets.all(20.0),
                         child: Column(
                           children: [
-                            const Icon(Icons.error_outline, color: AppColors.error, size: 48),
+                            const Icon(
+                              Icons.error_outline,
+                              color: AppColors.error,
+                              size: 48,
+                            ),
                             const SizedBox(height: 16),
                             const Text(
                               'Failed to load news',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             const SizedBox(height: 16),
                             AppButton(
@@ -158,7 +189,10 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
                       child: Center(
                         child: Text(
                           'No news available.',
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 16),
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     );
@@ -166,14 +200,16 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
 
                   final newsItems = snapshot.data!;
                   return Column(
-                    children: newsItems.map((item) => NewsCard(item: item)).toList(),
+                    children: newsItems
+                        .map((item) => NewsCard(item: item))
+                        .toList(),
                   );
                 },
               ),
-            ]
-          )
+            ],
+          ),
         ),
-      ]
+      ],
     );
   }
 }

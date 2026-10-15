@@ -34,7 +34,7 @@ Campus Motion is a connected sports and health community application built for s
 - Java 17+ (for Android builds)
 - VS Code or Cursor with Flutter & Dart extensions
 
-### 2. Setup
+### 2. Setup & Verification
 ```bash
 # Navigate to the Flutter app directory
 cd mobile_app
@@ -42,11 +42,20 @@ cd mobile_app
 # Install dependencies
 flutter pub get
 
-# Check code quality
-flutter analyze
+# Check code formatting (enforced by CI)
+dart format --output=none --set-exit-if-changed .
 
-# Run tests
-flutter test
+# Auto-format all Dart code
+dart format .
+
+# Check code quality (including fatal infos)
+flutter analyze --fatal-infos
+
+# Run tests with coverage
+flutter test --coverage
+
+# Verify line coverage against the floor (minimum 15.0%)
+dart run tool/check_coverage.dart
 
 # Run app in Chrome (Web)
 flutter run -d chrome
@@ -54,6 +63,13 @@ flutter run -d chrome
 # Run app on connected phone or simulator
 flutter run
 ```
+
+### 3. Code Quality & Coverage Gate
+Continuous Integration (CI) enforces the following quality gates on all pushes and pull requests:
+- **Formatting**: `dart format --output=none --set-exit-if-changed .` fails if any file is unformatted.
+- **Static Analysis**: `flutter analyze --fatal-infos` fails on any error, warning, or analyzer info. Never weaken `analysis_options.yaml` or use `// ignore` to bypass this check.
+- **Test Coverage Floor**: `flutter test --coverage` generates `coverage/lcov.info` which is uploaded as a CI build artifact. The coverage check (`dart run tool/check_coverage.dart`) enforces a minimum line coverage floor of **15.0%** (measured baseline from the current test suite). Coverage must not drop below this floor. You can also specify an explicit floor, e.g. `dart run tool/check_coverage.dart 20.0`.
+
 
 ---
 

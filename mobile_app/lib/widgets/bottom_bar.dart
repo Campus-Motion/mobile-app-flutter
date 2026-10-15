@@ -9,7 +9,7 @@ class CampusMotionBottomBar extends StatelessWidget {
     super.key,
     required this.currentIndex,
     required this.onTap,
-    required this.context
+    required this.context,
   });
 
   @override
@@ -18,12 +18,11 @@ class CampusMotionBottomBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 10),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: SafeArea( // Ensures it doesn't overlap with iPhone "home bar"
+      child: SafeArea(
+        // Ensures it doesn't overlap with iPhone "home bar"
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -36,7 +35,6 @@ class CampusMotionBottomBar extends StatelessWidget {
       ),
     );
   }
-  
 
   Widget _buildNavItem(int index, IconData icon, String label) {
     final bool isActive = currentIndex == index;
@@ -52,7 +50,11 @@ class CampusMotionBottomBar extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(color: color, fontSize: 12, fontWeight: isActive ? FontWeight.bold : FontWeight.normal),
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            ),
           ),
         ],
       ),

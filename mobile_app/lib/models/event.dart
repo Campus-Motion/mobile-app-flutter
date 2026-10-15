@@ -23,9 +23,10 @@ class Event {
     final startTime = json['start_time'] != null
         ? DateTime.tryParse(json['start_time'] as String) ?? DateTime.now()
         : DateTime.now();
-    
+
     final endTime = json['end_time'] != null
-        ? DateTime.tryParse(json['end_time'] as String) ?? startTime.add(const Duration(hours: 1))
+        ? DateTime.tryParse(json['end_time'] as String) ??
+              startTime.add(const Duration(hours: 1))
         : startTime.add(const Duration(hours: 1));
 
     return Event(
@@ -34,9 +35,11 @@ class Event {
       body: json['body'] as String? ?? '',
       startTime: startTime,
       endTime: endTime,
-      distanceM: json['distance_m'] != null ? double.tryParse(json['distance_m'].toString()) : null,
+      distanceM: json['distance_m'] != null
+          ? double.tryParse(json['distance_m'].toString())
+          : null,
       participantCount: json['participant_count'] as int? ?? 0,
-      createdAt: json['created_at'] != null 
+      createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()
           : DateTime.now(),
     );

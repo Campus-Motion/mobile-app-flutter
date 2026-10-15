@@ -261,8 +261,12 @@ All commands must be executed within the Flutter application directory:
 | Goal | Command | Scope |
 |---|---|---|
 | **Dependency Sync** | `flutter pub get` | Installs dependencies defined in `pubspec.yaml` |
-| **Static Analysis** | `flutter analyze` | Checks for lint warnings, type mismatches, and deprecations |
+| **Format Verification** | `dart format --output=none --set-exit-if-changed .` | Verifies all Dart files follow formatting conventions |
+| **Format Code** | `dart format .` | Formats all Dart files in-place |
+| **Static Analysis** | `flutter analyze --fatal-infos` | Checks for lint warnings, type mismatches, and deprecations (fatal infos) |
 | **Full Test Suite** | `flutter test` | Executes all unit and widget tests |
+| **Coverage Suite** | `flutter test --coverage` | Executes tests and generates `coverage/lcov.info` |
+| **Coverage Gate** | `dart run tool/check_coverage.dart` | Verifies line coverage meets the 15.0% floor |
 | **Targeted Test** | `flutter test test/<test_file>.dart` | Runs a specific test file |
 | **Run in Chrome (Web)** | `flutter run -d chrome` | Launches debug web build (uses CORS proxy in `ApiService`) |
 | **Run on Mobile Device** | `flutter run` | Launches on connected Android or iOS device / simulator |

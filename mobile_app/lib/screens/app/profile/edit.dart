@@ -38,15 +38,41 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   List<String> _selectedSports = [];
 
   final List<String> _availableSports = [
-    'run', 'walk', 'cycle', 'hike', 'swim', 'triathlon', 
-    'climbing', 'volleyball', 'basketball', 'soccer', 
-    'badminton', 'tennis', 'golf', 'other'
+    'run',
+    'walk',
+    'cycle',
+    'hike',
+    'swim',
+    'triathlon',
+    'climbing',
+    'volleyball',
+    'basketball',
+    'soccer',
+    'badminton',
+    'tennis',
+    'golf',
+    'other',
   ];
 
-  final List<String> _availableLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
-  final List<String> _availableIntensities = ['light', 'moderate', 'intense', 'extreme'];
+  final List<String> _availableLevels = [
+    'beginner',
+    'intermediate',
+    'advanced',
+    'expert',
+  ];
+  final List<String> _availableIntensities = [
+    'light',
+    'moderate',
+    'intense',
+    'extreme',
+  ];
   final List<String> _availableGoals = [
-    'lose_weight', 'build_muscle', 'improve_endurance', 'stay_active', 'compete', 'have_fun'
+    'lose_weight',
+    'build_muscle',
+    'improve_endurance',
+    'stay_active',
+    'compete',
+    'have_fun',
   ];
 
   @override
@@ -63,7 +89,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Future<void> _loadProfileData() async {
     try {
       final user = await _userService.getMe();
-      
+
       UserPreferences prefs;
       try {
         prefs = await _userService.getPreferences();
@@ -86,15 +112,25 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
         _usernameController.text = user.username;
         _emailController.text = user.email ?? '';
-        _weightController.text = health?.weightKg != null ? health!.weightKg!.toStringAsFixed(0) : '';
-        _heightController.text = health?.heightCm != null ? health!.heightCm!.toStringAsFixed(0) : '';
+        _weightController.text = health?.weightKg != null
+            ? health!.weightKg!.toStringAsFixed(0)
+            : '';
+        _heightController.text = health?.heightCm != null
+            ? health!.heightCm!.toStringAsFixed(0)
+            : '';
         _bornController.text = health?.born ?? '1998-11-05';
 
-        _selectedLevel = _availableLevels.contains(prefs.level) ? prefs.level : 'intermediate';
-        _selectedIntensity = _availableIntensities.contains(prefs.intensity) ? prefs.intensity : 'moderate';
-        _selectedGoal = _availableGoals.contains(prefs.goal) ? prefs.goal : 'stay_active';
+        _selectedLevel = _availableLevels.contains(prefs.level)
+            ? prefs.level
+            : 'intermediate';
+        _selectedIntensity = _availableIntensities.contains(prefs.intensity)
+            ? prefs.intensity
+            : 'moderate';
+        _selectedGoal = _availableGoals.contains(prefs.goal)
+            ? prefs.goal
+            : 'stay_active';
         _selectedSports = List<String>.from(prefs.preferredSports);
-        
+
         _isLoading = false;
       });
     } catch (e) {
@@ -110,7 +146,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   Future<void> _selectDate() async {
     if (!_hasHealthConsent) return;
-    DateTime initialDate = DateTime.tryParse(_bornController.text) ?? DateTime(1998, 11, 5);
+    DateTime initialDate =
+        DateTime.tryParse(_bornController.text) ?? DateTime(1998, 11, 5);
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
@@ -160,7 +197,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         final weight = double.tryParse(_weightController.text);
         final height = double.tryParse(_heightController.text);
         final updatedHealth = HealthData(
-          born: _bornController.text.isNotEmpty ? _bornController.text : '1998-11-05',
+          born: _bornController.text.isNotEmpty
+              ? _bornController.text
+              : '1998-11-05',
           weightKg: weight,
           heightCm: height,
           consentGivenAt: _health?.consentGivenAt ?? DateTime.now(),
@@ -188,9 +227,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     } catch (e) {
       if (mounted) {
         Navigator.pop(context); // Dismiss loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save profile: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save profile: $e')));
       }
     }
   }
@@ -227,17 +266,23 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     onPressed: _saveProfile,
                     child: const Text(
                       'Save',
-                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
           ],
         ),
         const SizedBox(height: 30),
-        
+
         if (_isLoading)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 100.0),
-            child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
           )
         else ...[
           // Avatar
@@ -248,7 +293,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   radius: 50,
                   backgroundImage: _user?.photoUrl != null
                       ? NetworkImage(_user!.fullPhotoUrl!)
-                      : const AssetImage('assets/images/splash-icon.png') as ImageProvider,
+                      : const AssetImage('assets/images/splash-icon.png')
+                            as ImageProvider,
                   backgroundColor: Colors.grey.shade200,
                 ),
                 Positioned(
@@ -260,7 +306,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
               ],
@@ -275,31 +325,72 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 1. Public Info
-                const Text('Public Information', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey)),
+                const Text(
+                  'Public Information',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
                 const SizedBox(height: 15),
                 _buildTextField('Username', _usernameController, (val) {}),
-                _buildTextField('Email Address', _emailController, (val) {}, keyboardType: TextInputType.emailAddress),
-                
+                _buildTextField(
+                  'Email Address',
+                  _emailController,
+                  (val) {},
+                  keyboardType: TextInputType.emailAddress,
+                ),
+
                 const SizedBox(height: 30),
-                
+
                 // 2. Preferences
-                const Text('Activity Preferences', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey)),
+                const Text(
+                  'Activity Preferences',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
                 const SizedBox(height: 15),
-                
-                _buildDropdownField('Fitness Level', _selectedLevel, _availableLevels, (val) {
-                  if (val != null) setState(() => _selectedLevel = val);
-                }),
-                
-                _buildDropdownField('Workout Intensity', _selectedIntensity, _availableIntensities, (val) {
-                  if (val != null) setState(() => _selectedIntensity = val);
-                }),
-                
-                _buildDropdownField('Primary Goal', _selectedGoal, _availableGoals, (val) {
-                  if (val != null) setState(() => _selectedGoal = val);
-                }),
+
+                _buildDropdownField(
+                  'Fitness Level',
+                  _selectedLevel,
+                  _availableLevels,
+                  (val) {
+                    if (val != null) setState(() => _selectedLevel = val);
+                  },
+                ),
+
+                _buildDropdownField(
+                  'Workout Intensity',
+                  _selectedIntensity,
+                  _availableIntensities,
+                  (val) {
+                    if (val != null) setState(() => _selectedIntensity = val);
+                  },
+                ),
+
+                _buildDropdownField(
+                  'Primary Goal',
+                  _selectedGoal,
+                  _availableGoals,
+                  (val) {
+                    if (val != null) setState(() => _selectedGoal = val);
+                  },
+                ),
 
                 const SizedBox(height: 15),
-                const Text('Preferred Sports', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+                const Text(
+                  'Preferred Sports',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8.0,
@@ -327,7 +418,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 const SizedBox(height: 30),
 
                 // 3. Physical Data (Private)
-                const Text('Physical Data (Private & Encrypted)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey)),
+                const Text(
+                  'Physical Data (Private & Encrypted)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
                 const SizedBox(height: 10),
                 CheckboxListTile(
                   title: const Text(
@@ -350,22 +448,44 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   controlAffinity: ListTileControlAffinity.leading,
                 ),
                 const SizedBox(height: 10),
-                
+
                 Row(
                   children: [
-                    Expanded(child: _buildTextField('Weight (kg)', _weightController, (val) {}, keyboardType: TextInputType.number, enabled: _hasHealthConsent)),
+                    Expanded(
+                      child: _buildTextField(
+                        'Weight (kg)',
+                        _weightController,
+                        (val) {},
+                        keyboardType: TextInputType.number,
+                        enabled: _hasHealthConsent,
+                      ),
+                    ),
                     const SizedBox(width: 15),
-                    Expanded(child: _buildTextField('Height (cm)', _heightController, (val) {}, keyboardType: TextInputType.number, enabled: _hasHealthConsent)),
+                    Expanded(
+                      child: _buildTextField(
+                        'Height (cm)',
+                        _heightController,
+                        (val) {},
+                        keyboardType: TextInputType.number,
+                        enabled: _hasHealthConsent,
+                      ),
+                    ),
                   ],
                 ),
-                
+
                 GestureDetector(
                   onTap: _selectDate,
                   child: AbsorbPointer(
-                    child: _buildTextField('Date of Birth', _bornController, (val) {}, icon: Icons.calendar_today, enabled: _hasHealthConsent),
+                    child: _buildTextField(
+                      'Date of Birth',
+                      _bornController,
+                      (val) {},
+                      icon: Icons.calendar_today,
+                      enabled: _hasHealthConsent,
+                    ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
               ],
             ),
@@ -375,7 +495,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, Function(String) onSave, {TextInputType keyboardType = TextInputType.text, IconData? icon, bool enabled = true}) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller,
+    Function(String) onSave, {
+    TextInputType keyboardType = TextInputType.text,
+    IconData? icon,
+    bool enabled = true,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: TextFormField(
@@ -405,7 +532,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           if (label == 'Username' && (value == null || value.trim().isEmpty)) {
             return 'Username cannot be empty';
           }
-          if (label == 'Email Address' && (value == null || value.trim().isEmpty)) {
+          if (label == 'Email Address' &&
+              (value == null || value.trim().isEmpty)) {
             return 'Email cannot be empty';
           }
           return null;
@@ -414,7 +542,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
-  Widget _buildDropdownField(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
+  Widget _buildDropdownField(
+    String label,
+    String value,
+    List<String> items,
+    ValueChanged<String?> onChanged,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: DropdownButtonFormField<String>(
@@ -440,7 +573,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         ),
         items: items.map((item) {
           final displayItem = item.replaceAll('_', ' ');
-          final capitalized = displayItem[0].toUpperCase() + displayItem.substring(1);
+          final capitalized =
+              displayItem[0].toUpperCase() + displayItem.substring(1);
           return DropdownMenuItem<String>(
             value: item,
             child: Text(capitalized),
