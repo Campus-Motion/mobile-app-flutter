@@ -30,7 +30,7 @@ Campus Motion is a connected sports and health community application built for s
 ## 💻 Developer Getting Started
 
 ### 1. Prerequisites
-- Flutter SDK 3.44+ / Dart 3.12+ installed
+- Flutter SDK 3.47.6 (pinned in `mobile_app/pubspec.yaml` and CI) / Dart 3.13+ installed
 - Java 17+ (for Android builds)
 - VS Code or Cursor with Flutter & Dart extensions
 
@@ -57,6 +57,12 @@ flutter test --coverage
 # Verify line coverage against the floor (minimum 15.0%)
 dart run tool/check_coverage.dart
 
+# Build web release with mock API (matching CI build)
+flutter build web --release --dart-define=MOCK_API=true
+
+# Build debug Android APK (matching CI build)
+flutter build apk --debug
+
 # Run app in Chrome (Web)
 flutter run -d chrome
 
@@ -66,9 +72,13 @@ flutter run
 
 ### 3. Code Quality & Coverage Gate
 Continuous Integration (CI) enforces the following quality gates on all pushes and pull requests:
+- **Pinned Flutter SDK**: CI strictly pins Flutter to version `3.47.6` via `mobile_app/pubspec.yaml` (`flutter-version-file`) to guarantee reproducible builds across local environments and CI runners.
 - **Formatting**: `dart format --output=none --set-exit-if-changed .` fails if any file is unformatted.
 - **Static Analysis**: `flutter analyze --fatal-infos` fails on any error, warning, or analyzer info. Never weaken `analysis_options.yaml` or use `// ignore` to bypass this check.
 - **Test Coverage Floor**: `flutter test --coverage` generates `coverage/lcov.info` which is uploaded as a CI build artifact. The coverage check (`dart run tool/check_coverage.dart`) enforces a minimum line coverage floor of **15.0%** (measured baseline from the current test suite). Coverage must not drop below this floor. You can also specify an explicit floor, e.g. `dart run tool/check_coverage.dart 20.0`.
+- **Platform Builds Matrix**: Following the test suite, CI runs a matrix `build` job with caching enabled:
+  - **Web**: `flutter build web --release --dart-define=MOCK_API=true`, uploaded as the `web-build` artifact so reviewers can download and test PRs.
+  - **Android**: `flutter build apk --debug`.
 
 
 ---
