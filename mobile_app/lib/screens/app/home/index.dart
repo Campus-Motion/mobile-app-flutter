@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
+import 'package:mobile_app/widgets/empty_state.dart';
+import 'package:mobile_app/widgets/error_state.dart';
+import 'package:mobile_app/widgets/loading_state.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/top_bar.dart';
 import 'package:mobile_app/config/routes.dart';
@@ -27,14 +30,33 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
   @override
   void initState() {
     super.initState();
-    _newsFuture = _newsService.fetchLatestNews();
-    _eventsFuture = _eventService.getEvents(limit: 5, after : DateTime.now().toIso8601String());
+    _newsFuture = _loadNews();
+    _eventsFuture = _loadEvents();
+  }
+
+  Future<List<NewsItem>> _loadNews() => _newsService.fetchLatestNews();
+
+  Future<List<Event>> _loadEvents() => _eventService.getEvents(
+      limit: 5,
+      after: DateTime.now().toIso8601String(),
+    );
+
+  void _retryEvents() {
+    setState(() {
+      _eventsFuture = _loadEvents();
+    });
+  }
+ 
+  void _retryNews() {
+    setState(() {
+      _newsFuture = _loadNews();
+    });
   }
 
   Future<void> _refreshNews() async {
     setState(() {
-      _newsFuture = _newsService.fetchLatestNews();
-      _eventsFuture = _eventService.getEvents(limit: 5);
+      _newsFuture = _loadNews();
+      _eventsFuture = _loadEvents();
     });
     await Future.wait([_newsFuture, _eventsFuture]);
   }
@@ -130,19 +152,16 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
       future: _eventsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox(
-            height: 140,
-            child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-          );
+          return const LoadingState(height: 140);
         } else if (snapshot.hasError) {
-          return const SizedBox(
-            height: 140,
-            child: Center(child: Text('Failed to load events', style: TextStyle(color: Colors.red))),
+          return ErrorState(
+            message: 'Failed to load events',
+            onRetry: _retryEvents,
           );
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SizedBox(
-            height: 140,
-            child: Center(child: Text('No upcoming events', style: TextStyle(color: Colors.grey))),
+          return const EmptyState(
+            title: 'No upcoming events',
+            icon: Icons.event_busy_outlined,
           );
         }
 
@@ -242,44 +261,16 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
                 future: _newsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Padding(
-                      padding: EdgeInsets.all(40.0),
-                      child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                    );
+                    return const LoadingState(height: 160);
                   } else if (snapshot.hasError) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          children: [
-                            const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Failed to load news',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _refreshNews,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                              ),
-                              child: const Text('Retry'),
-                            ),
-                          ],
-                        ),
-                      ),
+                    return ErrorState(
+                      message: 'Failed to load news',
+                      onRetry: _retryNews,
                     );
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(40.0),
-                      child: Center(
-                        child: Text(
-                          'No news available.',
-                          style: TextStyle(color: Colors.grey, fontSize: 16),
-                        ),
-                      ),
+                    return const EmptyState(
+                      title: 'No news available',
+                      icon: Icons.newspaper_outlined,
                     );
                   }
 
