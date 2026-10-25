@@ -1,0 +1,4 @@
+interface:
+  display_name: "Campus Motion Privacy"
+  short_description: "Keep Campus Motion GDPR and health-data promises intact"
+  default_prompt: "Use $campus-motion-privacy to implement or review this change against every Campus Motion privacy invariant."

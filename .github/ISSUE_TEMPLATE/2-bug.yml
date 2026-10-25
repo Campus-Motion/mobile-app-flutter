@@ -1,0 +1,78 @@
+name: Bug
+description: Something behaves wrongly.
+title: "fix(<scope>): <imperative summary>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Follow [docs/ISSUES.md](https://github.com/Campus-Motion/mobile-app-v2/blob/main/docs/ISSUES.md). No emoji.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is wrong, in one sentence.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps. Say whether mock mode was on.
+      value: |
+        1.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the error text or a screenshot.
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where
+      description: Optional. Suspected file, method or line.
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: "Web (Chrome), mock mode, main at 7ca0054"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Include a regression test, or explain why one is not possible.
+      value: |
+        - [ ]
+        - [ ] A regression test fails without the fix and passes with it
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      description: Maintainers add the matching size label.
+      options:
+        - "XS (under two hours)"
+        - "S (about half a day)"
+        - "M (one to two days)"
+        - "L (three days or more, consider splitting)"
+    validations:
+      required: true
