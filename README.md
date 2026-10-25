@@ -21,6 +21,7 @@ This README is the entry point. Each document below has one job.
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Branch and PR workflow, quality gates, testing and documentation expectations. |
 | [AGENTS.md](AGENTS.md) | Operating contract for AI coding agents. |
 | [CLAUDE.md](CLAUDE.md) | Claude Code specifics (commands and slash workflows). |
+| [LICENSE](LICENSE) | MIT License for the source code (see [License](#license) for what it does not cover). |
 
 ## New here? Read in this order
 
@@ -65,3 +66,12 @@ dart run tool/check_coverage.dart
 | [`docs/`](docs) | Documentation. |
 | [`.github/`](.github) | CI workflow, issue forms and the pull request template. |
 | [`.claude/skills/`](.claude/skills), [`.agents/skills/`](.agents/skills) | Project skills for AI agents (two mirrored copies). |
+
+## License
+
+The source code is released under the [MIT License](LICENSE), copyright the Campus Motion contributors.
+
+The license does not cover:
+
+- **The Campus Motion name, logos and app icons**: `campus_motion_logo.png` and, in `images/`, the `logo*`, `icon`, `adaptive-icon`, `splash-icon` and `favicon` files, all in [`mobile_app/assets/`](mobile_app/assets). They identify the project and may not be used to brand another app or to imply endorsement without permission.
+- **Third-party files**, which keep their own licenses: the Space Mono font (`assets/fonts/SpaceMono-Regular.ttf`, SIL Open Font License) and the React logo images (`assets/images/*react-logo*`, trademarks of their owner).
