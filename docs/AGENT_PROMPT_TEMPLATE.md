@@ -1,11 +1,19 @@
 # Agent prompt template
 
-**You usually do not need this.** Claude Code, Cursor, Codex, Copilot and Antigravity read [AGENTS.md](../AGENTS.md) automatically when they work inside the repository. Paste the raw issue and they follow the contract.
+A ready-made prompt for AI chats that cannot read the Campus Motion repository.
 
-Use the prompt below only with an AI chat that cannot see the repository (for example a browser chat with no files attached). It summarizes the hard rules; the agent still cannot check existing widgets or services, so review its output carefully against [DESIGN.md](DESIGN.md) and [ARCHITECTURE.md](ARCHITECTURE.md).
+## When to use it
+
+Agents that work inside the repository (Claude Code, Cursor, Codex, Copilot, Antigravity) read [AGENTS.md](../AGENTS.md) on their own. With them, paste the issue as it is; no prompt is needed.
+
+Use the prompt below only with a chat that has no access to the code, such as a browser chat with no files attached. It gives that chat the project's hard rules. Such a chat cannot see which widgets and services already exist, so it may recreate something that is already there: check its output against [DESIGN.md](DESIGN.md) and [ARCHITECTURE.md](ARCHITECTURE.md) before using it.
+
+## Prompt
+
+Copy everything in the block, then replace the last line with the issue's title and body.
 
 ```text
-I am working on Campus Motion, a Flutter 3 app (https://github.com/Campus-Motion/mobile-app-v2).
+I am working on Campus Motion, a Flutter 3 app (https://github.com/Campus-Motion/mobile-app-flutter).
 Follow these project rules:
 - Screens live in lib/screens/ and only compose widgets and hold state. Wrap every screen in MasterContainer.
 - Reusable UI lives in lib/widgets/, one widget per file. Reuse AppCard, AppButton, StatItem, ActivityCard,
