@@ -56,6 +56,25 @@ Privacy and correctness are constraints, not trade-offs. Among correct solutions
 3. A consistent, accessible, calm interface that follows [docs/DESIGN.md](docs/DESIGN.md).
 4. Delivery speed.
 
+### Minimal, reuse-first changes
+
+Every pull request is the smallest diff that fully solves its issue, built from code that already exists wherever possible. A small diff is faster to review, easier to revert and less likely to break something else. This applies to every change, whoever or whatever writes it.
+
+1. **Search before writing.** Before adding a widget, method, helper, constant, model field or mock handler, search `lib/` and `test/` for one that already does the job (`grep -rn "<name or behaviour>" lib test`). Check the widget catalog in [docs/DESIGN.md](docs/DESIGN.md#shared-widgets) and the services in [docs/API.md](docs/API.md). Existing helpers include `ActivityCard.getActivityColor` and `getActivityIcon`, the `limit` and `after` parameters of `EventService.getEvents`, and the shared `MockDataService` store.
+2. **Reuse, then extend, then create.** Use existing code as it is. If it almost fits, add an optional parameter or a variant to it, as long as it keeps one clear responsibility. Write new code only when neither works, and then make it reusable by the next caller.
+3. **One rule, one place.** A mapping, a formatting rule, a validation or a request lives in exactly one function. Never copy a block and adjust it; call or extract the original. If you find two copies of the same logic in code you are changing, merge them into one as part of your change.
+4. **Touch only what the issue needs.** No renames, moves, drive-by refactors, reformatting of untouched code, or "while I was here" fixes. Note unrelated problems in the hand-off as follow-up issues instead.
+5. **No speculative code.** No unused parameters, methods, classes or imports, no commented-out code, no configuration or abstraction for a case that does not exist yet, no new package when a few lines or an existing dependency do the job.
+6. **Efficient by default.**
+   - Fetch each piece of data once per screen load and pass it down; never call a service from `build()`.
+   - Ask the API only for what is shown (`limit`, `after`, filters) instead of loading everything and filtering on the device.
+   - Run independent requests together with `Future.wait`.
+   - Use `ListView.builder` for lists that can grow, `const` constructors wherever possible, and dispose every controller you create.
+7. **Keep the diff reviewable.** As a guide, a pull request changes at most about 400 lines outside tests. A bigger change is split into several issues, or the PR description explains why it cannot be split.
+8. **Show the reuse.** The PR description lists what was reused and, for every new widget, method, file or package, why nothing existing fitted.
+
+Before hand-off, review your own diff with the `campus-motion-minimal-change` skill.
+
 ## 5. Zero-prompt issue and screenshot ingestion
 
 Contributors must never have to write a system prompt, assign you a role or remind you of the architecture. When the user pastes a GitHub issue, an issue URL, a user story or a bug report, or drops a Figma screenshot, even with no other words, treat it as an implementation request and run this pipeline:
@@ -70,14 +89,14 @@ flowchart TD
 ```
 
 1. **Decompose.** Map the request to layers: screen (`lib/screens/app/<area>/`), widgets (`lib/widgets/`), service (`lib/services/`), model (`lib/models/`), route (`lib/config/routes.dart`). Note whether health data, location or another user's data is involved. Read the issue's acceptance criteria and out-of-scope sections and stay inside them.
-2. **Inventory.** Read `lib/widgets/` and the widget catalog in [docs/DESIGN.md](docs/DESIGN.md#shared-widgets). Read the existing models and services. List what you will reuse and what is genuinely new.
+2. **Inventory.** Read `lib/widgets/` and the widget catalog in [docs/DESIGN.md](docs/DESIGN.md#shared-widgets). Read the existing models, services, helpers and mock handlers, and search for code that already does part of the job. List what you will reuse, what you will extend, and what is genuinely new, following [Minimal, reuse-first changes](#minimal-reuse-first-changes).
 3. **Implement** under the hard constraints in section 7:
    - Reuse existing widgets. A new visual element that repeats or carries real layout becomes its own widget in `lib/widgets/<name>.dart`; the screen only composes widgets and binds state.
    - Map every colour to `AppColors`; follow the spacing and radius scale in [docs/DESIGN.md](docs/DESIGN.md).
    - Data goes through a service; a new endpoint also gets a `MockDataService` handler.
    - New screens are wrapped in `MasterContainer` and registered in `AppRoutes`.
-4. **Verify.** Run the checks in section 12 from `mobile_app/` until they pass. Add widget tests for new widgets and tests for new service methods.
-5. **Hand off.** Give the student a branch name (`issue-<n>/<slug>`), a Conventional Commit message, and a PR description with: what changed and why (`Closes #<n>`), layers touched, checks run with results, manual test steps, and limitations. Do not commit, push or open the PR unless asked.
+4. **Verify.** Run the checks in section 12 from `mobile_app/` until they pass. Add widget tests for new widgets and tests for new service methods. Review the diff with the `campus-motion-minimal-change` skill and remove anything the issue does not need.
+5. **Hand off.** Give the student a branch name (`issue-<n>/<slug>`), a Conventional Commit message, and a PR description following `.github/pull_request_template.md`: what changed and why (`Closes #<n>`), what was reused, what is new and why nothing existing fitted, layers touched, checks run with results, manual test steps, and limitations. Do not commit, push or open the PR unless asked.
 
 ### Building from a screenshot
 
@@ -130,6 +149,7 @@ Keep code in the narrowest layer that owns the responsibility. Full detail in [d
 8. Never use emoji in code, UI text, commit messages, PR descriptions, issues or documentation.
 9. Never show raw exception text or server responses to users in new code.
 10. Never commit, push, open a PR, create or edit GitHub issues, or run destructive Git commands unless the user asks.
+11. Never duplicate logic that already exists, and never include changes the issue does not need: no copied-and-adjusted blocks, renames, drive-by refactors, unused code or commented-out code.
 
 ## 8. Privacy invariants (GDPR)
 
@@ -157,7 +177,7 @@ When CI is red on a pull request:
 
 1. `gh pr checks` to find the failing step; `gh run view --log-failed` for its log.
 2. Classify: formatting, analyzer, test, coverage or build.
-3. Fix the source code locally. For formatting, run `dart format .`.
+3. Fix the source code locally with the smallest change that addresses the failure. For formatting, run `dart format .`.
 4. Never edit tests, `analysis_options.yaml`, `tool/check_coverage.dart` or `.github/workflows/` to get green.
 5. Re-run the checks in section 12, then commit and push.
 6. Stop after 3 to 4 iterations and report what is still failing.
@@ -180,7 +200,8 @@ A task is complete only when all applicable items are true:
 
 - The requested behaviour works across the whole affected flow, not only at the reported symptom.
 - Callers, sibling screens and loading, empty and error states were checked.
-- Existing widgets and services were reused where they fit; no duplicated logic was introduced.
+- Existing widgets, services and helpers were reused or extended where they fit; no duplicated logic was introduced.
+- Every changed line is needed by the issue; the diff passed the `campus-motion-minimal-change` review.
 - No placeholder, unexplained `TODO`, skipped test or mock-backed production path was introduced.
 - The checks in section 12 were run and pass, and their results are reported.
 - Docs were updated where the change affects them.
@@ -200,6 +221,7 @@ Project skills live in `.claude/skills/` (Claude) and `.agents/skills/` (other a
 | Build or review a screen or widget, or implement from a screenshot | `campus-motion-ui-quality` |
 | Touch health data, consent, location, data export or deletion, or another user's data | `campus-motion-privacy` |
 | Draft, create or improve a GitHub issue or epic | `campus-motion-issue-writing` |
+| Review a diff for minimality, reuse and efficiency, before every hand-off and when reviewing a PR | `campus-motion-minimal-change` |
 
 ## 12. Commands and verification
 

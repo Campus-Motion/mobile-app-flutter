@@ -164,6 +164,7 @@ Any change that collects, displays or shares health data, location, or another u
 
 ## 7. Coding conventions
 
+- **Minimal and reuse-first:** search for an existing widget, method or helper before writing one, extend it rather than copy it, and change only what the issue needs. Full rules in [AGENTS.md](../AGENTS.md#minimal-reuse-first-changes).
 - **Files:** `snake_case.dart`, one public widget or class per file. Shared widgets in `lib/widgets/<name>.dart`.
 - **Imports:** package imports (`package:mobile_app/...`).
 - **Widgets:** prefer `StatelessWidget` with `const` constructors; use `StatefulWidget` only for local state. Use `super.key`.

@@ -78,7 +78,13 @@ flutter run -d chrome --dart-define=MOCK_API=true
 | An `await` followed by `context` with no `mounted` check | Crashes when the user leaves the screen | `if (!mounted) return;` after the `await` |
 | Weight, height or birth date saved without a consent check | Violates GDPR Article 9 | Check consent first |
 | An edited or deleted test, or a new `// ignore:` | Hides a real problem | Fix the code |
-| Files changed that the issue does not mention | Scope creep, harder review | Revert them or open a separate issue |
+| Files changed that the issue does not mention, or renamed and reformatted code | Scope creep, harder review | Revert them or open a separate issue |
+| A new helper or widget that looks like one that already exists | Two copies of the same logic drift apart | Reuse or extend the existing one |
+| A block copied from another file and slightly changed | Same as above | Call the original, or move it into one shared function |
+| Unused parameters, commented-out code, "for later" options | Dead code to read and maintain | Delete it |
+| A service call inside `build()`, or the same data loaded twice | Slow screens and wasted requests | Load once in `initState` and pass the data down |
+
+The diff should be as small as the issue allows. If you are unsure, ask the agent: "Review this diff with the campus-motion-minimal-change skill and remove everything the issue does not need."
 
 ### 4. Open a pull request
 
@@ -88,9 +94,10 @@ git commit -m "fix(home): keep the upcoming-events filter on pull-to-refresh"
 git push -u origin issue-4/pull-to-refresh-past-events
 ```
 
-On GitHub, click **Compare & pull request**. Paste the description the agent wrote and check it says:
+On GitHub, click **Compare & pull request**. The description opens with the project's template; fill it with what the agent wrote and check it says:
 
 - what changed and why, with `Closes #4` so the issue closes on merge;
+- what existing code was reused, and why any new widget, method or file was needed;
 - which layers were touched;
 - how it was tested, including manual steps;
 - screenshots for any visual change.

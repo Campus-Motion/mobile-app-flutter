@@ -54,7 +54,7 @@ A new widget is a `StatelessWidget` with a `const` constructor and `super.key`, 
 
 ### 6. Verify
 
-From `mobile_app/`: the targeted widget tests, then `dart format --output=none --set-exit-if-changed .`, `flutter analyze --fatal-infos`, `flutter test --coverage`, `dart run tool/check_coverage.dart`. Run the screen in mock mode when you can and describe what you checked.
+From `mobile_app/`: the targeted widget tests, then `dart format --output=none --set-exit-if-changed .`, `flutter analyze --fatal-infos`, `flutter test --coverage`, `dart run tool/check_coverage.dart`. Run the screen in mock mode when you can and describe what you checked. Then review the diff with `campus-motion-minimal-change`.
 
 ## Reject a change that
 
@@ -65,4 +65,6 @@ From `mobile_app/`: the targeted widget tests, then `dart format --output=none -
 - leaves a loading, empty or error state unhandled;
 - adds a shared widget without a widget test or without a catalog entry;
 - uses `context` after an `await` without a `mounted` check;
-- adds a package or a state-management library.
+- adds a package or a state-management library;
+- calls a service from `build()` or loads the same data twice;
+- restyles or reorganizes parts of the screen the issue does not mention.
