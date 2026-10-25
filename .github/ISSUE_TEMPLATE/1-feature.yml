@@ -1,0 +1,73 @@
+name: Feature
+description: A new user-visible capability.
+title: "feat(<scope>): <imperative summary>"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Follow [docs/ISSUES.md](https://github.com/Campus-Motion/mobile-app-v2/blob/main/docs/ISSUES.md). No emoji. Name files and classes with their path, in backticks.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: One or two sentences on the outcome for the user.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: Today
+      description: What exists now, with file paths, and what is missing.
+    validations:
+      required: true
+  - type: textarea
+    id: build
+    attributes:
+      label: What to build
+      description: Screens, widgets, services, models and routes to add or change. Name the existing widgets to reuse.
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: Design
+      description: Optional. Figma link or screenshot.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Checkable items only. Format, analyze, tests and coverage are implied.
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+    validations:
+      required: true
+  - type: input
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Optional. Issue numbers only.
+      placeholder: "Part of #12. Blocked by #17. Blocks #23. Related: #8."
+  - type: textarea
+    id: questions
+    attributes:
+      label: Open questions
+      description: Optional. Decisions needed before starting, and who decides.
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      description: Maintainers add the matching size label.
+      options:
+        - "XS (under two hours)"
+        - "S (about half a day)"
+        - "M (one to two days)"
+        - "L (three days or more, consider splitting)"
+    validations:
+      required: true

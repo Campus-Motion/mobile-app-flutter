@@ -1,0 +1,4 @@
+interface:
+  display_name: "Campus Motion Issue Writing"
+  short_description: "Write Campus Motion issues and epics in the project format"
+  default_prompt: "Use $campus-motion-issue-writing to draft this Campus Motion issue in the project format, then show it to me before creating it."

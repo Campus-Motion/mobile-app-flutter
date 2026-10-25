@@ -1,84 +1,67 @@
-# Campus Motion - Mobile App
+# Campus Motion
 
-Welcome to the **Campus Motion** mobile application repository!
+**Campus Motion** is the sports and health community app for students and staff at EPFL and UNIL.
 
-Campus Motion is a connected sports and health community application built for students and staff at EPFL and UNIL. The app connects campus members around a physical connected trail on campus, scheduled sporting events, personal activity tracking, and social interactions, with a core commitment to student health data privacy and European General Data Protection Regulation (GDPR) compliance.
+It brings campus members together around a connected running trail, scheduled sporting events, personal activity tracking and a social feed. Health data stays private: the app talks only to Campus Motion's own GDPR-compliant REST API, never to a third-party cloud, and every sensitive field needs explicit consent. The app is built with Flutter 3 and runs on Android, iOS, the web and desktop.
 
----
+## Documentation hub
 
-## 🚀 Quick Navigation & Sources of Truth
+This README is the entry point. Each document below has one job.
 
-- **AI Agent Operating Contract**: [`AGENTS.md`](AGENTS.md) *(Authoritative repository rules for AI coding assistants)*
-- **Claude Code Guide**: [`CLAUDE.md`](CLAUDE.md)
-- **Student Onboarding & Workflow Guide**: [`docs/STUDENT_WORKFLOW_GUIDE.md`](docs/STUDENT_WORKFLOW_GUIDE.md)
-- **Agent Copy-Paste Prompt Template**: [`docs/AGENT_PROMPT_TEMPLATE.md`](docs/AGENT_PROMPT_TEMPLATE.md)
-- **Architecture & Tech Tree Decisions**: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-- **Flutter Application Source**: [`mobile_app/`](mobile_app/)
+| Document | What it covers |
+|---|---|
+| [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) | From a fresh clone to a running app: prerequisites, mock mode, running the checks. |
+| [docs/FUNCTIONAL_OVERVIEW.md](docs/FUNCTIONAL_OVERVIEW.md) | What the product does and for whom: users, tabs, privacy promise, current status (non-technical). |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the app is built: tech stack, layers, repository layout, routing, services, mock mode, privacy architecture. |
+| [docs/DESIGN.md](docs/DESIGN.md) | How the interface looks: colour tokens, spacing, the shared widget catalog, copy rules, accessibility floor. |
+| [docs/API.md](docs/API.md) | The backend contract the app consumes: base URL, auth, response envelope, every endpoint and the service that calls it. |
+| [docs/ISSUES.md](docs/ISSUES.md) | How to write an issue: types, title format, labels, required sections. |
+| [docs/STUDENT_WORKFLOW_GUIDE.md](docs/STUDENT_WORKFLOW_GUIDE.md) | Step-by-step guide for new contributors working with an AI coding agent. |
+| [docs/AGENT_PROMPT_TEMPLATE.md](docs/AGENT_PROMPT_TEMPLATE.md) | Fallback prompt for AI chats that cannot read the repository. |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Branch and PR workflow, quality gates, testing and documentation expectations. |
+| [AGENTS.md](AGENTS.md) | Operating contract for AI coding agents. |
+| [CLAUDE.md](CLAUDE.md) | Claude Code specifics (commands and slash workflows). |
 
----
+## New here? Read in this order
 
-## 🛠 Tech Stack Snapshot
+1. [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md): get the app running.
+2. [docs/FUNCTIONAL_OVERVIEW.md](docs/FUNCTIONAL_OVERVIEW.md): understand what Campus Motion does.
+3. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): learn where code goes and why.
+4. [docs/DESIGN.md](docs/DESIGN.md): before you build a screen.
+5. [CONTRIBUTING.md](CONTRIBUTING.md): before you open your first PR.
+6. [docs/STUDENT_WORKFLOW_GUIDE.md](docs/STUDENT_WORKFLOW_GUIDE.md): if you work with an AI agent.
 
-- **Framework**: Flutter 3 (Dart 3)
-- **Target Platforms**: Android, iOS, Web, Linux, macOS, Windows
-- **Design System**: Material Design with custom peach/terracotta palette (`AppColors.primary = 0xFFDE7356`), responsive mobile shell (`MasterContainer` capped at 450px width)
-- **Networking**: Custom REST backend at `https://api.campusmotion.ch` with Bearer JWT authentication (No Firebase)
-- **Compliance**: GDPR Article 9 explicit opt-in consent for sensitive health metrics, right to erasure, and JSON data portability export
+## Quick reference
 
----
+All Flutter commands run from `mobile_app/`. Full details in [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md).
 
-## 💻 Developer Getting Started
-
-### 1. Prerequisites
-- Flutter SDK 3.44+ / Dart 3.12+ installed
-- Java 17+ (for Android builds)
-- VS Code or Cursor with Flutter & Dart extensions
-
-### 2. Setup & Verification
 ```bash
-# Navigate to the Flutter app directory
 cd mobile_app
-
-# Install dependencies
 flutter pub get
-
-# Check code formatting (enforced by CI)
-dart format --output=none --set-exit-if-changed .
-
-# Auto-format all Dart code
-dart format .
-
-# Check code quality (including fatal infos)
-flutter analyze --fatal-infos
-
-# Run tests with coverage
-flutter test --coverage
-
-# Verify line coverage against the floor (minimum 15.0%)
-dart run tool/check_coverage.dart
-
-# Run app in Chrome (Web)
-flutter run -d chrome
-
-# Run app on connected phone or simulator
-flutter run
+flutter run -d chrome --dart-define=MOCK_API=true   # run without the backend
 ```
 
-### 3. Code Quality & Coverage Gate
-Continuous Integration (CI) enforces the following quality gates on all pushes and pull requests:
-- **Formatting**: `dart format --output=none --set-exit-if-changed .` fails if any file is unformatted.
-- **Static Analysis**: `flutter analyze --fatal-infos` fails on any error, warning, or analyzer info. Never weaken `analysis_options.yaml` or use `// ignore` to bypass this check.
-- **Test Coverage Floor**: `flutter test --coverage` generates `coverage/lcov.info` which is uploaded as a CI build artifact. The coverage check (`dart run tool/check_coverage.dart`) enforces a minimum line coverage floor of **15.0%** (measured baseline from the current test suite). Coverage must not drop below this floor. You can also specify an explicit floor, e.g. `dart run tool/check_coverage.dart 20.0`.
+The checks CI runs on every pull request:
 
+```bash
+dart format --output=none --set-exit-if-changed .
+flutter analyze --fatal-infos
+flutter test --coverage
+dart run tool/check_coverage.dart
+```
 
----
+## Repository map
 
-## 🤖 AI-Assisted Development Workflow
-
-Campus Motion is designed to empower students of all skill levels to contribute, and if they want, by using AI coding agents (Cursor, Claude Code, Antigravity, Copilot, ChatGPT).
-
-### How to Work on an Issue:
-1. **Branch**: Create a branch `git checkout -b {task}/{your-feature-name}` from `main`.
-2. **Prompt**: Copy the prompt from [`docs/AGENT_PROMPT_TEMPLATE.md`](docs/AGENT_PROMPT_TEMPLATE.md) and paste it into your AI assistant with the GitHub issue description.
-3. **Verify**: Run `flutter analyze` and `flutter test`. Ensure zero errors.
-4. **Pull Request**: Open a PR. GitHub Actions CI will automatically verify your code.
+| Path | Contents |
+|---|---|
+| [`mobile_app/lib/screens/`](mobile_app/lib/screens) | Screens: compose widgets and bind state, nothing else. |
+| [`mobile_app/lib/widgets/`](mobile_app/lib/widgets) | Shared UI components (`MasterContainer`, `AppCard`, `AppButton`, ...). |
+| [`mobile_app/lib/services/`](mobile_app/lib/services) | Singleton services: all network I/O, plus the offline mock backend. |
+| [`mobile_app/lib/models/`](mobile_app/lib/models) | Typed data models with JSON serialization. |
+| [`mobile_app/lib/config/routes.dart`](mobile_app/lib/config/routes.dart) | `AppRoutes`, the single route table. |
+| [`mobile_app/lib/constants/colors.dart`](mobile_app/lib/constants/colors.dart) | `AppColors`, the design tokens. |
+| [`mobile_app/test/`](mobile_app/test) | Unit and widget tests. |
+| [`mobile_app/tool/`](mobile_app/tool) | Repository tooling (coverage gate). |
+| [`docs/`](docs) | Documentation. |
+| [`.github/`](.github) | CI workflow and issue forms. |
+| [`.claude/skills/`](.claude/skills), [`.agents/skills/`](.agents/skills) | Project skills for AI agents (two mirrored copies). |

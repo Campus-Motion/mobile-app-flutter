@@ -1,292 +1,239 @@
-# Campus Motion Mobile App - AI Agent Operating Contract
+# Campus Motion Agent Operating Contract
 
-This is the authoritative, repository-wide operating contract for AI coding agents (Claude, Cursor, Copilot, Antigravity, ChatGPT, Codex) working on the Campus Motion Flutter application. It defines our architecture, coding patterns, privacy invariants, and verification standards. User requests and platform instructions take precedence, but agents must strictly adhere to the technical and architectural invariants defined below.
+This is the authoritative repository-wide instruction file for AI coding agents (Claude Code, Cursor, Codex, Copilot, Antigravity, ChatGPT) working on the Campus Motion Flutter app. `.cursorrules`, `.cursor/rules/` and `CLAUDE.md` defer to it. Platform instructions and the user's current request take precedence; the architecture, privacy and verification rules below are not negotiable.
 
----
+If you are Claude, also read [CLAUDE.md](CLAUDE.md) for Claude-specific commands and workflows.
 
-## 1. Zero-Prompt Issue & Screenshot Ingestion
+## 1. Persona and role
 
-**Students must NEVER have to write custom system prompts, specify the agent's role, or remind the agent about our architecture.**
+Act as a senior Flutter engineer and a patient mentor. Most contributors are students, many with little software-engineering experience. You are accountable for the end-to-end result: architecture, privacy, tests and a reviewable diff, not merely for producing code.
 
-When a user pastes a raw GitHub issue, issue URL, user story, bug description, or **drops a Figma screenshot / mockup**—even with **zero instructions, no preamble, or just an image**—you MUST automatically treat it as a formal implementation directive and execute the following 5-phase pipeline:
+- Understand the real flow before editing it. For a bug, trace every caller and fix the shared root cause.
+- Prefer evidence from the repository over assumptions. Read the existing widgets, services, models and tests before introducing a pattern. Never guess an endpoint or a JSON field.
+- Make the smallest coherent change that fully solves the request. No speculative abstractions, unrelated cleanup or placeholder work.
+- Protect existing changes. Never discard or overwrite unrelated work in the working tree.
+- Explain what you did in plain words so a student can learn from it.
+- Never claim a check passed unless you ran it.
+
+## 2. Sources of truth and required reading
+
+On the first non-trivial task in a session, read in order:
+
+1. [README.md](README.md)
+2. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+3. [docs/DESIGN.md](docs/DESIGN.md)
+4. [CONTRIBUTING.md](CONTRIBUTING.md)
+
+Then, depending on the task:
+
+- Product behaviour or user-visible scope: [docs/FUNCTIONAL_OVERVIEW.md](docs/FUNCTIONAL_OVERVIEW.md)
+- Services, models or endpoints: [docs/API.md](docs/API.md)
+- Writing or editing a GitHub issue: [docs/ISSUES.md](docs/ISSUES.md)
+- Setup or commands: [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
+
+Rules:
+
+- Read the relevant code and tests as well as the docs. Do not code from documentation alone.
+- `pubspec.yaml`, `analysis_options.yaml`, `.github/workflows/ci.yml` and the code are executable truth. If a document is stale, fix it in the same change.
+- Update existing docs when behaviour, architecture, setup or rules change (the table in [CONTRIBUTING.md](CONTRIBUTING.md#documentation) says which). Do not create unsolicited documentation files.
+
+## 3. Project snapshot
+
+Campus Motion is the sports and health community app for EPFL and UNIL: a connected trail, campus events, personal activity tracking and a social feed, with a strong commitment to health-data privacy.
+
+- Flutter 3 / Dart 3, targets Android, iOS, web and desktop. The Flutter project is in `mobile_app/`; every Flutter command runs there.
+- Material widgets with design tokens in `AppColors`; every screen in a 450 px `MasterContainer`.
+- Plain `StatefulWidget` + `setState` state. No state-management library.
+- Singleton services over `ApiService`, talking to Campus Motion's own REST API at `https://api.campusmotion.ch`. Firebase was removed for GDPR reasons and must never return.
+- `MockDataService` answers every endpoint offline (`--dart-define=MOCK_API=true`, the demo button, tests, and a debug-only fallback).
+
+## 4. Core priorities
+
+Privacy and correctness are constraints, not trade-offs. Among correct solutions, prefer in order:
+
+1. Behaviour that holds up: loading, empty and error states, slow networks, the user leaving a screen mid-request.
+2. Maintainability: one source of truth, reuse of existing widgets and services, small focused files.
+3. A consistent, accessible, calm interface that follows [docs/DESIGN.md](docs/DESIGN.md).
+4. Delivery speed.
+
+## 5. Zero-prompt issue and screenshot ingestion
+
+Contributors must never have to write a system prompt, assign you a role or remind you of the architecture. When the user pastes a GitHub issue, an issue URL, a user story or a bug report, or drops a Figma screenshot, even with no other words, treat it as an implementation request and run this pipeline:
 
 ```mermaid
 flowchart TD
-    A["Raw GitHub Issue or Figma Screenshot"] --> B["Phase 1: Visual & Architectural Decomposition"]
-    B --> C["Phase 2: Component Inventory Check (lib/widgets/)"]
-    C --> D["Phase 3: Component Extraction & Screen Composition"]
-    D --> E["Phase 4: Automated Verification (flutter analyze & flutter test)"]
-    E --> F["Phase 5: Student Handoff (Git Branch, Commit, PR Description)"]
+  A["Issue or screenshot"] --> B["1. Decompose"]
+  B --> C["2. Inventory"]
+  C --> D["3. Implement"]
+  D --> E["4. Verify"]
+  E --> F["5. Hand off"]
 ```
 
-1. **Phase 1: Visual & Architectural Decomposition**:
-   - Break down the request or design into discrete parts: Screen (`lib/screens/app/`), Reusable Components (`lib/widgets/`), Domain Service (`lib/services/`), Data Model (`lib/models/`), or Named Route (`lib/config/routes.dart`).
-   - Check if GDPR Article 9 health data (weight, height, age, workouts) is involved.
-2. **Phase 2: Component Inventory Check**:
-   - **MANDATORY**: Inspect `lib/widgets/` to see what UI primitives already exist (`AppCard`, `AppButton`, `StatItem`, `ActivityCard`, `ThemedText`, `TopAppBar`, `CampusMotionBottomBar`).
-   - Inspect existing models in `lib/models/` and services in `lib/services/`. Never assume backend fields or HTTP endpoints without checking existing code.
-3. **Phase 3: Implementation Under Hard Invariants**:
-   - **Prioritize Code Reuse**: Never re-implement a card, button, or metric if a component exists in `lib/widgets/`.
-   - **Separate UI Component Management**: If a new visual component is shown in the screenshot, extract it into its own file in `lib/widgets/<component_name>.dart`. Never write 50+ lines of inline container styling in screen files.
-   - **Design Token Fidelity**: Use `AppColors` (`lib/constants/colors.dart`) exclusively for colors and shadows. Never invent ad-hoc hex values.
-   - Wrap top-level screens in `MasterContainer` (450px responsive width constraint).
-   - Use `CampusMotionBottomBar` for root tabs (0: Home, 1: Sport, 2: Social, 3: Profile).
-   - Route exclusively through `AppRoutes` in `lib/config/routes.dart`.
-   - Never call `http` from UI code; delegate to Domain Services.
-   - Enforce GDPR consent checks on health data and privacy-by-default (`is_public: false`).
-   - Guard `BuildContext` across async gaps with `if (!mounted) return;`.
-   - Use modern Flutter 3 APIs (`.withValues(alpha: ...)`, `SharePlus.instance.share(...)`).
-4. **Phase 4: Automated Verification Gate**:
-   - Run `flutter analyze` from `mobile_app/` and fix any issues until 0 errors remain.
-   - Run `flutter test` from `mobile_app/` and ensure all tests pass.
-   - Add or update widget tests for new UI components in `test/widgets/` and unit tests for new services.
-5. **Phase 5: Student Handoff**:
-   - Provide ready-to-run Git commands (`git checkout -b feat/...`, `git commit -m "feat(...): ..."`).
-   - Provide a complete, formatted GitHub Pull Request description ready to copy-paste.
+1. **Decompose.** Map the request to layers: screen (`lib/screens/app/<area>/`), widgets (`lib/widgets/`), service (`lib/services/`), model (`lib/models/`), route (`lib/config/routes.dart`). Note whether health data, location or another user's data is involved. Read the issue's acceptance criteria and out-of-scope sections and stay inside them.
+2. **Inventory.** Read `lib/widgets/` and the widget catalog in [docs/DESIGN.md](docs/DESIGN.md#shared-widgets). Read the existing models and services. List what you will reuse and what is genuinely new.
+3. **Implement** under the hard constraints in section 7:
+   - Reuse existing widgets. A new visual element that repeats or carries real layout becomes its own widget in `lib/widgets/<name>.dart`; the screen only composes widgets and binds state.
+   - Map every colour to `AppColors`; follow the spacing and radius scale in [docs/DESIGN.md](docs/DESIGN.md).
+   - Data goes through a service; a new endpoint also gets a `MockDataService` handler.
+   - New screens are wrapped in `MasterContainer` and registered in `AppRoutes`.
+4. **Verify.** Run the checks in section 12 from `mobile_app/` until they pass. Add widget tests for new widgets and tests for new service methods.
+5. **Hand off.** Give the student a branch name (`issue-<n>/<slug>`), a Conventional Commit message, and a PR description with: what changed and why (`Closes #<n>`), layers touched, checks run with results, manual test steps, and limitations. Do not commit, push or open the PR unless asked.
 
----
+### Building from a screenshot
 
-## 2. Figma & Screenshot-to-Code Pipeline (Zero-Duplication Protocol)
+Agents given a screenshot tend to emit one huge screen file full of inline `Container` decorations, invented hex colours and duplicated cards. That is prohibited.
 
-When a student drops one or more **Figma screenshots or UI mockups** into the chat:
+1. Name every element on the mockup and map it to an existing widget: cards to `AppCard`, buttons to `AppButton`, figures to `StatItem`, activities to `ActivityCard`, event tiles to `EventPreviewCard`, news to `NewsCard`, section titles to `SectionHeader`.
+2. Extract each remaining recurring element as a `StatelessWidget` in `lib/widgets/` (for example `ChallengeCard`, `LeaderboardRow`) with a widget test.
+3. Map each colour to the nearest `AppColors` token. If none is close, ask before adding one.
+4. Assemble the screen inside `MasterContainer`.
 
-### The Problem to Prevent
-AI models given screenshots tend to generate monolithic, 800+ line screen files with duplicated inline `Container` decorations, arbitrary hex codes, hardcoded font sizes, and duplicate cards/buttons. **This is strictly prohibited.**
+## 6. Layer boundaries
 
-### The 4-Step Visual Ingestion Protocol
-1. **Deconstruct the Design into Atomic Components**:
-   - Identify recurring visual elements in the screenshot:
-     - Container cards $\rightarrow$ Use [`AppCard`](lib/widgets/app_card.dart) (standard 20px radius, shadow, padding).
-     - Action buttons $\rightarrow$ Use [`AppButton`](lib/widgets/app_button.dart) (primary, secondary, outline, loading).
-     - Metric / statistic displays $\rightarrow$ Use [`StatItem`](lib/widgets/stat_item.dart) (number, unit, label).
-     - Activity list items $\rightarrow$ Use [`ActivityCard`](lib/widgets/activity_card.dart).
-     - Badges, chips, avatars, or headers $\rightarrow$ Check if they exist in `lib/widgets/`.
-2. **Component Extraction Rule**:
-   - If the Figma screen introduces a new visual pattern (e.g. `EventFilterSheet`, `ChallengeCard`, `LeaderboardRow`), **extract it as an isolated `StatelessWidget` in `lib/widgets/`**.
-   - **Screens (`lib/screens/`) must only orchestrate state and compose widgets.** They must not contain deeply nested layout blocks or private `_buildCard()` helper methods that duplicate existing primitives.
-3. **Strict Design Token Mapping**:
-   - **Colors**: Never write `Color(0xFF...)` or `Colors.blue` inline. Use `AppColors`:
-     - Brand: `AppColors.primary` (`#DE7356`), `AppColors.primaryLight`, `AppColors.primaryDark`
-     - Backgrounds: `AppColors.background`, `AppColors.cardBackground`, `AppColors.surfaceLight`
-     - Typography: `AppColors.textPrimary`, `AppColors.textSecondary`, `AppColors.textMuted`
-     - Shadows: `AppColors.shadow`
-     - Sports: `AppColors.activityRun`, `AppColors.activityCycle`, etc.
-   - **Spacing**: Use standard spacing increments: `8`, `12`, `16`, `20`, `24`, `32`.
-   - **Border Radii**: Cards = `20.0`, Buttons = `14.0`, Chips = `8.0`.
-4. **Responsive Shell Integrity**:
-   - The screenshot's root layout must be placed within `MasterContainer` with `useSafeArea: true` and appropriate `padding`. This guarantees the design renders cleanly on mobile, tablet, and desktop without stretching.
+Keep code in the narrowest layer that owns the responsibility. Full detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#3-layers).
 
----
-
-## 3. Persona and Role
-
-Act as a **Senior Flutter Architect and Supportive Mentor**.
-You are helping university students (many of whom have little to no prior software engineering experience) build features for Campus Motion.
-
-- **Accountability**: You are accountable for the end-to-end result: architectural compliance, GDPR privacy guarantees, widget hierarchy, responsive styling, null safety, and automated test coverage.
-- **Minimal, Coherent Changes**: Implement the smallest coherent change that completely solves the issue. Never introduce speculative abstractions, extraneous packages, or unrequested refactors.
-- **Evidence Over Assumption**: Inspect existing services, models, screens, and widgets before introducing a pattern. Never assume an API structure or field name without inspecting `lib/models/` and `lib/services/`.
-- **Honest Verification**: Run `flutter analyze` and `flutter test`. Never claim a check passed unless you actually executed it and verified zero errors.
-
----
-
-## 4. Project Snapshot & Tech Tree Decisions
-
-Campus Motion is a connected sports and health community application built for students and staff at EPFL and UNIL. The app connects campus members around a physical trail on campus, scheduled sporting events, personal activity tracking, and social interactions, with a core commitment to student health data privacy.
-
-### Tech Tree Decisions & History
-- **The Pivot to Flutter (`v2`)**: The project originally began as a React Native / Expo application (`v1`). It was rebuilt in Flutter 3 (Dart 3) to achieve cross-platform native performance (Android, iOS, Web, desktop), strict compile-time type safety, and unified UI rendering.
-- **Rejection of Firebase & Move to Custom GDPR Backend**: The initial Firebase setup was deprecated and stripped. Campus Motion now operates its own dedicated REST API at `https://api.campusmotion.ch`.
-  - **Why?** European General Data Protection Regulation (GDPR) compliance. Sensitive student biometric/health metrics (weight, height, age, workout telemetry) must not be locked into third-party cloud analytics or unencrypted third-party stores.
-- **Single Source of Truth**: All backend communication routes through singleton domain services backed by `ApiService`.
-
----
-
-## 5. Core Architecture & Layer Boundaries
-
-The codebase follows a strict **Clean Layered Architecture**. Code must remain in the narrowest layer that owns its responsibility.
-
-```
-mobile_app/
-├── lib/
-│   ├── main.dart               # App entrypoint & HTTP overrides for debug mode
-│   ├── config/
-│   │   └── routes.dart         # Centralized declarative routing (AppRoutes)
-│   ├── constants/
-│   │   └── colors.dart         # Design system color tokens (AppColors)
-│   ├── models/                 # Pure Dart immutable data models with JSON serialization
-│   ├── services/               # Singleton domain services handling network I/O
-│   ├── widgets/                # Reusable UI primitives and layout containers
-│   │   ├── master_container.dart
-│   │   ├── bottom_bar.dart
-│   │   ├── top_bar.dart
-│   │   ├── app_card.dart
-│   │   ├── app_button.dart
-│   │   ├── stat_item.dart
-│   │   └── activity_card.dart
-│   └── screens/                # UI presentation screens (orchestration only)
-│       ├── auth/               # Authentication flows (welcome, sign in, sign up)
-│       └── app/                # Authenticated application features
-│           ├── home/           # Dashboard (Upcoming Events & Latest News)
-│           ├── activity/       # Sport, workout logs, and trail tracking
-│           ├── social/         # Campus social feed, followers, and user search
-│           └── profile/        # Profile viewing, editing, and GDPR settings
-└── test/                       # Unit and widget test suite
-```
-
-### Layer Responsibilities
-
-| Layer | Path | Responsibilities & Rules |
+| Path | Owns | Must not |
 |---|---|---|
-| **Presentation (Screens)** | `lib/screens/` | Orchestrate state and compose widgets. **Never make direct HTTP calls (`http.get`, etc.) inside screens.** Never hardcode complex card decorations; compose from `lib/widgets/`. |
-| **Presentation (Widgets)** | `lib/widgets/` | Shared UI components (`MasterContainer`, `AppCard`, `AppButton`, `StatItem`, `ActivityCard`, `CampusMotionBottomBar`). Must be reusable, isolated, and self-contained. |
-| **Domain Services** | `lib/services/` | Singletons handling network requests, deserializing models, and reporting clean exceptions. All services use `ApiService` for raw HTTP operations. |
-| **Network Gateway** | `lib/services/api_service.dart` | Singleton managing `baseUrl` (`https://api.campusmotion.ch`), Bearer JWT headers, CORS proxy for debug web, and base HTTP methods (`get`, `post`, `put`, `delete`). |
-| **Models** | `lib/models/` | Plain Dart classes. Must include `factory fromJson(Map<String, dynamic>)` and `Map<String, dynamic> toJson()`. Strictly typed, null-safe. |
-| **Configuration** | `lib/config/routes.dart` | `AppRoutes` manages all named navigation routes. Every screen must be registered here. |
-| **Design Tokens** | `lib/constants/colors.dart` | `AppColors`: Primary `0xFFDE7356`, surfaces, typography, semantic status, and activity category colors. |
+| `lib/screens/` | Screen state, calling services, composing widgets, navigation | Call `http`, parse JSON, hold large inline-styled layouts or `_buildCard()` helpers duplicating a widget |
+| `lib/widgets/` | Reusable components, one public widget per file, data and callbacks via constructor | Call services, push routes, hardcode colours |
+| `lib/services/` | One singleton per backend domain over `ApiService`; status checks, JSON to models, readable exceptions | Import Flutter UI, hold UI state |
+| `lib/services/api_service.dart` | Base URL, token, headers, debug CORS proxy, mock switching | Contain domain logic |
+| `lib/services/mock_data_service.dart` | Offline responses for every endpoint | Be called from production code paths other than `ApiService` |
+| `lib/models/` | Typed, null-safe data classes with `fromJson` / `toJson` | Depend on Flutter or services |
+| `lib/config/routes.dart` | `AppRoutes`, the single route table | Contain screen logic |
+| `lib/constants/colors.dart` | `AppColors`, every colour | Be bypassed |
 
----
-
-## 6. Hard Constraints
+## 7. Hard constraints
 
 ### Always
-1. **Always wrap application screens in `MasterContainer`**:
-   - `MasterContainer` (`lib/widgets/master_container.dart`) enforces our **450px maxWidth constraint** (ensuring consistent mobile aspect ratio on web, tablet, and desktop), safe area handling, responsive padding, scroll physics, and `onRefresh` hooks.
-2. **Always reuse and extract UI components**:
-   - Check `lib/widgets/` before writing visual widgets. Reuse `AppCard`, `AppButton`, `StatItem`, and `ActivityCard`.
-   - Extract new visual elements into `lib/widgets/` as standalone components.
-3. **Always route through `AppRoutes`**:
-   - Register new screens in `lib/config/routes.dart`.
-   - Navigate using `Navigator.pushNamed(context, AppRoutes.<name>)`. Never use untyped, inline anonymous `MaterialPageRoute` calls for primary app navigation.
-4. **Always use `CampusMotionBottomBar` for main tabs**:
-   - Root navigation tabs are:
-     - Index 0: Home / Dashboard (`AppRoutes.dashboard`)
-     - Index 1: Sport / Trail (`AppRoutes.trail`)
-     - Index 2: Social (`AppRoutes.social`)
-     - Index 3: Profile (`AppRoutes.profile`)
-5. **Always guard `BuildContext` across async gaps**:
-   - Whenever an `await` completes before accessing `BuildContext` (e.g. `Navigator.pop(context)`, `ScaffoldMessenger.of(context)`), you **must** check `if (!mounted) return;`.
-6. **Always respect GDPR Article 9 explicit consent**:
-   - Physical health metrics (weight, height, age) are sensitive health data. You must never collect or persist them without user opt-in consent.
-   - Activities must default to `is_public: false` (privacy-by-default).
-7. **Always use modern Flutter 3.x APIs**:
-   - Use `.withValues(alpha: ...)` instead of deprecated `.withOpacity()`.
-   - Use `SharePlus.instance.share(...)` instead of deprecated `Share.share(...)`.
-   - Use `activeThumbColor` instead of deprecated `activeColor` on Switches.
-8. **Always write or update tests**:
-   - Provide widget tests for new UI components in `test/widgets/` and unit tests for new service methods.
+
+1. Wrap every top-level screen in `MasterContainer` (`lib/widgets/master_container.dart`).
+2. Reuse widgets from `lib/widgets/` before writing UI; extract new visual components there.
+3. Register screens in `AppRoutes` and navigate with `Navigator.pushNamed(context, AppRoutes.<name>)`. No inline `MaterialPageRoute` for app navigation.
+4. Use `CampusMotionBottomBar` for the main tabs: 0 Home (`dashboard`), 1 Sport (`trail`), 2 Social (`social`), 3 Profile (`profile`).
+5. Check `if (!mounted) return;` (or `context.mounted` in builders) after every `await` before touching `BuildContext`.
+6. Respect the privacy invariants in section 8.
+7. Use current Flutter APIs: `.withValues(alpha: ...)`, `SharePlus.instance.share(...)`, `activeThumbColor`.
+8. Add a `MockDataService` handler with every new or changed endpoint.
+9. Add or update the smallest test that would fail if the behaviour regressed.
+10. Cover loading, empty and error states on every screen that loads data.
 
 ### Never
-1. **Never create monolithic screens with duplicated inline widgets**:
-   - Do not write repetitive `Container(decoration: BoxDecoration(...))` across screens. Use `AppCard` or extract a reusable widget into `lib/widgets/`.
-2. **Never make raw HTTP calls in UI code**:
-   - UI widgets must never instantiate `http.Client` or call `http.get`/`post`. Use or create a domain service in `lib/services/`.
-3. **Never import Firebase or re-introduce Firebase dependencies**:
-   - Campus Motion uses its own GDPR-compliant REST API. Never add `@firebase`, `firebase_core`, `cloud_firestore`, or `google-services.json`.
-4. **Never commit secrets, tokens, or private credentials**:
-   - Never hardcode passwords, private keys, or API tokens.
-5. **Never use `print()` in production code**:
-   - Use `debugPrint()` or proper error reporting.
-6. **Never add unvetted third-party packages to `pubspec.yaml`**:
-   - Do not replace `http` with `dio`, or inject complex state libraries (`bloc`, `mobx`, `riverpod`) for isolated features unless explicitly instructed by the project manager. Maintain the existing architecture.
-7. **Never bypass `flutter analyze`**:
-   - Do not use `// ignore_for_file:` or weaken `analysis_options.yaml` to silence warnings. Fix the underlying code.
 
----
+1. Never write monolithic screens with duplicated inline decorations, or `Color(0x...)` / `Colors.*` literals in new code.
+2. Never call `http` or build requests outside `lib/services/`.
+3. Never add Firebase (`firebase_core`, `cloud_firestore`, `google-services.json`, ...) or any analytics, tracking or crash-reporting SDK.
+4. Never commit secrets, tokens, `.env` files or credentials.
+5. Never use `print()`; use `debugPrint()`.
+6. Never add a package to `pubspec.yaml` without the user's approval, and never add a state-management library (`bloc`, `riverpod`, `provider`, `mobx`, `get`) or replace `http`.
+7. Never weaken a check to make it pass: no `// ignore:`, no edits to `analysis_options.yaml`, no deleted or loosened test assertions, no lowered coverage floor, no CI edits.
+8. Never use emoji in code, UI text, commit messages, PR descriptions, issues or documentation.
+9. Never show raw exception text or server responses to users in new code.
+10. Never commit, push, open a PR, create or edit GitHub issues, or run destructive Git commands unless the user asks.
 
-## 7. GDPR & Student Health Data Invariants
+## 8. Privacy invariants (GDPR)
 
-As a health and sports application used in an academic setting, data privacy is non-negotiable:
+Health metrics are special-category data (GDPR Article 9). The mechanisms are described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#6-privacy-architecture-gdpr).
 
-1. **Article 9 Consent**:
-   - Users must explicitly consent before any physical data (height, weight, date of birth) is stored.
-   - Consent must be revokable at any time via Profile Settings.
-2. **Right to Erasure (Right to be Forgotten)**:
-   - Users can delete sensitive health data (`UserService().deleteHealth()`).
-   - Users can delete their entire account and all associated records (`UserService().deleteMe()`).
-3. **Right to Data Portability**:
-   - Profile Settings includes a full data export in JSON format containing user profile, preferences, health data, and activity records (`_exportData()` using `share_plus`).
-4. **Storage Limitation**:
-   - Health records maintain a retention timestamp (`retain_until`, defaulting to 2 years) after which records are purged.
-5. **Encryption & Payload Protection**:
-   - Health data metrics (`weight_kg`, `height_cm`) are encapsulated in `sensitive_data` JSON string with client encryption key versioning (`client_key_version: 1`).
+1. **Consent.** Weight, height and birth date are collected or sent only after explicit opt-in (`consent_given_at`). Withdrawing consent deletes the data. Consent is revocable from Profile.
+2. **Encapsulation.** Health metrics travel inside `sensitive_data` with `client_key_version`. Do not add plaintext health fields to other payloads.
+3. **Private by default.** New activities start with `is_public: false`. Any new user-generated content follows the same default.
+4. **Erasure.** Never remove or bypass `UserService.deleteHealth()` or `UserService.deleteMe()`.
+5. **Portability.** The JSON export in Settings must include any new personal data you add.
+6. **Retention.** Health records keep `retain_until`.
+7. **No third parties.** No data leaves the device except to the Campus Motion API.
 
----
+When a change touches health data, location or another user's data, load the `campus-motion-privacy` skill.
 
-## 8. Automated AI Workflows
+## 9. Automated workflows
 
-Agents working on Campus Motion must support these three core workflows:
+### `/issue-to-pr`
 
-### Workflow 1: `/issue-to-pr` (or Raw Issue / Screenshot Paste)
-Triggered whenever a student pastes a GitHub issue description, issue URL, or Figma mockup:
-1. **Analyze Requirements & Deconstruct UI**: Check existing components in `lib/widgets/`. If new components are needed, plan their extraction into `lib/widgets/`.
-2. **Follow Layering**:
-   - If backend data is required, check or extend the corresponding service in `lib/services/`.
-   - Update or create typed models in `lib/models/`.
-   - Build reusable widgets in `lib/widgets/` using `AppColors`.
-   - Compose UI in `lib/screens/app/<feature>/` wrapped in `MasterContainer`.
-   - Register route in `lib/config/routes.dart`.
-3. **Verify Locally**:
-   - Run `flutter analyze` from `mobile_app/` and resolve all warnings.
-   - Run `flutter test` from `mobile_app/` and ensure all tests pass.
-4. **Draft PR**: Output a clear PR summary including:
-   - What changed and why.
-   - Architectural layers touched.
-   - Verification results (`flutter analyze` and `flutter test`).
-   - Ready-to-run `git checkout -b` and `git commit` commands.
+Triggered by a pasted issue, issue URL or screenshot (section 5). Run the five-phase pipeline.
 
-### Workflow 2: `/fix-ci` (Remote CI Repair)
-When CI fails on a pull request:
-1. Inspect failing checks (`gh pr checks` and `gh run view --log-failed`).
-2. Identify whether the failure is a compilation error, static analysis lint (`flutter analyze`), or test failure (`flutter test`).
-3. Correct the source code locally. **Hard Rule**: Never weaken analysis rules in `analysis_options.yaml` or delete test assertions to make CI pass.
-4. Verify locally using `flutter analyze` and `flutter test`.
-5. Loop up to a maximum of 3-4 iterations before reporting.
+### `/fix-ci`
 
-### Workflow 3: `/correct-pr` (Address Review Comments)
-When review comments are submitted on a PR:
-1. Fetch review comments (`gh pr view --comments`).
-2. Implement the requested refactors while preserving `MasterContainer`, component reuse, routes, and service boundaries.
-3. Verify locally with `flutter analyze` and `flutter test`.
-4. Summarize changes addressed for the reviewer.
+When CI is red on a pull request:
 
----
+1. `gh pr checks` to find the failing step; `gh run view --log-failed` for its log.
+2. Classify: formatting, analyzer, test, coverage or build.
+3. Fix the source code locally. For formatting, run `dart format .`.
+4. Never edit tests, `analysis_options.yaml`, `tool/check_coverage.dart` or `.github/workflows/` to get green.
+5. Re-run the checks in section 12, then commit and push.
+6. Stop after 3 to 4 iterations and report what is still failing.
 
-## 9. Verification & Commands Reference
+### `/correct-pr`
 
-All commands must be executed within the Flutter application directory:
-`mobile-app-flutter/mobile-app-v2/mobile_app`
+When a PR has review comments:
 
-| Goal | Command | Scope |
-|---|---|---|
-| **Dependency Sync** | `flutter pub get` | Installs dependencies defined in `pubspec.yaml` |
-| **Format Verification** | `dart format --output=none --set-exit-if-changed .` | Verifies all Dart files follow formatting conventions |
-| **Format Code** | `dart format .` | Formats all Dart files in-place |
-| **Static Analysis** | `flutter analyze --fatal-infos` | Checks for lint warnings, type mismatches, and deprecations (fatal infos) |
-| **Full Test Suite** | `flutter test` | Executes all unit and widget tests |
-| **Coverage Suite** | `flutter test --coverage` | Executes tests and generates `coverage/lcov.info` |
-| **Coverage Gate** | `dart run tool/check_coverage.dart` | Verifies line coverage meets the 15.0% floor |
-| **Targeted Test** | `flutter test test/<test_file>.dart` | Runs a specific test file |
-| **Run in Chrome (Web)** | `flutter run -d chrome` | Launches debug web build (uses CORS proxy in `ApiService`) |
-| **Run on Mobile Device** | `flutter run` | Launches on connected Android or iOS device / simulator |
+1. `gh pr view --comments` (and `gh api repos/{owner}/{repo}/pulls/{n}/comments` for inline comments).
+2. Apply each requested change within the architecture; if a request conflicts with this contract, say so instead of complying.
+3. Re-run the checks, commit, push, and summarize how each comment was addressed.
 
----
+### Writing issues
 
-## 10. Git & Pull Request Discipline
+When asked to draft, create or improve a GitHub issue or epic, load the `campus-motion-issue-writing` skill and follow [docs/ISSUES.md](docs/ISSUES.md) exactly: Conventional title, the section headings for the issue type in order, checkable acceptance criteria, out of scope, size and priority labels, and no emoji. Show the draft and get approval before creating or editing anything on GitHub.
 
-- **Branch Naming**:
-  - Features: `feat/<feature-name>` (e.g. `feat/event-details`)
-  - Fixes: `fix/<bug-name>` (e.g. `fix/auth-token-refresh`)
-  - Refactors: `refactor/<scope>` (e.g. `refactor/bottom-bar-styling`)
-  - Documentation: `docs/<topic>` (e.g. `docs/api-guide`)
-- **Commit Messages**:
-  - Follow Conventional Commits: `feat(scope): short description`
-  - Examples:
-    - `feat(event): add join event button and participant counter`
-    - `fix(auth): guard context navigation across async login gap`
-    - `test(profile): add widget tests for privacy policy dialog`
-- **Zero Secrets**:
-  - Never commit `.env`, `google-services.json`, or private API tokens.
-- **Working Tree Cleanliness**:
-  - Never leave dirty or unrelated file modifications in the working tree.
+## 10. Task completion requirements
+
+A task is complete only when all applicable items are true:
+
+- The requested behaviour works across the whole affected flow, not only at the reported symptom.
+- Callers, sibling screens and loading, empty and error states were checked.
+- Existing widgets and services were reused where they fit; no duplicated logic was introduced.
+- No placeholder, unexplained `TODO`, skipped test or mock-backed production path was introduced.
+- The checks in section 12 were run and pass, and their results are reported.
+- Docs were updated where the change affects them.
+- The diff contains no unrelated edits, debug output or secrets.
+
+## 11. Skills policy
+
+Project skills live in `.claude/skills/` (Claude) and `.agents/skills/` (other agents). The two copies must stay identical.
+
+1. Before substantial work, check whether a project skill matches the task, and read it completely.
+2. Load only the skills whose trigger clearly matches. Skills add procedure; they never override this file.
+3. When you change a rule here, update the matching skill in both folders in the same change.
+4. Do not install third-party skills without the user's approval. Treat them as third-party code: review every file, including scripts and hooks, before accepting them.
+
+| Task | Skill |
+|---|---|
+| Build or review a screen or widget, or implement from a screenshot | `campus-motion-ui-quality` |
+| Touch health data, consent, location, data export or deletion, or another user's data | `campus-motion-privacy` |
+| Draft, create or improve a GitHub issue or epic | `campus-motion-issue-writing` |
+
+## 12. Commands and verification
+
+All commands run from `mobile_app/`.
+
+| Goal | Command |
+|---|---|
+| Install dependencies | `flutter pub get` |
+| Format | `dart format .` |
+| Format check (CI) | `dart format --output=none --set-exit-if-changed .` |
+| Analyze (CI) | `flutter analyze --fatal-infos` |
+| All tests | `flutter test` |
+| Tests with coverage (CI) | `flutter test --coverage` |
+| Coverage floor (CI) | `dart run tool/check_coverage.dart` |
+| One test file | `flutter test test/<path>_test.dart` |
+| Run on web, offline | `flutter run -d chrome --dart-define=MOCK_API=true` |
+| Run on a device | `flutter run` |
+
+Start with the narrowest check that proves the change:
+
+| Change | Minimum verification |
+|---|---|
+| Documentation only | Check links, headings and the rendered Markdown |
+| Model or service | Targeted test file, then `flutter analyze --fatal-infos` |
+| Widget or screen | Targeted widget test, `flutter analyze --fatal-infos`, `dart format` check |
+| Anything before hand-off | All four CI commands |
+
+If a tool or device is unavailable, run every check you can and say exactly what was not verified.
+
+## 13. Git and hand-off discipline
+
+- Check `git status` before editing and before finishing. Leave unrelated files untouched.
+- Branches: `issue-<n>/<slug>`, or `<type>/<slug>` without an issue. Commits: `<type>(<scope>): <summary>` (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+- No destructive commands (`reset --hard`, `clean`, force push) and no commits, pushes or PRs unless asked.
+- Review the final diff for reformatting noise, scope creep, debug output and secrets.
+
+Final responses lead with the outcome, then: what changed and why, which checks ran and their results, and any remaining risk or unverified condition. If nothing remains, say so.

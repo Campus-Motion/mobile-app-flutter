@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: How to write an issue
+    url: https://github.com/Campus-Motion/mobile-app-v2/blob/main/docs/ISSUES.md
+    about: Title format, labels, sizes and the sections each issue type needs.
