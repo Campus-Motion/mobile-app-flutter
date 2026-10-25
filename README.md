@@ -63,5 +63,5 @@ dart run tool/check_coverage.dart
 | [`mobile_app/test/`](mobile_app/test) | Unit and widget tests. |
 | [`mobile_app/tool/`](mobile_app/tool) | Repository tooling (coverage gate). |
 | [`docs/`](docs) | Documentation. |
-| [`.github/`](.github) | CI workflow and issue forms. |
+| [`.github/`](.github) | CI workflow, issue forms and the pull request template. |
 | [`.claude/skills/`](.claude/skills), [`.agents/skills/`](.agents/skills) | Project skills for AI agents (two mirrored copies). |

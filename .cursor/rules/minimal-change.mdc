@@ -1,0 +1,17 @@
+---
+description: Minimal, reuse-first and efficient changes for every Campus Motion pull request
+alwaysApply: true
+---
+
+# Minimal, reuse-first changes
+
+Source of truth: AGENTS.md, section "Minimal, reuse-first changes". Review every diff with the `campus-motion-minimal-change` skill in .agents/skills/ before hand-off.
+
+1. Search before writing: `grep -rn "<word>" lib test`, the widget catalog in docs/DESIGN.md, the services in docs/API.md.
+2. Reuse existing code as is; otherwise add an optional parameter or variant to it; create new code only when neither works.
+3. One rule, one place. Never copy a block and adjust it; call or extract the original.
+4. Touch only what the issue needs: no renames, moves, reformatting of untouched code or unrelated fixes.
+5. No unused parameters, methods or imports, no commented-out code, no single-use abstractions, no new package without approval.
+6. Efficient by default: fetch once per screen and never in `build()`, use API filters (`limit`, `after`) instead of filtering on the device, `Future.wait` for independent requests, `ListView.builder` for growing lists, `const` constructors, dispose controllers.
+7. Aim for at most about 400 changed lines outside tests; split larger work into several issues.
+8. The PR description lists what was reused and why each new widget, method, file or package was needed.

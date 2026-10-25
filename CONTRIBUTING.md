@@ -24,8 +24,23 @@ Development has so far been done by students who took a software-engineering cou
 4. **Describe your pull request.** Someone else will build on your code. State what you did, why, what it changes and how to test it.
 5. **Test what you build.** Tests catch the bug you did not think of, and the one someone else introduces next month.
 6. **Respect the structure.** Where a file lives matters as much as what it contains. Look for an existing widget or service before writing a new one. Writing the same thing twice is a bug waiting to happen.
-7. **Never commit secrets.** API keys, tokens and passwords stay in a local, git-ignored file. If you work with keys or health data and are unsure how to handle them, ask before doing anything.
-8. **Credit others.** Do not copy someone else's work without attribution.
+7. **Change as little as possible.** The best pull request is the smallest one that solves its issue, built from code that already exists. See [Minimal changes and reuse](#minimal-changes-and-reuse).
+8. **Never commit secrets.** API keys, tokens and passwords stay in a local, git-ignored file. If you work with keys or health data and are unsure how to handle them, ask before doing anything.
+9. **Credit others.** Do not copy someone else's work without attribution.
+
+## Minimal changes and reuse
+
+Good code is efficient code, and good programmers reuse what has already been written. Every pull request is held to these rules, and reviewers send back pull requests that break them. The full rule set is in [AGENTS.md](AGENTS.md#minimal-reuse-first-changes); in short:
+
+- **Search before you write.** Before adding a widget, method, helper or constant, search the code for one that already does the job: `grep -rn "<word>" lib test` from `mobile_app/`, the widget catalog in [docs/DESIGN.md](docs/DESIGN.md#shared-widgets), and the services in [docs/API.md](docs/API.md).
+- **Reuse, then extend, then create.** Use existing code as it is. If it almost fits, add an optional parameter to it. Write something new only when neither works.
+- **Never copy and adjust.** If you need logic that exists elsewhere, call it, or move it into a shared function that both places call.
+- **Touch only what the issue needs.** No renames, reformatting of untouched code, or unrelated fixes. Open a separate issue for anything else you notice.
+- **No dead code.** No unused parameters or imports, no commented-out code, no "might be useful later".
+- **Be efficient.** Fetch data once per screen, never in `build()`; ask the API for only what you show (`limit`, `after`); run independent requests with `Future.wait`; use `ListView.builder` for lists; use `const`; dispose controllers.
+- **Keep it reviewable.** Aim for at most about 400 changed lines outside tests. Bigger work becomes several issues.
+
+The pull request template asks you to list what you reused and to justify every new widget, method, file or package.
 
 ## Workflow
 
@@ -57,9 +72,11 @@ Use the same types and scopes as issue titles ([docs/ISSUES.md](docs/ISSUES.md#t
 
 ### 4. Open a pull request
 
-Open the PR against `main` once the checks pass locally. The title follows the commit format. The description contains:
+Open the PR against `main` once the checks pass locally. The title follows the commit format. GitHub fills the description from `.github/pull_request_template.md`; complete every section:
 
 - **What and why:** the change and the reason, with `Closes #<issue>`.
+- **Reused:** the existing widgets, services and helpers the change builds on.
+- **New code and why:** every new widget, method, file or package, and why nothing existing fitted.
 - **Layers touched:** screens, widgets, services, models, routes.
 - **How it was tested:** automated tests added, plus manual steps (mock or real backend, platform).
 - **Screenshots** for any visual change.
@@ -119,6 +136,9 @@ Update the docs in the same PR when you change what they describe:
 ## PR checklist
 
 - [ ] Linked to an issue (`Closes #N`), scope limited to that issue
+- [ ] Every changed line is needed by the issue; no unrelated edits or dead code
+- [ ] Existing widgets, services and helpers reused; no duplicated logic
+- [ ] No service calls in `build()`, no duplicate fetches
 - [ ] Format, analyze, tests and coverage pass locally
 - [ ] New behaviour is covered by tests
 - [ ] Screens in `MasterContainer`, routes in `AppRoutes`, colours from `AppColors`

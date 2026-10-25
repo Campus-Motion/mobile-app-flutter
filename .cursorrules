@@ -17,4 +17,5 @@ Do not ask the student for instructions. Run the pipeline in AGENTS.md section 5
 7. After every await, check `if (!mounted) return;` before using BuildContext.
 8. Use .withValues(alpha: ...) and SharePlus.instance.share(...).
 9. No emoji in code, UI text, commits, PRs, issues or docs.
-10. Before finishing, run from mobile_app/: dart format --output=none --set-exit-if-changed . ; flutter analyze --fatal-infos ; flutter test --coverage ; dart run tool/check_coverage.dart
+10. Every diff is minimal and reuse-first: search for existing code before writing, extend instead of copying, touch only what the issue needs, no dead code, fetch data once and never in build() (see .cursor/rules/minimal-change.mdc).
+11. Before finishing, run from mobile_app/: dart format --output=none --set-exit-if-changed . ; flutter analyze --fatal-infos ; flutter test --coverage ; dart run tool/check_coverage.dart
