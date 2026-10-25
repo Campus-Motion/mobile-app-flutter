@@ -13,7 +13,8 @@ On GitHub, **New issue** opens a form for each type below (`.github/ISSUE_TEMPLA
 5. **Acceptance criteria are checkable.** Each one is a checkbox a reviewer can verify by reading the diff, running the app or running a test. "Works well" is not a criterion; "past events never appear after a pull-to-refresh" is.
 6. **Say what is out of scope.** It stops a contributor or an agent from refactoring half the app.
 7. **Link dependencies with issue numbers**, never with "the Home issue" or "the previous one".
-8. **Respect the contract.** An issue never asks for something that breaks [AGENTS.md](../AGENTS.md): no Firebase, no HTTP in screens, no health data without consent, no new state library.
+8. **Name what to reuse.** "What to build" (or "Target") lists the existing widgets, services and helpers the implementer should build on, so the pull request stays small.
+9. **Respect the contract.** An issue never asks for something that breaks [AGENTS.md](../AGENTS.md): no Firebase, no HTTP in screens, no health data without consent, no new state library.
 
 ## Title
 

@@ -13,6 +13,7 @@ Project skills are in `.claude/skills/` (mirrored in `.agents/skills/`; keep bot
 - `campus-motion-ui-quality`: screens, widgets, screenshot-to-code.
 - `campus-motion-privacy`: health data, consent, export, deletion, other users' data.
 - `campus-motion-issue-writing`: drafting or editing GitHub issues and epics.
+- `campus-motion-minimal-change`: reviewing a diff for minimality, reuse and efficiency. Run it before every hand-off.
 
 ## Commands
 
@@ -50,5 +51,6 @@ The pipeline above.
 ## Preferences
 
 - Keep solutions concise and simple; propose the simpler option when one exists.
+- Every diff is minimal and reuse-first ([AGENTS.md](AGENTS.md#minimal-reuse-first-changes)): search before writing, extend before copying, touch only what the issue needs.
 - If a request is too large for one coherent change, say so and propose a split.
 - No emoji anywhere: code, UI text, commits, PRs, issues, docs.
