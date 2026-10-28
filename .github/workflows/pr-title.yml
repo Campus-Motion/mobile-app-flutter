@@ -1,0 +1,39 @@
+name: PR Title
+
+# pull_request_target so the check also runs on pull requests from forks.
+# The job never checks out or runs code from the pull request.
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize]
+    branches: [ main ]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  conventional-title:
+    name: Conventional PR Title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check Title Follows Conventional Commits
+        uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Types from CONTRIBUTING.md and docs/ISSUES.md.
+          types: |
+            feat
+            fix
+            refactor
+            chore
+            docs
+            test
+          requireScope: false
+          # Lower-case imperative summary, no final period.
+          subjectPattern: ^[a-z0-9`].*[^.]$
+          subjectPatternError: |
+            The summary "{subject}" in the title "{title}" must start with a
+            lower-case letter and must not end with a period.
+            Example: "feat(events): add join button and participant counter".

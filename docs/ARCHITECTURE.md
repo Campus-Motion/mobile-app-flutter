@@ -58,6 +58,8 @@ mobile-app-v2/                      repository root: docs and agent instructions
   AGENTS.md  CLAUDE.md  CONTRIBUTING.md  README.md
   docs/                             documentation (this folder)
   .github/workflows/ci.yml          CI: format, analyze, test, coverage
+  .github/workflows/pr-title.yml    Conventional Commits check on PR titles
+  .github/dependabot.yml            weekly pub and GitHub Actions updates
   .github/ISSUE_TEMPLATE/           issue forms
   .claude/skills/  .agents/skills/  project skills for AI agents (mirrored)
   .cursor/rules/  .cursorrules      Cursor rules (pointers to AGENTS.md)
