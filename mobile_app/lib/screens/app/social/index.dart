@@ -7,6 +7,7 @@ import 'package:mobile_app/constants/colors.dart';
 import 'package:mobile_app/services/user_service.dart';
 import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/models/user.dart';
+import 'package:mobile_app/widgets/user_list_tile.dart';
 
 class SocialIndexScreen extends StatefulWidget {
   const SocialIndexScreen({super.key});
@@ -268,82 +269,26 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
       itemCount: users.length,
       itemBuilder: (context, index) {
         final user = users[index];
-        final formattedRole =
-            user.role[0].toUpperCase() + user.role.substring(1);
         final isFollowing = _following.any((u) => u.id == user.id);
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-            side: BorderSide(color: Colors.grey.shade200),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 12.0,
+        return UserListTile(
+          user: user,
+          trailing: ElevatedButton(
+            onPressed: () => _toggleFollowUser(user, isFollowing),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isFollowing
+                  ? Colors.grey.shade200
+                  : AppColors.primary,
+              foregroundColor: isFollowing ? Colors.black87 : Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundImage: user.photoUrl != null
-                      ? NetworkImage(user.fullPhotoUrl!)
-                      : const AssetImage('assets/images/splash-icon.png')
-                            as ImageProvider,
-                  radius: 25,
-                  backgroundColor: Colors.grey.shade200,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.username,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$formattedRole • ID: ${user.id}',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () => _toggleFollowUser(user, isFollowing),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isFollowing
-                        ? Colors.grey.shade200
-                        : AppColors.primary,
-                    foregroundColor: isFollowing
-                        ? Colors.black87
-                        : Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                  child: Text(
-                    isFollowing ? 'Unfollow' : 'Follow',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+            child: Text(
+              isFollowing ? 'Unfollow' : 'Follow',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
             ),
           ),
         );
