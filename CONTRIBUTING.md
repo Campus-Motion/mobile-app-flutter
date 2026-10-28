@@ -72,7 +72,7 @@ Use the same types and scopes as issue titles ([docs/ISSUES.md](docs/ISSUES.md#t
 
 ### 4. Open a pull request
 
-Open the PR against `main` once the checks pass locally. The title follows the commit format. GitHub fills the description from `.github/pull_request_template.md`; complete every section:
+Open the PR against `main` once the checks pass locally. The title follows the commit format; the `Conventional PR Title` check (`.github/workflows/pr-title.yml`) fails on titles like `update stuff`. GitHub fills the description from `.github/pull_request_template.md`; complete every section:
 
 - **What and why:** the change and the reason, with `Closes #<issue>`.
 - **Reused:** the existing widgets, services and helpers the change builds on.
@@ -86,7 +86,7 @@ Keep PRs small: one issue, one PR. A PR that touches many unrelated files will b
 
 ### 5. Checks and review
 
-Every PR runs CI (`.github/workflows/ci.yml`). It must be green before review. Then at least one teammate reviews. Address every comment, either with a change or a reply explaining why not.
+Every PR runs CI (`.github/workflows/ci.yml`) and the title check. They must be green before review. Then at least one teammate reviews. Branch protection on `main` requires these checks and one approval, so a PR with a red check cannot be merged. Dependabot (`.github/dependabot.yml`) opens weekly `chore(deps): ...` PRs for pub packages and GitHub Actions; review them like any other PR. Address every comment, either with a change or a reply explaining why not.
 
 If you use an AI agent: `/fix-ci` repairs a red CI from the failed logs, and `/correct-pr` applies review comments. Both are defined in [AGENTS.md](AGENTS.md#9-automated-workflows).
 
