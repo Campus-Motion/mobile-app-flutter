@@ -61,6 +61,7 @@ jobs:
     timeout-minutes: 15
 
     strategy:
+      fail-fast: false
       matrix:
         target: [web, android]
 
@@ -109,4 +110,3 @@ jobs:
       - name: Build Android Debug APK
         if: matrix.target == 'android'
         run: flutter build apk --debug
-

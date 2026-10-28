@@ -52,7 +52,7 @@ Mock data is for development and tests. Release builds never fall back to it.
 
 ## 4. Run the checks
 
-These are the four steps CI runs on every pull request (see `.github/workflows/ci.yml`). Run them before you push:
+Run these four checks before you push. CI runs the same checks plus the web and Android platform builds on every pull request (see `.github/workflows/ci.yml`):
 
 ```bash
 # 1. Formatting: fails if any file is not formatted
@@ -69,7 +69,7 @@ flutter test --coverage
 # 4. Coverage floor (15% line coverage today)
 dart run tool/check_coverage.dart
 
-# 5. Platform builds (web release uploaded as CI artifact, plus Android debug APK)
+# 5. Platform builds (run in CI; run locally when verifying web or Android builds)
 flutter build web --release --dart-define=MOCK_API=true
 flutter build apk --debug
 ```
