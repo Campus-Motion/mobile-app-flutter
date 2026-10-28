@@ -4,7 +4,7 @@ This guide takes you from a fresh clone to a running app and shows how to run th
 
 ## 1. Prerequisites
 
-- **Flutter SDK** on the stable channel (Dart 3.11 or later, as required by `mobile_app/pubspec.yaml`). Check with `flutter --version`.
+- **Flutter SDK** `3.47.6` on the stable channel (pinned in `mobile_app/pubspec.yaml` and CI; Dart 3.11.5 or later). Check with `flutter --version`.
 - **Git**.
 - **Chrome**, to run the web build, which is the fastest way to try the app.
 - Optional: **Java 17** and Android Studio for Android builds, Xcode (macOS only) for iOS builds.
@@ -68,6 +68,10 @@ flutter test --coverage
 
 # 4. Coverage floor (15% line coverage today)
 dart run tool/check_coverage.dart
+
+# 5. Platform builds (web release uploaded as CI artifact, plus Android debug APK)
+flutter build web --release --dart-define=MOCK_API=true
+flutter build apk --debug
 ```
 
 To run one test file while you work:

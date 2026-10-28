@@ -24,16 +24,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          flutter-version-file: mobile_app/pubspec.yaml
           cache: true
 
       - name: Install Dependencies
@@ -58,4 +53,60 @@ jobs:
 
       - name: Verify Minimum Line Coverage
         run: dart run tool/check_coverage.dart
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        target: [web, android]
+
+    defaults:
+      run:
+        working-directory: mobile_app
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        if: matrix.target == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle'
+          cache-dependency-path: |
+            mobile_app/android/build.gradle.kts
+            mobile_app/android/app/build.gradle.kts
+            mobile_app/android/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version-file: mobile_app/pubspec.yaml
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Web Release
+        if: matrix.target == 'web'
+        run: flutter build web --release --dart-define=MOCK_API=true
+
+      - name: Upload Web Build Artifact
+        if: matrix.target == 'web'
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: mobile_app/build/web
+          if-no-files-found: error
+
+      - name: Build Android Debug APK
+        if: matrix.target == 'android'
+        run: flutter build apk --debug
 
