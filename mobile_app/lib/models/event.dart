@@ -21,11 +21,12 @@ class Event {
 
   factory Event.fromJson(Map<String, dynamic> json) {
     final startTime = json['start_time'] != null
-        ? DateTime.tryParse(json['start_time'] as String) ?? DateTime.now()
+        ? DateTime.tryParse(json['start_time'] as String)?.toLocal() ??
+              DateTime.now()
         : DateTime.now();
 
     final endTime = json['end_time'] != null
-        ? DateTime.tryParse(json['end_time'] as String) ??
+        ? DateTime.tryParse(json['end_time'] as String)?.toLocal() ??
               startTime.add(const Duration(hours: 1))
         : startTime.add(const Duration(hours: 1));
 
@@ -40,7 +41,8 @@ class Event {
           : null,
       participantCount: json['participant_count'] as int? ?? 0,
       createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()
+          ? DateTime.tryParse(json['created_at'] as String)?.toLocal() ??
+                DateTime.now()
           : DateTime.now(),
     );
   }
@@ -49,8 +51,8 @@ class Event {
     return {
       'title': title,
       'body': body,
-      'start_time': startTime.toIso8601String(),
-      'end_time': endTime.toIso8601String(),
+      'start_time': startTime.toUtc().toIso8601String(),
+      'end_time': endTime.toUtc().toIso8601String(),
       if (distanceM != null) 'distance_m': distanceM,
     };
   }
