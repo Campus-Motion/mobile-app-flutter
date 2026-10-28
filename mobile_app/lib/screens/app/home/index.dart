@@ -31,16 +31,20 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
   void initState() {
     super.initState();
     _newsFuture = _newsService.fetchLatestNews();
-    _eventsFuture = _eventService.getEvents(
+    _eventsFuture = _loadUpcomingEvents();
+  }
+
+  Future<List<Event>> _loadUpcomingEvents() {
+    return _eventService.getEvents(
       limit: 5,
       after: DateTime.now().toIso8601String(),
     );
   }
 
-  Future<void> _refreshNews() async {
+  Future<void> _refreshDashboard() async {
     setState(() {
       _newsFuture = _newsService.fetchLatestNews();
-      _eventsFuture = _eventService.getEvents(limit: 5);
+      _eventsFuture = _loadUpcomingEvents();
     });
     await Future.wait([_newsFuture, _eventsFuture]);
   }
@@ -114,7 +118,7 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
   Widget build(BuildContext context) {
     return MasterContainer(
       padding: EdgeInsets.zero,
-      onRefresh: _refreshNews,
+      onRefresh: _refreshDashboard,
       bottomNavigationBar: CampusMotionBottomBar(
         currentIndex: 0,
         onTap: _navigationFunction,
@@ -175,7 +179,7 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
                             const SizedBox(height: 16),
                             AppButton(
                               text: 'Retry',
-                              onPressed: _refreshNews,
+                              onPressed: _refreshDashboard,
                               width: 140,
                               height: 44,
                             ),
