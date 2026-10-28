@@ -23,7 +23,7 @@ class User {
       photoUrl: json['photo_url'] as String?,
       role: json['role'] as String? ?? 'user',
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? DateTime.parse(json['created_at'] as String).toLocal()
           : DateTime.now(),
     );
   }
@@ -35,7 +35,7 @@ class User {
       if (email != null) 'email': email,
       if (photoUrl != null) 'photo_url': photoUrl,
       'role': role,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
     };
   }
 
