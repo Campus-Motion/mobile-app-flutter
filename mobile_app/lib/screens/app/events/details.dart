@@ -16,10 +16,7 @@ import 'package:mobile_app/widgets/user_list_tile.dart';
 class EventDetailsScreen extends StatefulWidget {
   final int? eventId;
 
-  const EventDetailsScreen({
-    super.key,
-    required this.eventId,
-  });
+  const EventDetailsScreen({super.key, required this.eventId});
 
   @override
   State<EventDetailsScreen> createState() => _EventDetailsScreenState();
@@ -74,11 +71,14 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       }
 
       final current = currentUser;
-      final isJoined = current != null &&
-          participants.any((p) =>
-              p.id == current.id ||
-              (current.username.isNotEmpty &&
-                  p.username.toLowerCase() == current.username.toLowerCase()));
+      final isJoined =
+          current != null &&
+          participants.any(
+            (p) =>
+                p.id == current.id ||
+                (current.username.isNotEmpty &&
+                    p.username.toLowerCase() == current.username.toLowerCase()),
+          );
 
       if (!mounted) return;
 
@@ -118,9 +118,12 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         setState(() {
           _isJoined = false;
           if (_currentUser != null) {
-            _participants.removeWhere((p) =>
-                p.id == _currentUser!.id ||
-                p.username.toLowerCase() == _currentUser!.username.toLowerCase());
+            _participants.removeWhere(
+              (p) =>
+                  p.id == _currentUser!.id ||
+                  p.username.toLowerCase() ==
+                      _currentUser!.username.toLowerCase(),
+            );
           }
           if (_participantCount > 0) {
             _participantCount--;
@@ -171,7 +174,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     final startTimeStr = timeFormat.format(start);
     final endTimeStr = timeFormat.format(end);
 
-    if (start.year == end.year && start.month == end.month && start.day == end.day) {
+    if (start.year == end.year &&
+        start.month == end.month &&
+        start.day == end.day) {
       return '$dateStr • $startTimeStr – $endTimeStr';
     }
 
@@ -187,7 +192,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.arrow_back_ios,
+                color: AppColors.textPrimary,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -204,10 +212,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          AppButton(
-            text: 'Go Back',
-            onPressed: () => Navigator.pop(context),
-          ),
+          AppButton(text: 'Go Back', onPressed: () => Navigator.pop(context)),
         ],
       );
     }
@@ -218,12 +223,17 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.arrow_back_ios,
+                color: AppColors.textPrimary,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
           const SizedBox(height: 120),
-          const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
         ],
       );
     }
@@ -235,12 +245,19 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.arrow_back_ios,
+                color: AppColors.textPrimary,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
           const SizedBox(height: 60),
-          const Icon(Icons.warning_amber_rounded, size: 64, color: AppColors.warning),
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: 64,
+            color: AppColors.warning,
+          ),
           const SizedBox(height: 16),
           Text(
             _errorMessage ?? 'Failed to load event details.',
@@ -252,10 +269,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          AppButton(
-            text: 'Retry',
-            onPressed: _loadEventDetails,
-          ),
+          AppButton(text: 'Retry', onPressed: _loadEventDetails),
           const SizedBox(height: 12),
           AppButton(
             text: 'Go Back',
@@ -277,7 +291,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.arrow_back_ios,
+                color: AppColors.textPrimary,
+              ),
               onPressed: () => Navigator.pop(context),
               tooltip: 'Back',
             ),
@@ -308,7 +325,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       color: AppColors.primaryLight,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.event, color: AppColors.primary, size: 24),
+                    child: const Icon(
+                      Icons.event,
+                      color: AppColors.primary,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -339,10 +360,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  StatItem(
-                    label: 'Participants',
-                    value: '$_participantCount',
-                  ),
+                  StatItem(label: 'Participants', value: '$_participantCount'),
                   if (event.distanceM != null)
                     StatItem(
                       label: 'Distance',
@@ -364,7 +382,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         // Action Button
         AppButton(
           text: _isJoined ? 'Leave Event' : 'Join Event',
-          variant: _isJoined ? AppButtonVariant.outline : AppButtonVariant.primary,
+          variant: _isJoined
+              ? AppButtonVariant.outline
+              : AppButtonVariant.primary,
           isLoading: _isActionLoading,
           onPressed: _toggleJoinLeave,
         ),
@@ -396,10 +416,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 padding: EdgeInsets.symmetric(vertical: 8.0),
                 child: Text(
                   'No participants yet. Be the first to join!',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 14),
                 ),
               ),
             ),

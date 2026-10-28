@@ -1,0 +1,45 @@
+name: Task
+description: Tooling, CI, dependencies, documentation or tests (chore, docs, test).
+title: "chore(<scope>): <imperative summary>"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use the `chore`, `docs` or `test` prefix in the title. Follow [docs/ISSUES.md](https://github.com/Campus-Motion/mobile-app-v2/blob/main/docs/ISSUES.md). No emoji.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+    validations:
+      required: true
+  - type: textarea
+    id: todo
+    attributes:
+      label: What to do
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: Optional.
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      description: Maintainers add the matching size label.
+      options:
+        - "XS (under two hours)"
+        - "S (about half a day)"
+        - "M (one to two days)"
+        - "L (three days or more, consider splitting)"
+    validations:
+      required: true

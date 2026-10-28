@@ -69,7 +69,10 @@ class UserService {
   }
 
   Future<UserPreferences> updatePreferences(UserPreferences preferences) async {
-    final response = await _apiService.put('/users/me/preferences', preferences.toJson());
+    final response = await _apiService.put(
+      '/users/me/preferences',
+      preferences.toJson(),
+    );
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -99,7 +102,9 @@ class UserService {
       final data = json.decode(response.body);
       return HealthData.fromJson(data);
     } else {
-      throw Exception('Failed to create health record: ${response.statusCode} - ${response.body}');
+      throw Exception(
+        'Failed to create health record: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
@@ -110,7 +115,9 @@ class UserService {
       final data = json.decode(response.body);
       return HealthData.fromJson(data);
     } else {
-      throw Exception('Failed to update health record: ${response.statusCode} - ${response.body}');
+      throw Exception(
+        'Failed to update health record: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
@@ -128,22 +135,22 @@ class UserService {
     }
     final uri = Uri.parse('${ApiService.baseUrl}/users/me/photo');
     final request = http.MultipartRequest('POST', uri);
-    
+
     final token = _apiService.token;
     if (token != null) {
       request.headers['Authorization'] = 'Bearer $token';
     }
-    
+
     final multipartFile = http.MultipartFile.fromBytes(
       'photo',
       bytes,
       filename: filename,
     );
     request.files.add(multipartFile);
-    
+
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
-    
+
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return data['photo_url'] as String;
@@ -158,8 +165,8 @@ class UserService {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       // Backend returns either directly list or standard envelope. Let's handle both.
-      final List<dynamic> list = (data is Map && data.containsKey('data')) 
-          ? data['data'] as List 
+      final List<dynamic> list = (data is Map && data.containsKey('data'))
+          ? data['data'] as List
           : (data as List? ?? []);
       return list.map((json) => User.fromJson(json)).toList();
     } else {
@@ -172,8 +179,8 @@ class UserService {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      final List<dynamic> list = (data is Map && data.containsKey('data')) 
-          ? data['data'] as List 
+      final List<dynamic> list = (data is Map && data.containsKey('data'))
+          ? data['data'] as List
           : (data as List? ?? []);
       return list.map((json) => User.fromJson(json)).toList();
     } else {

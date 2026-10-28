@@ -16,9 +16,7 @@ void main() {
     testWidgets('renders username, capitalized role and ID', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
-          home: Scaffold(
-            body: UserListTile(user: sampleUser),
-          ),
+          home: Scaffold(body: UserListTile(user: sampleUser)),
         ),
       );
 

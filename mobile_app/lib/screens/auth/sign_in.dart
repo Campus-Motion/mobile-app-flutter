@@ -69,7 +69,9 @@ class _SignInScreenState extends State<SignInScreen> {
       if (mounted) {
         Navigator.pop(context); // Dismiss loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString().replaceAll('Exception: ', ''))),
+          SnackBar(
+            content: Text(error.toString().replaceAll('Exception: ', '')),
+          ),
         );
       }
     }
@@ -93,7 +95,7 @@ class _SignInScreenState extends State<SignInScreen> {
           height: 100,
         ),
         const SizedBox(height: 50),
-        
+
         const Text(
           'Welcome back',
           style: TextStyle(
@@ -105,10 +107,7 @@ class _SignInScreenState extends State<SignInScreen> {
         const SizedBox(height: 8),
         const Text(
           'Sign in to continue to Campus Motion',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey,
-          ),
+          style: TextStyle(fontSize: 16, color: Colors.grey),
         ),
         const SizedBox(height: 40),
 
@@ -126,13 +125,19 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
           ),
         ),
         const SizedBox(height: 16),
-        
+
         TextField(
           controller: _passwordController,
           focusNode: _passwordFocusNode,
@@ -155,13 +160,19 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
           ),
         ),
         const SizedBox(height: 8),
-        
+
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
@@ -199,7 +210,7 @@ class _SignInScreenState extends State<SignInScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        
+
         Row(
           children: [
             Expanded(child: Divider(color: Colors.grey.shade300)),
@@ -221,7 +232,11 @@ class _SignInScreenState extends State<SignInScreen> {
 
         OutlinedButton.icon(
           onPressed: _handleGoogleLogin,
-          icon: const Icon(Icons.g_mobiledata, size: 32, color: Color(0xFFDB4437)),
+          icon: const Icon(
+            Icons.g_mobiledata,
+            size: 32,
+            color: Color(0xFFDB4437),
+          ),
           label: const Text(
             'Continue with Google',
             style: TextStyle(
@@ -258,10 +273,7 @@ class _SignInScreenState extends State<SignInScreen> {
           children: [
             const Text(
               "Don't have an account? ",
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 15,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 15),
             ),
             GestureDetector(
               onTap: () => Navigator.pushNamed(context, AppRoutes.signup),

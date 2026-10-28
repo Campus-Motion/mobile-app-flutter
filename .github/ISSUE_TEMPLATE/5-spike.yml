@@ -1,0 +1,55 @@
+name: Spike
+description: Research that answers a question before we build. No production code.
+title: "spike(<scope>): <question to answer>"
+labels: ["spike"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Follow [docs/ISSUES.md](https://github.com/Campus-Motion/mobile-app-v2/blob/main/docs/ISSUES.md). No emoji.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What we need to find out, as numbered questions.
+      value: |
+        1.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: Which decision or issues depend on the answer.
+    validations:
+      required: true
+  - type: textarea
+    id: deliverable
+    attributes:
+      label: Deliverable
+      description: Usually a docs/<TOPIC>.md file, a recorded decision and follow-up issues.
+    validations:
+      required: true
+  - type: input
+    id: timebox
+    attributes:
+      label: Timebox
+      placeholder: "Half a day"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - [ ] Every question answered with sources
+        - [ ] Decision recorded and agreed in a comment on this issue
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      value: Writing production code.
+    validations:
+      required: true

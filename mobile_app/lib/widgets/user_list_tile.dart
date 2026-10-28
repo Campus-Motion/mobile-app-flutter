@@ -26,7 +26,8 @@ class UserListTile extends StatelessWidget {
 
     final displaySubtitle = subtitle ?? '$formattedRole • ID: ${user.id}';
 
-    final ImageProvider avatarImage = (user.photoUrl != null && user.photoUrl!.isNotEmpty)
+    final ImageProvider avatarImage =
+        (user.photoUrl != null && user.photoUrl!.isNotEmpty)
         ? NetworkImage(user.fullPhotoUrl!)
         : const AssetImage('assets/images/splash-icon.png') as ImageProvider;
 

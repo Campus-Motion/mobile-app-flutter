@@ -43,7 +43,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load preferences. Using defaults.')),
+          const SnackBar(
+            content: Text('Failed to load preferences. Using defaults.'),
+          ),
         );
       }
     }
@@ -75,7 +77,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
     try {
       final user = await _userService.getMe();
-      
+
       UserPreferences prefs;
       try {
         prefs = await _userService.getPreferences();
@@ -111,17 +113,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       Navigator.pop(context); // Dismiss loading dialog
 
       await SharePlus.instance.share(
-        ShareParams(
-          text: jsonString,
-          subject: 'Campus Motion Data Export',
-        ),
+        ShareParams(text: jsonString, subject: 'Campus Motion Data Export'),
       );
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Dismiss loading dialog
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to export data: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to export data: $e')));
     }
   }
 
@@ -215,19 +214,27 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       try {
         await _userService.deleteMe();
         await AuthService().logout();
-        
+
         if (!mounted) return;
         Navigator.pop(context); // Dismiss loading dialog
-        Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.login,
+          (route) => false,
+        );
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Your account and all associated data have been permanently deleted.')),
+          const SnackBar(
+            content: Text(
+              'Your account and all associated data have been permanently deleted.',
+            ),
+          ),
         );
       } catch (e) {
         if (!mounted) return;
         Navigator.pop(context); // Dismiss loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete account: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to delete account: $e')));
       }
     }
   }
@@ -245,7 +252,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
     if (!mounted) return;
     Navigator.pop(context); // Dismiss dialog
-    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.login,
+      (route) => false,
+    );
   }
 
   @override
@@ -277,35 +288,43 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         if (_isLoading)
           const Padding(
             padding: EdgeInsets.all(40.0),
-            child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
           )
         else if (_preferences != null) ...[
           // Account Section
           _buildSectionHeader('Account'),
           _buildListTile('Change Email/Password', Icons.lock_outline, () {}),
           _buildListTile('Connect Devices', Icons.devices, () {}),
-          
+
           // Sport Preferences Section
           _buildSectionHeader('Sport Preferences'),
           SwitchListTile(
             title: const Text('Open to Group Activities'),
             value: _preferences!.openToGroups,
             activeThumbColor: AppColors.primary,
-            onChanged: (val) => _updatePref(_preferences!.copyWith(openToGroups: val)),
+            onChanged: (val) =>
+                _updatePref(_preferences!.copyWith(openToGroups: val)),
           ),
           SwitchListTile(
             title: const Text('Open to New Sports'),
             value: _preferences!.openToNewSports,
             activeThumbColor: AppColors.primary,
-            onChanged: (val) => _updatePref(_preferences!.copyWith(openToNewSports: val)),
+            onChanged: (val) =>
+                _updatePref(_preferences!.copyWith(openToNewSports: val)),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Max Distance: ${_preferences!.maxDistanceKm.toStringAsFixed(1)} km', 
-                  style: const TextStyle(fontSize: 16)
+                Text(
+                  'Max Distance: ${_preferences!.maxDistanceKm.toStringAsFixed(1)} km',
+                  style: const TextStyle(fontSize: 16),
                 ),
                 Slider(
                   value: _preferences!.maxDistanceKm,
@@ -327,7 +346,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
           // Activity Goal
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -335,15 +357,32 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 DropdownButton<String>(
                   value: _preferences!.goal,
                   items: const [
-                    DropdownMenuItem(value: 'stay_active', child: Text('Stay Active')),
-                    DropdownMenuItem(value: 'lose_weight', child: Text('Lose Weight')),
-                    DropdownMenuItem(value: 'build_muscle', child: Text('Build Muscle')),
-                    DropdownMenuItem(value: 'improve_endurance', child: Text('Improve Endurance')),
+                    DropdownMenuItem(
+                      value: 'stay_active',
+                      child: Text('Stay Active'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'lose_weight',
+                      child: Text('Lose Weight'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'build_muscle',
+                      child: Text('Build Muscle'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'improve_endurance',
+                      child: Text('Improve Endurance'),
+                    ),
                     DropdownMenuItem(value: 'compete', child: Text('Compete')),
-                    DropdownMenuItem(value: 'have_fun', child: Text('Have Fun')),
+                    DropdownMenuItem(
+                      value: 'have_fun',
+                      child: Text('Have Fun'),
+                    ),
                   ],
                   onChanged: (val) {
-                    if (val != null) _updatePref(_preferences!.copyWith(goal: val));
+                    if (val != null) {
+                      _updatePref(_preferences!.copyWith(goal: val));
+                    }
                   },
                 ),
               ],
@@ -355,9 +394,21 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           _buildListTile('Privacy Policy', Icons.privacy_tip_outlined, () {
             PrivacyPolicyDialog.show(context);
           }),
-          _buildListTile('Export My Data', Icons.download_outlined, () => _exportData()),
-          _buildListTile('Delete Health Data', Icons.delete_outline, () => _confirmDeleteHealth()),
-          _buildListTile('Delete Account', Icons.no_accounts_outlined, () => _confirmDeleteAccount()),
+          _buildListTile(
+            'Export My Data',
+            Icons.download_outlined,
+            () => _exportData(),
+          ),
+          _buildListTile(
+            'Delete Health Data',
+            Icons.delete_outline,
+            () => _confirmDeleteHealth(),
+          ),
+          _buildListTile(
+            'Delete Account',
+            Icons.no_accounts_outlined,
+            () => _confirmDeleteAccount(),
+          ),
 
           const SizedBox(height: 40),
 
@@ -378,7 +429,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   ),
                   elevation: 0,
                 ),
-                child: const Text('Log Out', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Log Out',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ),
@@ -409,7 +463,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     return ListTile(
       leading: Icon(icon, color: Colors.black87),
       title: Text(title),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Colors.grey,
+      ),
       onTap: onTap,
     );
   }

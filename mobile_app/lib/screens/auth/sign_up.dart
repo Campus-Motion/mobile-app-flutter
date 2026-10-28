@@ -17,7 +17,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   final FocusNode _passwordFocusNode = FocusNode();
   final FocusNode _confirmPasswordFocusNode = FocusNode();
@@ -49,7 +50,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
-    if (username.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (username.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill in all fields.")),
       );
@@ -57,9 +61,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Passwords do not match.")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Passwords do not match.")));
       return;
     }
 
@@ -87,7 +91,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (mounted) {
         Navigator.pop(context); // Dismiss loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString().replaceAll('Exception: ', ''))),
+          SnackBar(
+            content: Text(error.toString().replaceAll('Exception: ', '')),
+          ),
         );
       }
     }
@@ -140,7 +146,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           height: 80,
         ),
         const SizedBox(height: 40),
-        
+
         const Text(
           'Create Account',
           style: TextStyle(
@@ -152,10 +158,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         const SizedBox(height: 8),
         const Text(
           'Join Campus Motion today',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey,
-          ),
+          style: TextStyle(fontSize: 16, color: Colors.grey),
         ),
         const SizedBox(height: 40),
 
@@ -194,9 +197,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -210,7 +219,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
             prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
             suffixIcon: IconButton(
               icon: Icon(
-                _isConfirmPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                _isConfirmPasswordVisible
+                    ? Icons.visibility_off
+                    : Icons.visibility,
                 color: Colors.grey,
               ),
               onPressed: _toggleConfirmPasswordVisibility,
@@ -223,9 +234,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -273,17 +290,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
-        
+
         const SizedBox(height: 32),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
               "Already have an account? ",
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 15,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 15),
             ),
             GestureDetector(
               onTap: () => Navigator.pop(context),

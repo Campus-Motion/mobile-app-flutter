@@ -128,7 +128,13 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
       if (!mounted) return;
       Navigator.pop(context); // Dismiss loading dialog
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(isFollowing ? 'Unfollowed ${user.username}' : 'Followed ${user.username}!')),
+        SnackBar(
+          content: Text(
+            isFollowing
+                ? 'Unfollowed ${user.username}'
+                : 'Followed ${user.username}!',
+          ),
+        ),
       );
       _loadSocialData(); // Refresh followers/following lists
       // Refresh searched user to update follow state
@@ -138,23 +144,23 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Dismiss loading dialog
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Action failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Action failed: $e')));
     }
   }
 
-  static dynamic _navigationFunction(BuildContext context, int index){
-    switch(index) {
-      case 0 : 
+  static dynamic _navigationFunction(BuildContext context, int index) {
+    switch (index) {
+      case 0:
         return Navigator.pushNamed(context, AppRoutes.dashboard);
-      case 1 :
+      case 1:
         return Navigator.pushNamed(context, AppRoutes.trail);
-      case 2 :
+      case 2:
         return Navigator.pushNamed(context, AppRoutes.social);
-      case 3 : 
+      case 3:
         return Navigator.pushNamed(context, AppRoutes.profile);
-      case _ :
+      case _:
         return Navigator.pushNamed(context, AppRoutes.dashboard);
     }
   }
@@ -172,11 +178,15 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
       child: MasterContainer(
         scrollable: false,
         padding: EdgeInsets.zero,
-        bottomNavigationBar: CampusMotionBottomBar(currentIndex: 2, onTap: _navigationFunction, context: context),
+        bottomNavigationBar: CampusMotionBottomBar(
+          currentIndex: 2,
+          onTap: _navigationFunction,
+          context: context,
+        ),
         onRefresh: _loadSocialData,
         children: [
           const SizedBox(height: 50),
-          
+
           // Header
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 24.0),
@@ -184,11 +194,15 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
               alignment: Alignment.centerLeft,
               child: Text(
                 'Social Feed',
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, letterSpacing: -1),
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -1,
+                ),
               ),
             ),
           ),
-          
+
           const SizedBox(height: 20),
 
           // TabBar
@@ -209,10 +223,18 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
             child: TabBarView(
               children: [
                 _isLoading
-                    ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      )
                     : _buildUserList(_following, isFollowingTab: true),
                 _isLoading
-                    ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      )
                     : _buildUserList(_followers, isFollowingTab: false),
                 _buildSearchTab(),
               ],
@@ -232,8 +254,8 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
             Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
             const SizedBox(height: 16),
             Text(
-              isFollowingTab 
-                  ? 'You are not following anyone yet.' 
+              isFollowingTab
+                  ? 'You are not following anyone yet.'
                   : 'You do not have any followers yet.',
               style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
             ),
@@ -254,7 +276,9 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
           trailing: ElevatedButton(
             onPressed: () => _toggleFollowUser(user, isFollowing),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isFollowing ? Colors.grey.shade200 : AppColors.primary,
+              backgroundColor: isFollowing
+                  ? Colors.grey.shade200
+                  : AppColors.primary,
               foregroundColor: isFollowing ? Colors.black87 : Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -273,7 +297,9 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
   }
 
   Widget _buildSearchTab() {
-    final isFollowingSearched = _searchedUser != null && _following.any((u) => u.id == _searchedUser!.id);
+    final isFollowingSearched =
+        _searchedUser != null &&
+        _following.any((u) => u.id == _searchedUser!.id);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -301,9 +327,15 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                   ),
                 ),
               ),
@@ -320,7 +352,10 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text('Search', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Search',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
@@ -329,7 +364,10 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
             const SizedBox(height: 12),
             Text(
               _searchError!,
-              style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
           const SizedBox(height: 30),
@@ -360,14 +398,18 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
                   CircleAvatar(
                     backgroundImage: _searchedUser!.photoUrl != null
                         ? NetworkImage(_searchedUser!.fullPhotoUrl!)
-                        : const AssetImage('assets/images/splash-icon.png') as ImageProvider,
+                        : const AssetImage('assets/images/splash-icon.png')
+                              as ImageProvider,
                     radius: 40,
                     backgroundColor: Colors.grey.shade200,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     _searchedUser!.username,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -384,10 +426,17 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
-                      onPressed: () => _toggleFollowUser(_searchedUser!, isFollowingSearched),
+                      onPressed: () => _toggleFollowUser(
+                        _searchedUser!,
+                        isFollowingSearched,
+                      ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isFollowingSearched ? Colors.grey.shade200 : AppColors.primary,
-                        foregroundColor: isFollowingSearched ? Colors.black87 : Colors.white,
+                        backgroundColor: isFollowingSearched
+                            ? Colors.grey.shade200
+                            : AppColors.primary,
+                        foregroundColor: isFollowingSearched
+                            ? Colors.black87
+                            : Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -395,7 +444,10 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
                       ),
                       child: Text(
                         isFollowingSearched ? 'Unfollow User' : 'Follow User',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
