@@ -34,7 +34,7 @@ This README is the entry point. Each document below has one job.
 
 ## Quick reference
 
-All Flutter commands run from `mobile_app/`. Full details in [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md).
+All Flutter commands run from `mobile_app/` (Flutter SDK `3.47.6`, pinned in `mobile_app/pubspec.yaml` and CI). Full details in [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md).
 
 ```bash
 cd mobile_app
@@ -42,13 +42,15 @@ flutter pub get
 flutter run -d chrome --dart-define=MOCK_API=true   # run without the backend
 ```
 
-The checks CI runs on every pull request:
+The checks and builds CI runs on every pull request:
 
 ```bash
 dart format --output=none --set-exit-if-changed .
 flutter analyze --fatal-infos
 flutter test --coverage
 dart run tool/check_coverage.dart
+flutter build web --release --dart-define=MOCK_API=true
+flutter build apk --debug
 ```
 
 ## Repository map

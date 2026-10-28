@@ -96,7 +96,7 @@ A human merges once CI is green and the review is approved. Delete the branch af
 
 ## Quality gates
 
-Run these from `mobile_app/` before pushing. CI runs exactly the same steps.
+Run these from `mobile_app/` before pushing. CI runs the same checks plus platform builds (`flutter build web --release --dart-define=MOCK_API=true` and `flutter build apk --debug`) on Flutter `3.47.6`.
 
 ```bash
 dart format --output=none --set-exit-if-changed .   # formatting (fix with: dart format .)

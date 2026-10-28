@@ -236,6 +236,8 @@ All commands run from `mobile_app/`.
 | All tests | `flutter test` |
 | Tests with coverage (CI) | `flutter test --coverage` |
 | Coverage floor (CI) | `dart run tool/check_coverage.dart` |
+| Build web release (CI) | `flutter build web --release --dart-define=MOCK_API=true` |
+| Build Android debug APK (CI) | `flutter build apk --debug` |
 | One test file | `flutter test test/<path>_test.dart` |
 | Run on web, offline | `flutter run -d chrome --dart-define=MOCK_API=true` |
 | Run on a device | `flutter run` |
