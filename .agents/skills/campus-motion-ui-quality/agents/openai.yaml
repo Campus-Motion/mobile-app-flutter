@@ -1,0 +1,4 @@
+interface:
+  display_name: "Campus Motion UI Quality"
+  short_description: "Build consistent, component-based Campus Motion screens"
+  default_prompt: "Use $campus-motion-ui-quality to implement or review this Campus Motion screen with full component reuse and state coverage."

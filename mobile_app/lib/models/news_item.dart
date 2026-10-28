@@ -29,14 +29,16 @@ class NewsItem {
       photoUrl: json['photo_url'] as String?,
       authorId: json['author_id'] as int? ?? 0,
       isPublished: json['is_published'] as bool? ?? false,
-      publishedAt: json['published_at'] != null 
-          ? DateTime.tryParse(json['published_at'].toString()) ?? DateTime.now()
+      publishedAt: json['published_at'] != null
+          ? DateTime.tryParse(json['published_at'].toString())?.toLocal() ??
+                DateTime.now()
           : DateTime.now(),
-      createdAt: json['created_at'] != null 
-          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'].toString())?.toLocal() ??
+                DateTime.now()
           : DateTime.now(),
-      updatedAt: json['updated_at'] != null 
-          ? DateTime.tryParse(json['updated_at'].toString()) 
+      updatedAt: json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'].toString())?.toLocal()
           : null,
     );
   }

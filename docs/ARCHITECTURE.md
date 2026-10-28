@@ -1,157 +1,196 @@
-# Campus Motion - Architecture Documentation
+# Technical architecture
 
-This document describes the high-level architecture, design decisions, and data flows of the **Campus Motion** Flutter application (`mobile-app-v2`).
+This document is the technical source of truth: tech stack, layers, repository layout, routing, services, mock mode, privacy architecture, conventions and testing. For the product picture read [FUNCTIONAL_OVERVIEW.md](FUNCTIONAL_OVERVIEW.md); for the backend contract read [API.md](API.md); for the visual system read [DESIGN.md](DESIGN.md).
 
----
+## 1. Tech stack
 
-## 1. Project Background & Tech Tree Decisions
+| Concern | Choice | Notes |
+|---|---|---|
+| Framework | **Flutter 3**, **Dart 3** (sound null safety) | One codebase for Android, iOS, web and desktop. |
+| UI | Material widgets, custom tokens in `AppColors` | Theme seeded from the brand colour in `main.dart`. |
+| Navigation | `Navigator` with named routes | One route table: `AppRoutes` in `lib/config/routes.dart`. |
+| State | `StatefulWidget` + `setState`, `FutureBuilder` | No state-management library. Do not add one for a single feature. |
+| Networking | `http` package behind `ApiService` | Bearer JWT, JSON in and out. |
+| Backend | Campus Motion REST API, `https://api.campusmotion.ch` | Self-hosted and GDPR-compliant. **No Firebase.** |
+| Other packages | `intl` (dates), `share_plus` (data export), `flutter_signin_button` | Add a package only with team agreement. |
+| Quality | `flutter_lints`, `dart format`, `flutter test`, coverage floor | Enforced in CI. |
 
-### 1.1 The Genesis (v1 - React Native & Expo)
-In late 2025, Campus Motion began development as an Expo/React Native application (`mobile-app`). While rapid for early prototypes, several challenges emerged:
-- **Dependency vulnerabilities & fragmentation**: Regular upstream breakages with Expo SDK updates.
-- **Platform inconsistency**: Divergent styling between Android and iOS without extensive platform-specific tweaks.
-- **Firebase Coupling**: Storing student activity and personal health data in Firebase created vendor lock-in and made European General Data Protection Regulation (GDPR) compliance difficult.
+## 2. History and key decisions
 
-### 1.2 The Strategic Pivot to Flutter (v2)
-In early 2026, the team made a strategic pivot to **Flutter 3** with **Dart 3**:
-- **Unified Engine**: Single rendering engine compiling to native ARM machine code on Android and iOS, with first-class Web and desktop support.
-- **Strong Static Typing**: Dart's sound null-safety eliminates entire classes of runtime exceptions.
-- **Deterministic UI Hierarchy**: Clear widget tree composability.
+These decisions explain constraints that look arbitrary without context. Do not reverse them without a team decision.
 
-### 1.3 Transition from Firebase to Custom GDPR-Compliant Backend
-To guarantee privacy for EPFL/UNIL students:
-- Firebase was deprecated and removed. All Firebase configuration files (`google-services.json`, `firebaseConfig.ts`, etc.) were scrubbed from tracking.
-- A custom, GDPR-compliant REST API was established at:
-  ```
-  https://api.campusmotion.ch
-  ```
-- All networking routes through a centralized singleton gateway (`ApiService`) using standard JSON serialization and Bearer JWT authorization.
+- **Flutter instead of React Native (v2).** The project started in late 2025 as an Expo / React Native app. Upstream breakage on SDK updates, styling drift between Android and iOS, and a desire for compile-time type safety led to a rebuild in Flutter in early 2026.
+- **Own backend instead of Firebase.** The v1 app stored activity and health data in Firebase. That made GDPR compliance hard and locked student health data into a third-party cloud. Firebase was removed entirely and replaced by a dedicated REST API. Never reintroduce a Firebase package, config file or SDK.
+- **A phone-width shell on every platform.** The app is designed for phones. On wide screens it renders in a centred 450 px column (`MasterContainer`) instead of stretching.
+- **Mock backend in the app.** Contributors often have no backend access. `MockDataService` lets every screen run offline, and lets tests exercise services without a network.
 
----
+## 3. Layers
 
-## 2. Architectural Layers
+Dependencies point one way. A layer may use the layers below it, never the ones above.
 
-Campus Motion adheres to a **Clean Layered Architecture** with strict directional dependencies:
-
-```
-[UI Layer (Screens & Widgets)]
-            ↓
-[Domain Services Layer]
-            ↓
-[Network Gateway (ApiService)]
-            ↓
-[Remote Backend API (https://api.campusmotion.ch)]
+```mermaid
+flowchart TD
+  Screens["Screens<br/>lib/screens/"] --> Widgets["Widgets<br/>lib/widgets/"]
+  Screens --> Services["Services<br/>lib/services/"]
+  Widgets --> Models["Models<br/>lib/models/"]
+  Services --> Models
+  Services --> Api["ApiService<br/>lib/services/api_service.dart"]
+  Api --> Backend["REST API<br/>api.campusmotion.ch"]
+  Api -. "mock mode or debug fallback" .-> Mock["MockDataService"]
+  Screens --> Routes["AppRoutes<br/>lib/config/routes.dart"]
+  Widgets --> Tokens["AppColors<br/>lib/constants/colors.dart"]
 ```
 
-### 2.1 Presentation Layer (`lib/screens/` & `lib/widgets/`)
-- **Screen Shell & Responsive Containment (`MasterContainer`)**:
-  - Located in `lib/widgets/master_container.dart`.
-  - Every application screen **must** be wrapped in `MasterContainer`.
-  - Implements a strict `maxWidth: 450` constraint. On wide screens (Web, tablet, desktop), content is centered within a mobile-phone aspect box rather than stretching uncontrollably.
-  - Automatically manages `SafeArea`, `SingleChildScrollView`, and pull-to-refresh (`onRefresh`).
-- **Navigation Shell (`CampusMotionBottomBar`)**:
-  - Located in `lib/widgets/bottom_bar.dart`.
-  - Anchors the 4 main application tabs:
-    - Tab 0: Home / Dashboard (`AppRoutes.dashboard`)
-    - Tab 1: Sport / Trail (`AppRoutes.trail`)
-    - Tab 2: Social (`AppRoutes.social`)
-    - Tab 3: Profile (`AppRoutes.profile`)
-- **Centralized Routing (`AppRoutes`)**:
-  - Located in `lib/config/routes.dart`.
-  - Defines declarative string route constants and resolves them in `generateRoute(RouteSettings)`.
-- **Reusable Component Library (`lib/widgets/`)**:
-  - To prevent UI code duplication and ensure design system fidelity across screens and Figma imports, visual components are extracted into isolated primitives:
-    - `AppCard`: Standard elevation, 20px corner radius, padding, and tap handler.
-    - `AppButton`: Primary, secondary, outline, and danger variants with built-in loading spinner support.
-    - `StatItem`: Standardized metric counter with value, unit, and label.
-    - `ActivityCard`: Standardized activity tile with category iconography, duration, and privacy badge.
-    - `ThemedText`: Typography wrapper bound to the application text theme.
-    - `TopAppBar`: Consistent logo and branding header.
-- **Design Tokens (`lib/constants/colors.dart`)**:
-  - `AppColors` centralizes the color system:
-    - Primary Terracotta: `0xFFDE7356` (`primary`, `primaryLight`, `primaryDark`)
-    - Surfaces: `background`, `cardBackground`, `surfaceLight`, `divider`
-    - Typography: `textPrimary`, `textSecondary`, `textMuted`
-    - Status: `success`, `warning`, `error`, `info`
-    - Activity categories: `activityRun`, `activityWalk`, `activityCycle`, `activityHike`, `activitySwim`
-    - Shadow: `AppColors.shadow` (8% alpha black)
+| Layer | Path | Owns | Must not |
+|---|---|---|---|
+| Screens | `lib/screens/` | Loading data through services, holding screen state, composing widgets, navigation. | Call `http`, build JSON, contain large inline-styled layouts or private `_buildCard()` helpers that duplicate a widget. |
+| Widgets | `lib/widgets/` | Reusable visual components, one public widget per file. Take data and callbacks as constructor parameters. | Call services or `Navigator.pushNamed` directly (navigation goes through a callback), hardcode colours. |
+| Services | `lib/services/` | One singleton per backend domain. Call `ApiService`, check status codes, parse JSON into models, throw clear exceptions. | Import Flutter UI (`material.dart`), hold UI state. |
+| Gateway | `lib/services/api_service.dart` | Base URL, auth token, headers, the CORS proxy for debug web, mock switching. | Contain domain logic. |
+| Models | `lib/models/` | Typed, null-safe data classes with `factory fromJson` and `toJson`. | Depend on Flutter or on services. |
+| Routes | `lib/config/routes.dart` | Route name constants and the `generateRoute` switch. | Contain screen logic. |
+| Tokens | `lib/constants/colors.dart` | Every colour the app uses. | Be bypassed by inline `Color(0x...)` or `Colors.*` in screens and widgets. |
 
+## 4. Repository layout
 
-### 2.2 Domain Services Layer (`lib/services/`)
-- All services are implemented as thread-safe Singletons:
-  - `AuthService`: User registration, login, logout, password modification, current user session state.
-  - `UserService`: User profile (`/users/me`), preferences (`/users/me/preferences`), health records (`/health`), photo uploads, social followers/following.
-  - `ActivityService`: Activity logging, history retrieval, workout summaries.
-  - `EventService`: Campus athletic events, participants joining/leaving.
-  - `NewsService`: Campus athletic announcements and bulletins.
-- **Rule**: Presentation code never speaks directly to HTTP; it calls Domain Services.
+```
+mobile-app-v2/                      repository root: docs and agent instructions
+  AGENTS.md  CLAUDE.md  CONTRIBUTING.md  README.md
+  docs/                             documentation (this folder)
+  .github/workflows/ci.yml          CI: format, analyze, test, coverage
+  .github/workflows/pr-title.yml    Conventional Commits check on PR titles
+  .github/dependabot.yml            weekly pub and GitHub Actions updates
+  .github/ISSUE_TEMPLATE/           issue forms
+  .claude/skills/  .agents/skills/  project skills for AI agents (mirrored)
+  .cursor/rules/  .cursorrules      Cursor rules (pointers to AGENTS.md)
+  mobile_app/                       the Flutter project; run commands here
+    pubspec.yaml  analysis_options.yaml
+    lib/
+      main.dart                     entry point, theme, initial route
+      config/routes.dart            AppRoutes
+      constants/colors.dart         AppColors
+      models/                       activity, event, health, news_item, user, user_preferences
+      services/                     api, auth, user, activity, event, news, mock_data
+      widgets/                      shared components (catalog in DESIGN.md)
+      screens/
+        auth/                       welcome, sign_in, sign_up
+        app/
+          home/                     Home tab
+          activity/                 Sport tab (activities, events, trail)
+          social/                   Social tab
+          profile/                  Profile tab, edit, settings
+          feed/  base_menu/         placeholders, not routed yet
+    test/                           unit and widget tests
+      widgets/                      one test file per shared widget
+    tool/check_coverage.dart        coverage floor used by CI
+    assets/                         images and fonts
+```
 
-### 2.3 Network Gateway (`lib/services/api_service.dart`)
-- Centralizes HTTP requests (`get`, `post`, `put`, `delete`).
-- Injects standard headers (`Content-Type: application/json`, `Authorization: Bearer <token>`).
-- Provides CORS proxy bypass for local Web development (`corsproxy.io`).
+A screen folder uses `index.dart` for the tab's root screen and a descriptive name for each sub-screen (`profile/edit.dart`, `profile/settings.dart`).
 
-### 2.4 Model Layer (`lib/models/`)
-- Strictly typed, immutable Dart data classes:
-  - `User`: Profile information, username, email, role.
-  - `UserPreferences`: Preferred sports, workout intensity, distance threshold, group openness.
-  - `HealthData`: Sensitive health metrics (weight, height, age, consent, retention).
-  - `Activity`: Athletic sessions (distance, duration, type, public visibility).
-  - `Event`: Scheduled community events and attendee counts.
-  - `NewsItem`: Editorial news feed items.
-- Every model provides `factory fromJson(Map<String, dynamic>)` and `Map<String, dynamic> toJson()`.
+## 5. Key runtime flows
 
----
+### Startup and sign-in
 
-## 3. GDPR & Privacy Architecture
+`main()` starts on `AppRoutes.login` (the welcome screen). Sign-in calls `AuthService.login`, which posts to `/auth/login`, stores the JWT in `ApiService`, and loads the current user. Sign-up calls `/auth/register`. The token lives in memory only, so a restart signs the user out.
 
-Campus Motion processes student health and biometric data. Under the European General Data Protection Regulation (GDPR), biometric and health data are classified as **Special Category Data (Article 9)**.
+### Routing
+
+Every screen is registered in `AppRoutes`:
+
+| Constant | Path | Screen |
+|---|---|---|
+| `login` | `/` | `WelcomeScreen` |
+| `signup` | `/signup` | `SignUpScreen` |
+| `signin` | `/signin` | `SignInScreen` |
+| `dashboard` | `/dashboard` | `HomeIndexScreen` (Home tab) |
+| `trail` | `/trail` | `ActivityIndexScreen` (Sport tab) |
+| `social` | `/social` | `SocialIndexScreen` (Social tab) |
+| `profile` | `/profile` | `ProfileIndexScreen` (Profile tab) |
+| `editProfile` | `/profile/edit` | `ProfileEditScreen` |
+| `parameters` | `profile/parameters` | `ProfileSettingsScreen` |
+| `shareProfile` | `profile/share` | placeholder, routes to Home |
+
+To add a screen: add a constant, add a `case` in `generateRoute`, navigate with `Navigator.pushNamed(context, AppRoutes.<name>)`. Pass arguments through `RouteSettings.arguments`, not by constructing `MaterialPageRoute` inline in a screen. This table must be updated in the same PR.
+
+### Bottom navigation
+
+The four tabs (0 Home, 1 Sport, 2 Social, 3 Profile) are rendered by `CampusMotionBottomBar` (`lib/widgets/bottom_bar.dart`), passed to `MasterContainer.bottomNavigationBar` by each tab screen. Switching tabs should replace the current route rather than push onto the stack; centralizing this in the bottom bar is tracked in issue #5.
+
+### Data loading
+
+A screen holds a service instance, starts the request in `initState`, and renders the result with `FutureBuilder` or by calling `setState` when the future completes. After any `await`, it checks `if (!mounted) return;` before touching `context`. Pull-to-refresh goes through `MasterContainer.onRefresh`.
+
+### Mock mode
+
+`ApiService.mockMode` routes every request to `MockDataService`, an in-memory store with realistic data for every endpoint in [API.md](API.md). It is enabled by:
+
+- `--dart-define=MOCK_API=true` at launch;
+- `AuthService.enterDemoMode()`, behind the demo button on the welcome and sign-in screens;
+- tests, which set `ApiService.mockMode = true` in `setUp`.
+
+In debug builds only, `ApiService` also falls back to mock data when a request throws or the server returns a 5xx status. Release builds rethrow.
+
+**Rule:** when you add or change an endpoint in a service, add the matching handler to `MockDataService` in the same PR, so the feature works offline and can be tested.
+
+## 6. Privacy architecture (GDPR)
+
+Health metrics are special-category data under GDPR Article 9. These mechanisms implement the promises in [FUNCTIONAL_OVERVIEW.md](FUNCTIONAL_OVERVIEW.md#5-the-privacy-promise):
+
+| Promise | Mechanism |
+|---|---|
+| Explicit consent (Art. 9) | `ProfileEditScreen` shows a consent checkbox. Health data is only sent with `consent_given_at` set; unchecking deletes it (`UserService.deleteHealth`). |
+| Encapsulation | `HealthData.toJson` wraps `weight_kg` and `height_cm` in a `sensitive_data` JSON string with `client_key_version`. |
+| Private by default | The log-activity form starts with `isPublic = false`. |
+| Erasure (Art. 17) | Settings: delete health data (`DELETE /health`) and delete account (`DELETE /users/me`). |
+| Portability (Art. 20) | Settings: export profile, preferences, health and activities as JSON through `share_plus` (`_exportData`). |
+| Storage limitation (Art. 5) | Health records carry `retain_until`. |
+| No third parties | The only network host is the Campus Motion API (plus the CORS proxy in debug web builds). No analytics or crash SDKs. |
 
 ```mermaid
 sequenceDiagram
-    participant User as Student / User
-    participant Screen as ProfileEdit / Settings Screen
-    participant Service as UserService
-    participant Backend as https://api.campusmotion.ch
-
-    Note over User,Backend: GDPR Article 9 Explicit Consent
-    User->>Screen: Enables Health Tracking & inputs Weight/Height
-    Screen->>Screen: Verifies Explicit Opt-In Consent
-    Screen->>Service: createHealth(HealthData)
-    Service->>Backend: POST /health (encapsulated in sensitive_data)
-    Backend-->>Service: 201 Created (consent_given_at recorded)
-
-    Note over User,Backend: GDPR Right to Data Portability (Article 20)
-    User->>Screen: Taps "Export Data"
-    Screen->>Service: Fetches Me, Preferences, Health, Activities
-    Screen->>Screen: Generates comprehensive JSON export
-    Screen->>User: Triggers OS Share Dialog (Save / AirDrop / Email)
-
-    Note over User,Backend: GDPR Right to Erasure (Article 17)
-    User->>Screen: Taps "Delete Health Data"
-    Screen->>Service: deleteHealth()
-    Service->>Backend: DELETE /health
-    Backend-->>Screen: 200 OK (Purged from active servers)
+  participant U as User
+  participant S as ProfileEditScreen
+  participant Svc as UserService
+  participant B as REST API
+  U->>S: Ticks consent, enters weight and height
+  S->>Svc: createHealth(HealthData with consentGivenAt)
+  Svc->>B: POST /health (metrics inside sensitive_data)
+  B-->>Svc: 201 Created
+  U->>S: Unticks consent
+  S->>Svc: deleteHealth()
+  Svc->>B: DELETE /health
 ```
 
-1. **Explicit Consent (Art. 9)**: No health data is stored or retrieved without explicit opt-in confirmation. Consent can be revoked at any time.
-2. **Data Encapsulation**: Physical metrics (`weight_kg`, `height_cm`) are wrapped in `sensitive_data` JSON string with client key versioning (`client_key_version: 1`).
-3. **Privacy by Default**: New activity entries default to `is_public: false`.
-4. **Right to Erasure (Art. 17)**: One-tap deletion of health data and complete account erasure.
-5. **Right to Data Portability (Art. 20)**: Full JSON export of all personal data via `_exportData()`.
-6. **Storage Limitation (Art. 5)**: Health data carries a 2-year retention threshold (`retain_until`).
+Any change that collects, displays or shares health data, location, or another user's data must keep every row of this table true.
 
----
+## 7. Coding conventions
 
-## 4. Testing Strategy
+- **Minimal and reuse-first:** search for an existing widget, method or helper before writing one, extend it rather than copy it, and change only what the issue needs. Full rules in [AGENTS.md](../AGENTS.md#minimal-reuse-first-changes).
+- **Files:** `snake_case.dart`, one public widget or class per file. Shared widgets in `lib/widgets/<name>.dart`.
+- **Imports:** package imports (`package:mobile_app/...`).
+- **Widgets:** prefer `StatelessWidget` with `const` constructors; use `StatefulWidget` only for local state. Use `super.key`.
+- **Size:** keep screens focused. When a screen passes roughly 300 lines, extract widgets. (The 1,000-line Sport screen is being split in issue #9.)
+- **Colours:** only `AppColors`. Spacing and radii follow [DESIGN.md](DESIGN.md).
+- **Async:** `if (!mounted) return;` (or `if (!context.mounted) return;` in a builder) after every `await` before using `context`.
+- **Errors:** services throw `Exception` with a readable message; screens catch and show a `SnackBar` or an error state. Never swallow an exception silently.
+- **Logging:** `debugPrint`, never `print`.
+- **Modern APIs:** `.withValues(alpha: ...)` instead of `.withOpacity()`, `SharePlus.instance.share()` instead of `Share.share()`, `activeThumbColor` instead of `activeColor` on switches.
+- **Lints:** never add `// ignore:` or relax `analysis_options.yaml` to get green. Fix the code.
 
-1. **Unit Tests**:
-   - Verify serialization/deserialization of `lib/models/`.
-   - Verify Domain Services with mock responses.
-2. **Widget Tests**:
-   - Verify UI component rendering.
-   - Must pump widgets inside `MaterialApp` and verify `MasterContainer` containment.
-3. **Execution**:
-   ```bash
-   flutter test
-   ```
+## 8. Testing and quality gates
+
+| Kind | Where | What it covers |
+|---|---|---|
+| Widget tests | `test/widgets/<widget>_test.dart` | Each shared widget renders, reacts to taps, handles missing data. Pump inside `MaterialApp`. |
+| Service tests | `test/` | Services against `MockDataService` (`ApiService.mockMode = true`), model parsing. |
+| Model tests | `test/` | `fromJson` / `toJson` round trips, including old payloads without new fields. |
+
+CI (`.github/workflows/ci.yml`) runs on every push to `main` and every pull request:
+
+1. `dart format --output=none --set-exit-if-changed .`
+2. `flutter analyze --fatal-infos`
+3. `flutter test --coverage`
+4. `dart run tool/check_coverage.dart` (line coverage floor, 15% today; raise it, never lower it)
+
+A test file must end in `_test.dart` or `flutter test` will not run it.

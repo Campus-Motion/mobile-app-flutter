@@ -1,73 +1,56 @@
-# Campus Motion - Claude Code Guidelines
+# Campus Motion - Claude Code guidelines
 
-This document outlines commands, architectural boundaries, and automated workflows for Claude Code working on the Campus Motion Flutter repository.
+[AGENTS.md](AGENTS.md) is the operating contract and applies in full. Read it completely before doing any work. This file only adds Claude Code specifics.
 
----
+## Default action on a pasted issue or screenshot
 
-## Zero-Prompt & Screenshot Ingestion (Default Action)
+When the user pastes a GitHub issue, an issue URL or a Figma screenshot, with or without other words, do not ask for rules or architecture. Run the five-phase pipeline in [AGENTS.md section 5](AGENTS.md#5-zero-prompt-issue-and-screenshot-ingestion): decompose, inventory `lib/widgets/`, implement inside `MasterContainer` with `AppColors` and `AppRoutes`, verify, hand off with a branch name, commit message and PR description.
 
-When the user provides a raw GitHub issue or **drops a Figma screenshot / mockup**:
-- **Do not ask for rules or architecture.**
-- Automatically execute the implementation workflow according to `AGENTS.md`.
-- **Component-First Extraction**: Deconstruct the screenshot into atomic UI components.
-- **Check Reusable Library**: Check `lib/widgets/` first (`AppCard`, `AppButton`, `StatItem`, `ActivityCard`). Reuse existing primitives.
-- **Separate Component Management**: If the screen introduces a new visual component, extract it into `lib/widgets/<name>.dart`. Do NOT write monolithic, inline styled containers in screen files.
-- **Design Tokens**: Map all colors to `AppColors` (`lib/constants/colors.dart`).
-- Wrap top-level screens in `MasterContainer` (450px max width).
-- Route via `AppRoutes` in `lib/config/routes.dart`.
-- Verify with `flutter analyze` and `flutter test`.
-- Conclude with git branch/commit commands and the PR description.
+## Skills
 
----
+Project skills are in `.claude/skills/` (mirrored in `.agents/skills/`; keep both identical):
+
+- `campus-motion-ui-quality`: screens, widgets, screenshot-to-code.
+- `campus-motion-privacy`: health data, consent, export, deletion, other users' data.
+- `campus-motion-issue-writing`: drafting or editing GitHub issues and epics.
+- `campus-motion-minimal-change`: reviewing a diff for minimality, reuse and efficiency. Run it before every hand-off.
 
 ## Commands
 
-All commands are run from the Flutter project directory: `mobile_app/` (or relative path `mobile-app-flutter/mobile-app-v2/mobile_app/`).
+Run from `mobile_app/`.
 
-- **Install Dependencies**: `flutter pub get`
-- **Static Analysis**: `flutter analyze`
-- **Run All Tests**: `flutter test`
-- **Run Specific Test**: `flutter test test/<test_name>.dart`
-- **Run App (Web)**: `flutter run -d chrome`
-- **Run App (Mobile)**: `flutter run`
+- Install: `flutter pub get`
+- Format: `dart format .`
+- Format check: `dart format --output=none --set-exit-if-changed .`
+- Analyze: `flutter analyze --fatal-infos`
+- Tests: `flutter test` (one file: `flutter test test/<path>_test.dart`)
+- Coverage: `flutter test --coverage` then `dart run tool/check_coverage.dart`
+- Run offline on web: `flutter run -d chrome --dart-define=MOCK_API=true`
 
----
+Do not start `flutter run` unless the user asks; prefer the checks above.
 
-## Architectural Invariants
+## Slash workflows
 
-1. **Screen Shell**: Every top-level screen **must** be wrapped in `MasterContainer` (`lib/widgets/master_container.dart`). This enforces our responsive 450px maximum width constraint and safe-area margins.
-2. **UI Component Separation**: Screens in `lib/screens/` must only compose widgets and bind state. Shared/visual primitives must live in `lib/widgets/`.
-3. **Bottom Navigation**: Use `CampusMotionBottomBar` (`lib/widgets/bottom_bar.dart`) for main tabs (0: Home, 1: Sport, 2: Social, 3: Profile).
-4. **Routes**: All screens must be registered in `AppRoutes` (`lib/config/routes.dart`). Never use untyped, inline anonymous `MaterialPageRoute` calls for primary app navigation.
-5. **Clean Layering**: UI screens **must never** invoke `http` directly. Network operations belong exclusively in `lib/services/` (which use singleton `ApiService`).
-6. **No Firebase**: Campus Motion communicates with its custom GDPR-compliant REST API at `https://api.campusmotion.ch`. Never re-introduce Firebase.
-7. **GDPR Compliance**: Always respect Article 9 explicit opt-in consent for sensitive health metrics (weight, height, age). Never collect health data without consent.
-8. **Async Context Guarding**: Always check `if (!mounted) return;` after an `await` before touching `BuildContext`.
-9. **Modern Flutter 3.x APIs**: Use `.withValues(alpha: ...)` instead of deprecated `.withOpacity()`, and `SharePlus.instance.share()` instead of deprecated `Share.share()`.
+### `/issue-to-pr`
 
----
-
-## Automated Workflows
-
-### Raw Issue / Figma Screenshot Paste (`/issue-to-pr`)
-Execute this workflow when given a GitHub issue or Figma design:
-1. Break down the design into reusable components in `lib/widgets/` and layers (`lib/models/`, `lib/services/`, `lib/screens/`, `lib/config/routes.dart`).
-2. Implement components in `lib/widgets/` and compose screen in `lib/screens/` inside `MasterContainer`.
-3. Verify by running `flutter analyze` and `flutter test`.
-4. Output a summary ready to be pasted into a Pull Request description.
+The pipeline above.
 
 ### `/fix-ci`
-Execute this when CI fails on a PR:
-1. Inspect failing checks: `gh pr checks`
-2. Download failed logs: `gh run view --log-failed`
-3. Correct the source code locally.
-4. **Hard Constraint**: Never weaken `analysis_options.yaml` or alter test assertions merely to pass. Fix the source code.
-5. Verify locally using `flutter analyze` and `flutter test`.
-6. Push updates up to a maximum of 3-4 loop iterations.
+
+1. `gh pr checks`, then `gh run view --log-failed`.
+2. Fix the source code locally. Never edit tests, `analysis_options.yaml`, `tool/check_coverage.dart` or `.github/workflows/` to pass.
+3. Re-run the four CI commands, commit, push.
+4. Stop after 3 to 4 iterations and report.
 
 ### `/correct-pr`
-Execute this to address PR review comments:
-1. Fetch review comments: `gh pr view --comments`
-2. Implement requested refactors and fixes while respecting component reuse and architectural layering.
-3. Verify locally: `flutter analyze` and `flutter test`.
-4. Commit and push the updates.
+
+1. `gh pr view --comments` (plus inline comments through `gh api`).
+2. Apply the requested changes within the architecture.
+3. Re-run the checks, commit, push, and summarize each comment's resolution.
+
+## Preferences
+
+- Keep solutions concise and simple; propose the simpler option when one exists.
+- Every diff is minimal and reuse-first ([AGENTS.md](AGENTS.md#minimal-reuse-first-changes)): search before writing, extend before copying, touch only what the issue needs.
+- If a request is too large for one coherent change, say so and propose a split.
+- No emoji anywhere: code, UI text, commits, PRs, issues, docs.

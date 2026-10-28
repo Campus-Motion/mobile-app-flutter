@@ -1,0 +1,4 @@
+interface:
+  display_name: "Campus Motion Minimal Change"
+  short_description: "Cut a Campus Motion diff to the minimum, with maximum reuse"
+  default_prompt: "Use $campus-motion-minimal-change to review this diff for unneeded changes, duplication and inefficiency, then fix what you find."

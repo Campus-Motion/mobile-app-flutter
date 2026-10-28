@@ -5,7 +5,8 @@ class Activity {
   final int userId;
   final bool isPublic;
   final DateTime createdAt;
-  final double? duration; // In minutes, hours, or seconds depending on frontend representation
+  final double?
+  duration; // In minutes, hours, or seconds depending on frontend representation
   final String? body;
 
   Activity({
@@ -26,10 +27,13 @@ class Activity {
       type: json['type'] as String? ?? '',
       userId: json['user_id'] as int? ?? 0,
       isPublic: json['is_public'] as bool? ?? false,
-      createdAt: json['created_at'] != null 
-          ? DateTime.tryParse(json['created_at'] as String) ?? DateTime.now()
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'] as String)?.toLocal() ??
+                DateTime.now()
           : DateTime.now(),
-      duration: json['duration'] != null ? double.tryParse(json['duration'].toString()) : null,
+      duration: json['duration'] != null
+          ? double.tryParse(json['duration'].toString())
+          : null,
       body: json['body'] as String?,
     );
   }

@@ -35,7 +35,11 @@ class NewsCard extends StatelessWidget {
               errorBuilder: (context, error, stackTrace) => const SizedBox(
                 height: imageHeight,
                 child: Center(
-                  child: Icon(Icons.broken_image, color: AppColors.textMuted, size: 50),
+                  child: Icon(
+                    Icons.broken_image,
+                    color: AppColors.textMuted,
+                    size: 50,
+                  ),
                 ),
               ),
             ),

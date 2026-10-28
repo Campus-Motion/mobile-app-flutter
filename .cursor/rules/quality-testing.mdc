@@ -1,18 +1,27 @@
 ---
-description: Code quality, linting, and testing rules for Campus Motion
+description: Formatting, analysis, testing and coverage rules for Campus Motion
 globs: mobile_app/**/*.dart
 ---
 
-# Code Quality & Testing Rules
+# Quality and testing
 
-## 1. Static Analysis
-- Must pass `flutter analyze` with 0 errors and 0 warnings.
-- Do NOT add `// ignore:` comments or weaken `analysis_options.yaml` without explicit approval.
-- Avoid `print()` statements in production code; use logging or `debugPrint()`.
+Source of truth: AGENTS.md section 12 and CONTRIBUTING.md.
 
-## 2. Test Discipline
-- Every new feature or bug fix must include corresponding tests:
-  - Unit tests in `test/` for domain services (mocking HTTP using `http.Client` or test responses).
-  - Widget tests in `test/` for new screens and reusable widgets.
-- Widget tests must wrap tested widgets in `MaterialApp` and test responsive containment (`MasterContainer`).
-- Verify tests pass with `flutter test`.
+## Checks (run from mobile_app/, same as CI)
+
+1. `dart format --output=none --set-exit-if-changed .` (fix with `dart format .`)
+2. `flutter analyze --fatal-infos`
+3. `flutter test --coverage`
+4. `dart run tool/check_coverage.dart`
+
+Never make a check pass by weakening it: no `// ignore:`, no edits to `analysis_options.yaml`, no loosened assertions, no lowered coverage floor.
+
+## Tests
+
+- New or changed shared widget: widget test in `test/widgets/<widget>_test.dart`, pumped inside `MaterialApp`.
+- New or changed service method: test with `ApiService.mockMode = true`.
+- New model field: `fromJson` / `toJson` test, including a payload without the field.
+- Bug fix: a regression test.
+- File names end in `_test.dart`.
+
+Use `debugPrint`, never `print`.

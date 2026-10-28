@@ -1,0 +1,44 @@
+name: Epic
+description: A goal split into sub-issues. Create the sub-issues with the other forms.
+title: "epic: <summary>"
+labels: ["epic"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Follow [docs/ISSUES.md](https://github.com/Campus-Motion/mobile-app-v2/blob/main/docs/ISSUES.md). No emoji.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: The outcome when every sub-issue is closed.
+    validations:
+      required: true
+  - type: textarea
+    id: sub-issues
+    attributes:
+      label: Sub-issues
+      description: A task list of issue numbers with a short name each.
+      value: |
+        - [ ] #
+    validations:
+      required: true
+  - type: textarea
+    id: sequencing
+    attributes:
+      label: Sequencing
+      description: Which sub-issues block which.
+      placeholder: "#17 then #22 then #23 (also needs #21)."
+    validations:
+      required: true
+  - type: textarea
+    id: questions
+    attributes:
+      label: Open questions
+      description: Optional.
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+    validations:
+      required: true

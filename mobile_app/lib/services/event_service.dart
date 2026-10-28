@@ -10,7 +10,11 @@ class EventService {
 
   final ApiService _apiService = ApiService();
 
-  Future<List<Event>> getEvents({int? limit, String? offset, String? after}) async {
+  Future<List<Event>> getEvents({
+    int? limit,
+    String? offset,
+    String? after,
+  }) async {
     final params = <String, String>{};
     if (limit != null) params['limit'] = limit.toString();
     if (offset != null) params['offset'] = offset;

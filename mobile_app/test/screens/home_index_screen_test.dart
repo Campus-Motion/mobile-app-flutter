@@ -13,34 +13,39 @@ void main() {
     ApiService.mockMode = false;
   });
 
-  testWidgets('HomeIndexScreen loads upcoming events and excludes past events after refresh', (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 2.0;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
+  testWidgets(
+    'HomeIndexScreen loads upcoming events and excludes past events after refresh',
+    (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: const HomeIndexScreen(),
-        onGenerateRoute: AppRoutes.generateRoute,
-      ),
-    );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: const HomeIndexScreen(),
+          onGenerateRoute: AppRoutes.generateRoute,
+        ),
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    // Check that upcoming event is visible and past event is excluded on initial load
-    expect(find.text('Sunset Lake Trail Run'), findsOneWidget);
-    expect(find.text('Past Campus Welcome Run'), findsNothing);
+      // Check that upcoming event is visible and past event is excluded on initial load
+      expect(find.text('Sunset Lake Trail Run'), findsOneWidget);
+      expect(find.text('Past Campus Welcome Run'), findsNothing);
 
-    // Trigger pull-to-refresh
-    final refreshIndicator = tester.widget<RefreshIndicator>(find.byType(RefreshIndicator));
-    await refreshIndicator.onRefresh();
-    await tester.pumpAndSettle();
+      // Trigger pull-to-refresh
+      final refreshIndicator = tester.widget<RefreshIndicator>(
+        find.byType(RefreshIndicator),
+      );
+      await refreshIndicator.onRefresh();
+      await tester.pumpAndSettle();
 
-    // Check that after pull-to-refresh, past event is still excluded and upcoming event is shown
-    expect(find.text('Sunset Lake Trail Run'), findsOneWidget);
-    expect(find.text('Past Campus Welcome Run'), findsNothing);
-  });
+      // Check that after pull-to-refresh, past event is still excluded and upcoming event is shown
+      expect(find.text('Sunset Lake Trail Run'), findsOneWidget);
+      expect(find.text('Past Campus Welcome Run'), findsNothing);
+    },
+  );
 }

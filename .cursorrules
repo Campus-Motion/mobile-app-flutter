@@ -1,24 +1,21 @@
-# Campus Motion Cursor Rules
+# Campus Motion - Cursor rules
 
-You are an expert Flutter engineer working on the Campus Motion mobile application.
-Before writing any code or answering architecture questions, you must read and adhere to `AGENTS.md`.
+AGENTS.md at the repository root is the authoritative contract. Read it before writing code or answering architecture questions. Scoped rules live in .cursor/rules/*.mdc. Project skills live in .agents/skills/.
 
-## Zero-Prompt Default Behavior (Issues & Figma Screenshots)
-When the student pastes a raw GitHub issue, issue URL, or drops a **Figma screenshot / mockup**:
-- Do NOT prompt the student for architectural instructions or role definitions.
-- Treat `AGENTS.md` as your authoritative technical contract.
-- **Deconstruct visual designs into components**: Check `lib/widgets/` first for reusable elements (`AppCard`, `AppButton`, `StatItem`, `ActivityCard`).
-- **Separate UI Component Management**: Extract new visual widgets into `lib/widgets/<name>.dart`. Never generate monolithic screens with nested inline `Container` decorations.
-- Map all colors to `AppColors` (`lib/constants/colors.dart`).
-- Automatically implement the feature within layer boundaries, verify with `flutter analyze` and `flutter test`, and output Git commands and a PR summary.
+## Default behaviour on a pasted issue or screenshot
 
-## Key Invariants
-1. **Screen Layout**: ALWAYS wrap top-level screens in `MasterContainer` (`lib/widgets/master_container.dart`). It enforces our 450px responsive width constraint.
-2. **Component Reuse**: ALWAYS reuse widgets from `lib/widgets/` instead of duplicating card, button, or list tile code.
-3. **Navigation**: ALWAYS register and navigate using `AppRoutes` in `lib/config/routes.dart`.
-4. **Layer Separation**: NEVER call `http` or make network calls from UI screens. Use domain services in `lib/services/`.
-5. **Backend**: Custom REST API at `https://api.campusmotion.ch`. NEVER use Firebase.
-6. **GDPR / Health**: Explicit opt-in consent required for health data (weight, height, age). Activities default to `is_public: false`.
-7. **Async Gaps**: Always check `if (!mounted) return;` after `await` before using `BuildContext`.
-8. **Flutter 3 APIs**: Use `.withValues(alpha: ...)` instead of `withOpacity()`. Use `SharePlus.instance.share()` instead of `Share.share()`.
-9. **Verification**: Always run `flutter analyze` and `flutter test` before completing a task.
+Do not ask the student for instructions. Run the pipeline in AGENTS.md section 5: decompose into layers, check lib/widgets/ for existing components, extract new visual components into lib/widgets/<name>.dart, compose the screen inside MasterContainer, map colours to AppColors, register routes in AppRoutes, run the checks, and output a branch name, commit message and PR description.
+
+## Key invariants
+
+1. Every top-level screen is wrapped in MasterContainer (450 px column).
+2. Reuse widgets from lib/widgets/ (AppCard, AppButton, StatItem, ActivityCard, EventPreviewCard, NewsCard, SectionHeader) before writing UI.
+3. Every screen is registered in AppRoutes (lib/config/routes.dart); navigate with Navigator.pushNamed.
+4. Network calls only in lib/services/ through ApiService. Never call http from a screen. New endpoints get a MockDataService handler.
+5. Backend is https://api.campusmotion.ch. Never add Firebase or analytics SDKs.
+6. Health data (weight, height, birth date) needs explicit consent. New activities default to is_public: false.
+7. After every await, check `if (!mounted) return;` before using BuildContext.
+8. Use .withValues(alpha: ...) and SharePlus.instance.share(...).
+9. No emoji in code, UI text, commits, PRs, issues or docs.
+10. Every diff is minimal and reuse-first: search for existing code before writing, extend instead of copying, touch only what the issue needs, no dead code, fetch data once and never in build() (see .cursor/rules/minimal-change.mdc).
+11. Before finishing, run from mobile_app/: dart format --output=none --set-exit-if-changed . ; flutter analyze --fatal-infos ; flutter test --coverage ; dart run tool/check_coverage.dart

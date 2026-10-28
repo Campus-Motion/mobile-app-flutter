@@ -72,9 +72,17 @@ void main() {
       expect(events.isNotEmpty, isTrue);
       expect(events.any((e) => e.title == 'Past Campus Welcome Run'), isTrue);
 
-      final upcomingEvents = await eventService.getEvents(after: DateTime.now().toIso8601String());
-      expect(upcomingEvents.any((e) => e.title == 'Past Campus Welcome Run'), isFalse);
-      expect(upcomingEvents.any((e) => e.title == 'Sunset Lake Trail Run'), isTrue);
+      final upcomingEvents = await eventService.getEvents(
+        after: DateTime.now().toIso8601String(),
+      );
+      expect(
+        upcomingEvents.any((e) => e.title == 'Past Campus Welcome Run'),
+        isFalse,
+      );
+      expect(
+        upcomingEvents.any((e) => e.title == 'Sunset Lake Trail Run'),
+        isTrue,
+      );
 
       // Activities & creation
       final initialActivities = await activityService.getActivities();

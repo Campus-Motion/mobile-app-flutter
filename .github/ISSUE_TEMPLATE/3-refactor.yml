@@ -1,0 +1,57 @@
+name: Refactor
+description: Same behaviour, better code.
+title: "refactor(<scope>): <imperative summary>"
+labels: ["refactor"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Follow [docs/ISSUES.md](https://github.com/Campus-Motion/mobile-app-v2/blob/main/docs/ISSUES.md). No emoji.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What gets better. Behaviour must not change.
+    validations:
+      required: true
+  - type: textarea
+    id: problems
+    attributes:
+      label: Problems today
+      description: Concrete issues with file paths and line counts.
+    validations:
+      required: true
+  - type: textarea
+    id: target
+    attributes:
+      label: Target
+      description: The structure after the change.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - [ ]
+        - [ ] Behaviour unchanged (manual steps listed in the PR)
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      description: Maintainers add the matching size label.
+      options:
+        - "XS (under two hours)"
+        - "S (about half a day)"
+        - "M (one to two days)"
+        - "L (three days or more, consider splitting)"
+    validations:
+      required: true

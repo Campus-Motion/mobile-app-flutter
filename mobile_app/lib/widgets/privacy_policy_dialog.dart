@@ -136,11 +136,7 @@ class PrivacyPolicyDialog extends StatelessWidget {
   Widget _buildSectionBody(String text) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 14,
-        color: Colors.black54,
-        height: 1.4,
-      ),
+      style: const TextStyle(fontSize: 14, color: Colors.black54, height: 1.4),
     );
   }
 }
