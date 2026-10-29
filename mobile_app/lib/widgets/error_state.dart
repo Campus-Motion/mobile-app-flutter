@@ -40,11 +40,7 @@ class ErrorState extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 16),
-              AppButton(
-                text: retryLabel,
-                onPressed: onRetry,
-                width: 160,
-              ),
+              AppButton(text: retryLabel, onPressed: onRetry, width: 160),
             ],
           ],
         ),

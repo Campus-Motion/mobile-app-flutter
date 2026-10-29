@@ -38,16 +38,16 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
   Future<List<NewsItem>> _loadNews() => _newsService.fetchLatestNews();
 
   Future<List<Event>> _loadEvents() => _eventService.getEvents(
-      limit: 5,
-      after: DateTime.now().toIso8601String(),
-    );
+    limit: 5,
+    after: DateTime.now().toIso8601String(),
+  );
 
   void _retryEvents() {
     setState(() {
       _eventsFuture = _loadEvents();
     });
   }
- 
+
   void _retryNews() {
     setState(() {
       _newsFuture = _loadNews();

@@ -12,8 +12,9 @@ void main() {
     expect(find.byIcon(Icons.error_outline), findsOneWidget);
   });
 
-  testWidgets('shows retry button and calls onRetry when tapped',
-      (tester) async {
+  testWidgets('shows retry button and calls onRetry when tapped', (
+    tester,
+  ) async {
     var taps = 0;
     await tester.pumpWidget(
       _wrap(ErrorState(message: 'Failed to load', onRetry: () => taps++)),
