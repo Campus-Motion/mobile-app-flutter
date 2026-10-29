@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/widgets/app_button.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
 import 'package:mobile_app/widgets/event_preview_card.dart';
+import 'package:mobile_app/widgets/empty_state.dart';
+import 'package:mobile_app/widgets/error_state.dart';
+import 'package:mobile_app/widgets/loading_state.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/news_card.dart';
 import 'package:mobile_app/widgets/section_header.dart';
@@ -11,7 +13,6 @@ import 'package:mobile_app/models/news_item.dart';
 import 'package:mobile_app/services/news_service.dart';
 import 'package:mobile_app/models/event.dart';
 import 'package:mobile_app/services/event_service.dart';
-import 'package:mobile_app/constants/colors.dart';
 
 class HomeIndexScreen extends StatefulWidget {
   const HomeIndexScreen({super.key});
@@ -30,8 +31,27 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
   @override
   void initState() {
     super.initState();
-    _newsFuture = _newsService.fetchLatestNews();
-    _eventsFuture = _loadUpcomingEvents();
+    _newsFuture = _loadNews();
+    _eventsFuture = _loadEvents();
+  }
+
+  Future<List<NewsItem>> _loadNews() => _newsService.fetchLatestNews();
+
+  Future<List<Event>> _loadEvents() => _eventService.getEvents(
+    limit: 5,
+    after: DateTime.now().toIso8601String(),
+  );
+
+  void _retryEvents() {
+    setState(() {
+      _eventsFuture = _loadEvents();
+    });
+  }
+
+  void _retryNews() {
+    setState(() {
+      _newsFuture = _loadNews();
+    });
   }
 
   Future<List<Event>> _loadUpcomingEvents() {
@@ -43,8 +63,8 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
 
   Future<void> _refreshDashboard() async {
     setState(() {
-      _newsFuture = _newsService.fetchLatestNews();
-      _eventsFuture = _loadUpcomingEvents();
+      _newsFuture = _loadNews();
+      _eventsFuture = _loadEvents();
     });
     await Future.wait([_newsFuture, _eventsFuture]);
   }
@@ -69,31 +89,16 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
       future: _eventsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox(
-            height: EventPreviewCard.size,
-            child: Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
-          );
+          return const LoadingState(height: 140);
         } else if (snapshot.hasError) {
-          return const SizedBox(
-            height: EventPreviewCard.size,
-            child: Center(
-              child: Text(
-                'Failed to load events',
-                style: TextStyle(color: AppColors.error),
-              ),
-            ),
+          return ErrorState(
+            message: 'Failed to load events',
+            onRetry: _retryEvents,
           );
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SizedBox(
-            height: EventPreviewCard.size,
-            child: Center(
-              child: Text(
-                'No upcoming events',
-                style: TextStyle(color: AppColors.textMuted),
-              ),
-            ),
+          return const EmptyState(
+            title: 'No upcoming events',
+            icon: Icons.event_busy_outlined,
           );
         }
 
@@ -164,56 +169,16 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
                 future: _newsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Padding(
-                      padding: EdgeInsets.all(40.0),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    );
+                    return const LoadingState(height: 160);
                   } else if (snapshot.hasError) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              color: AppColors.error,
-                              size: 48,
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Failed to load news',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            AppButton(
-                              text: 'Retry',
-                              onPressed: _refreshDashboard,
-                              width: 140,
-                              height: 44,
-                            ),
-                          ],
-                        ),
-                      ),
+                    return ErrorState(
+                      message: 'Failed to load news',
+                      onRetry: _retryNews,
                     );
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(40.0),
-                      child: Center(
-                        child: Text(
-                          'No news available.',
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
+                    return const EmptyState(
+                      title: 'No news available',
+                      icon: Icons.newspaper_outlined,
                     );
                   }
 
