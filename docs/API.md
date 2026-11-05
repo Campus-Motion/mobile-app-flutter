@@ -10,7 +10,7 @@ The REST contract the app consumes, as implemented in `mobile_app/lib/services/`
 | Format | JSON request and response bodies, `Content-Type: application/json; charset=UTF-8` |
 | Auth | `Authorization: Bearer <access_token>`, token returned by `POST /auth/login` and held in memory by `ApiService` |
 | List envelope | List endpoints return `{ "data": [ ... ] }` |
-| Debug web | Requests go through `https://corsproxy.io/?<url>` so the browser accepts them |
+| Web | The backend CORS allow-list must include the page origin; local runs use `http://localhost:8080` |
 
 ### Roles
 

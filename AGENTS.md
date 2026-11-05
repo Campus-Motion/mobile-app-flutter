@@ -116,7 +116,7 @@ Keep code in the narrowest layer that owns the responsibility. Full detail in [d
 | `lib/screens/` | Screen state, calling services, composing widgets, navigation | Call `http`, parse JSON, hold large inline-styled layouts or `_buildCard()` helpers duplicating a widget |
 | `lib/widgets/` | Reusable components, one public widget per file, data and callbacks via constructor | Call services, push routes, hardcode colours |
 | `lib/services/` | One singleton per backend domain over `ApiService`; status checks, JSON to models, readable exceptions | Import Flutter UI, hold UI state |
-| `lib/services/api_service.dart` | Base URL, token, headers, debug CORS proxy, mock switching | Contain domain logic |
+| `lib/services/api_service.dart` | Base URL, token, headers, mock switching | Contain domain logic |
 | `lib/services/mock_data_service.dart` | Offline responses for every endpoint | Be called from production code paths other than `ApiService` |
 | `lib/models/` | Typed, null-safe data classes with `fromJson` / `toJson` | Depend on Flutter or services |
 | `lib/config/routes.dart` | `AppRoutes`, the single route table | Contain screen logic |

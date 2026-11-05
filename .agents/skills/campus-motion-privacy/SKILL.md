@@ -32,7 +32,7 @@ For each field the change reads, stores, sends or shows, decide:
 | Erasure | `deleteHealth()` and `deleteMe()` still work and still reach the backend. New personal data is deleted with the account. |
 | Portability | `_exportData()` in settings includes any new personal data. |
 | Retention | Health records keep `retain_until`. |
-| No third parties | No new host besides `api.campusmotion.ch` (and the debug-only CORS proxy). No Firebase, analytics, crash-reporting or tracking package. No new package without user approval. |
+| No third parties | No new host besides `api.campusmotion.ch`. No Firebase, analytics, crash-reporting or tracking package. No new package without user approval. |
 | Transparency | If the change collects something new, the privacy policy text in `PrivacyPolicyDialog` and the consent wording say so. |
 | Secrets | No tokens, keys or credentials in code, tests or mock data. Mock data uses invented people. |
 
