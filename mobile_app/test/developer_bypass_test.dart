@@ -1,4 +1,7 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobile_app/main.dart';
+import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/services/api_service.dart';
 import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/mock_data_service.dart';
@@ -9,11 +12,14 @@ import 'package:mobile_app/services/user_service.dart';
 import 'package:mobile_app/models/activity.dart';
 
 void main() {
-  setUp(() {
+  setUp(() async {
+    FlutterSecureStorage.setMockInitialValues({});
     ApiService.mockMode = true;
+    await ApiService().clearToken();
   });
 
-  tearDown(() {
+  tearDown(() async {
+    await ApiService().clearToken();
     ApiService.mockMode = false;
   });
 
@@ -104,5 +110,59 @@ void main() {
       final updatedActivities = await activityService.getActivities();
       expect(updatedActivities.length, initialCount + 1);
     });
+
+    test(
+      'After signing in and restarting, dashboard opens without asking for credentials',
+      () async {
+        final auth = AuthService();
+        final api = ApiService();
+
+        await auth.login('robin.doe@epfl.ch', 'password123');
+        expect(api.token, 'mock-dev-jwt-token');
+
+        // Simulate app restart by clearing in-memory reference via re-reading from secure storage
+        final route = await resolveInitialRoute();
+        expect(route, AppRoutes.dashboard);
+        expect(api.isAuthenticated, isTrue);
+        expect(auth.currentUser?.username, 'Robin.Doe');
+      },
+    );
+
+    test(
+      'After signing out and restarting, the welcome screen opens',
+      () async {
+        final auth = AuthService();
+        final api = ApiService();
+
+        await auth.login('robin.doe@epfl.ch', 'password123');
+        expect(api.isAuthenticated, isTrue);
+
+        await auth.logout();
+        expect(api.isAuthenticated, isFalse);
+        expect(await api.loadStoredToken(), isNull);
+
+        final route = await resolveInitialRoute();
+        expect(route, AppRoutes.login);
+        expect(api.isAuthenticated, isFalse);
+        expect(auth.currentUser, isNull);
+      },
+    );
+
+    test(
+      'An expired or rejected stored token is deleted and the welcome screen opens',
+      () async {
+        final auth = AuthService();
+        final api = ApiService();
+
+        await api.setToken('expired');
+        expect(await api.loadStoredToken(), 'expired');
+
+        final route = await resolveInitialRoute();
+        expect(route, AppRoutes.login);
+        expect(api.token, isNull);
+        expect(await api.loadStoredToken(), isNull);
+        expect(auth.currentUser, isNull);
+      },
+    );
   });
 }

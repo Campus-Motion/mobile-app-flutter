@@ -267,11 +267,22 @@ class MockDataService {
   };
 
   /// Handles GET requests
-  http.Response handleGet(String path) {
+  http.Response handleGet(String path, {Map<String, String>? headers}) {
     final uri = Uri.parse(path.startsWith('/') ? path : '/$path');
     final cleanPath = uri.path;
 
     if (cleanPath == '/users/me') {
+      final authHeader = headers?['Authorization'];
+      if (authHeader != null &&
+          (authHeader == 'Bearer expired' ||
+              authHeader == 'Bearer rejected' ||
+              authHeader == 'Bearer invalid')) {
+        return http.Response(
+          json.encode({'message': 'Invalid or expired token'}),
+          401,
+          headers: _jsonHeaders,
+        );
+      }
       return http.Response(json.encode(_mockUser), 200, headers: _jsonHeaders);
     }
 
