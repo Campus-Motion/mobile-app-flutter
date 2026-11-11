@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'user_service.dart';
 import 'api_service.dart';
 import '../models/user.dart';
@@ -34,31 +35,12 @@ class AuthService {
   }
 
   Future<User> login(String email, String password) async {
+    final http.Response response;
     try {
-      final response = await _apiService.post('/auth/login', {
+      response = await _apiService.post('/auth/login', {
         'email': email,
         'password': password,
       });
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final token = data['access_token'] as String;
-        _apiService.setToken(token);
-
-        // Fetch the current user profile
-        final user = await UserService().getMe();
-        _currentUser = user;
-        return user;
-      } else {
-        if (kDebugMode && response.statusCode >= 500) {
-          debugPrint(
-            '[AuthService] Server error on login (${response.statusCode}). Falling back to demo mode.',
-          );
-          return await enterDemoMode();
-        }
-        final message = _parseErrorMessage(response);
-        throw Exception(message ?? 'Invalid email or password');
-      }
     } catch (e) {
       if (kDebugMode && !ApiService.mockMode) {
         debugPrint(
@@ -68,6 +50,26 @@ class AuthService {
       }
       rethrow;
     }
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final token = data['access_token'] as String;
+      _apiService.setToken(token);
+
+      // Fetch the current user profile
+      final user = await UserService().getMe();
+      _currentUser = user;
+      return user;
+    }
+    if (kDebugMode && response.statusCode >= 500) {
+      debugPrint(
+        '[AuthService] Server error on login (${response.statusCode}). Falling back to demo mode.',
+      );
+      return await enterDemoMode();
+    }
+    // Rejections such as wrong credentials are shown, never bypassed.
+    final message = _parseErrorMessage(response);
+    throw Exception(message ?? 'Invalid email or password');
   }
 
   Future<void> register(String username, String email, String password) async {

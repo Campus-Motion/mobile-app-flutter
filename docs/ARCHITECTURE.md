@@ -46,7 +46,7 @@ flowchart TD
 | Screens | `lib/screens/` | Loading data through services, holding screen state, composing widgets, navigation. | Call `http`, build JSON, contain large inline-styled layouts or private `_buildCard()` helpers that duplicate a widget. |
 | Widgets | `lib/widgets/` | Reusable visual components, one public widget per file. Take data and callbacks as constructor parameters. | Call services or `Navigator.pushNamed` directly (navigation goes through a callback), hardcode colours. |
 | Services | `lib/services/` | One singleton per backend domain. Call `ApiService`, check status codes, parse JSON into models, throw clear exceptions. | Import Flutter UI (`material.dart`), hold UI state. |
-| Gateway | `lib/services/api_service.dart` | Base URL, auth token, headers, the CORS proxy for debug web, mock switching. | Contain domain logic. |
+| Gateway | `lib/services/api_service.dart` | Base URL, auth token, headers, mock switching. | Contain domain logic. |
 | Models | `lib/models/` | Typed, null-safe data classes with `factory fromJson` and `toJson`. | Depend on Flutter or on services. |
 | Routes | `lib/config/routes.dart` | Route name constants and the `generateRoute` switch. | Contain screen logic. |
 | Tokens | `lib/constants/colors.dart` | Every colour the app uses. | Be bypassed by inline `Color(0x...)` or `Colors.*` in screens and widgets. |
@@ -145,7 +145,7 @@ Health metrics are special-category data under GDPR Article 9. These mechanisms 
 | Erasure (Art. 17) | Settings: delete health data (`DELETE /health`) and delete account (`DELETE /users/me`). |
 | Portability (Art. 20) | Settings: export profile, preferences, health and activities as JSON through `share_plus` (`_exportData`). |
 | Storage limitation (Art. 5) | Health records carry `retain_until`. |
-| No third parties | The only network host is the Campus Motion API (plus the CORS proxy in debug web builds). No analytics or crash SDKs. |
+| No third parties | The only network host is the Campus Motion API. No analytics or crash SDKs. |
 
 ```mermaid
 sequenceDiagram

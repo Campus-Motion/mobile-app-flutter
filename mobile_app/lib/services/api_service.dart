@@ -50,13 +50,7 @@ class ApiService {
   String _buildUrl(String path) {
     // Ensure path starts with a slash
     final formattedPath = path.startsWith('/') ? path : '/$path';
-    String url = '$baseUrl$formattedPath';
-
-    // Bypass CORS policy during local web development if needed
-    if (kIsWeb && kDebugMode) {
-      url = 'https://corsproxy.io/?${Uri.encodeComponent(url)}';
-    }
-    return url;
+    return '$baseUrl$formattedPath';
   }
 
   Future<http.Response> get(String path) async {

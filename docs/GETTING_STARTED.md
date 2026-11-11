@@ -29,11 +29,11 @@ Open the **repository root** (not `mobile_app/`) in your editor, so the editor a
 ### Against the real backend
 
 ```bash
-flutter run -d chrome     # web
+flutter run -d chrome --web-port 8080   # web
 flutter run               # connected phone, emulator or simulator
 ```
 
-The app talks to `https://api.campusmotion.ch` (see [API.md](API.md)). In a debug web build, requests go through a CORS proxy so the browser accepts them.
+The app talks to `https://api.campusmotion.ch` (see [API.md](API.md)). On web, the browser only accepts the responses if the backend allows the page origin, so always run on port 8080 (`http://localhost:8080` must be in the backend CORS allow-list). Phones, emulators and simulators are not affected.
 
 ### Without the backend (mock mode)
 
@@ -86,7 +86,7 @@ flutter test test/widgets/news_card_test.dart
 |---|---|
 | `flutter: command not found` | Add the Flutter `bin/` directory to your `PATH`, then reopen the terminal. |
 | `pubspec.yaml not found` | You are at the repository root. `cd mobile_app` first. |
-| Web build shows CORS or network errors | Use mock mode, or check that `https://api.campusmotion.ch` is reachable. |
+| Web build shows CORS or network errors | Run with `--web-port 8080`, use mock mode, or check that `https://api.campusmotion.ch` is reachable. |
 | Format check fails in CI but not locally | Run `dart format .` from `mobile_app/` and commit the result. |
 | `coverage/lcov.info not found` | Run `flutter test --coverage` before the coverage script. |
 
