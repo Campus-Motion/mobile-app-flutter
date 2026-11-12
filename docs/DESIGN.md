@@ -63,8 +63,9 @@ Check this list before building anything. Reuse first, compose second, create a 
 | `NewsCard` | `news_card.dart` | One news item with optional cover photo, date, title and body. |
 | `PrivacyPolicyDialog` | `privacy_policy_dialog.dart` | The privacy policy, opened with `PrivacyPolicyDialog.show(context)`. |
 | `ThemedText` | `themed_text.dart` | Text bound to the app text theme. |
-
-Planned shared widgets with open issues: `LoadingState`, `ErrorState`, `EmptyState` (#7).
+| `LoadingState` | `loading_state.dart` | Centred brand-coloured spinner with optional fixed `height`. |
+| `ErrorState` | `error_state.dart` | Error icon, message and optional `onRetry` `AppButton`. |
+| `EmptyState` | `empty_state.dart` | Icon, title and optional subtitle when a section or list has no items. |
 
 ### Building from a Figma screenshot
 

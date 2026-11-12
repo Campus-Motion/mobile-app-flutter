@@ -448,21 +448,6 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     );
   }
 
-  static dynamic _navigationFunction(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        return Navigator.pushNamed(context, AppRoutes.dashboard);
-      case 1:
-        return Navigator.pushNamed(context, AppRoutes.trail);
-      case 2:
-        return Navigator.pushNamed(context, AppRoutes.social);
-      case 3:
-        return Navigator.pushNamed(context, AppRoutes.profile);
-      case _:
-        return Navigator.pushNamed(context, AppRoutes.dashboard);
-    }
-  }
-
   IconData _getActivityIcon(String type) {
     switch (type.toLowerCase()) {
       case 'run':
@@ -540,11 +525,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
       child: MasterContainer(
         scrollable: false,
         padding: EdgeInsets.zero,
-        bottomNavigationBar: CampusMotionBottomBar(
-          currentIndex: 1,
-          onTap: _navigationFunction,
-          context: context,
-        ),
+        bottomNavigationBar: const CampusMotionBottomBar(currentIndex: 1),
         onRefresh: _loadAllData,
         floatingActionButton: _tabController.index == 0
             ? FloatingActionButton(

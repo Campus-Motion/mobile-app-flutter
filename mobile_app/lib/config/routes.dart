@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/constants/colors.dart';
 import 'package:mobile_app/screens/app/activity/index.dart';
 import 'package:mobile_app/screens/app/events/details.dart';
 import 'package:mobile_app/screens/app/home/index.dart';
@@ -10,7 +9,7 @@ import 'package:mobile_app/screens/app/social/index.dart';
 import 'package:mobile_app/screens/auth/sign_in.dart';
 import 'package:mobile_app/screens/auth/sign_up.dart';
 import 'package:mobile_app/screens/auth/welcome.dart';
-import 'package:mobile_app/widgets/app_button.dart';
+import 'package:mobile_app/widgets/error_state.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 
 class AppRoutes {
@@ -25,6 +24,21 @@ class AppRoutes {
   static const String editProfile = '/profile/edit';
   static const String settings = '/profile/settings';
   static const String eventDetails = '/events/details';
+
+  static String tabRoute(int index) {
+    switch (index) {
+      case 0:
+        return dashboard;
+      case 1:
+        return trail;
+      case 2:
+        return social;
+      case 3:
+        return profile;
+      case _:
+        return dashboard;
+    }
+  }
 
   static Route<dynamic> generateRoute(RouteSettings routeSettings) {
     switch (routeSettings.name) {
@@ -58,22 +72,10 @@ class AppRoutes {
         return MaterialPageRoute(
           builder: (context) => MasterContainer(
             children: [
-              const SizedBox(height: 60),
-              const Icon(Icons.error_outline, size: 64, color: AppColors.error),
-              const SizedBox(height: 16),
-              Text(
-                'No route defined for ${routeSettings.name}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              AppButton(
-                text: 'Back to dashboard',
-                onPressed: () =>
+              ErrorState(
+                message: 'No route defined for ${routeSettings.name}',
+                retryLabel: 'Back to dashboard',
+                onRetry: () =>
                     Navigator.pushReplacementNamed(context, dashboard),
               ),
             ],

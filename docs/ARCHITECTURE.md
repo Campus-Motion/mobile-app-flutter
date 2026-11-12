@@ -115,7 +115,7 @@ To add a screen: add a constant, add a `case` in `generateRoute`, navigate with 
 
 ### Bottom navigation
 
-The four tabs (0 Home, 1 Sport, 2 Social, 3 Profile) are rendered by `CampusMotionBottomBar` (`lib/widgets/bottom_bar.dart`), passed to `MasterContainer.bottomNavigationBar` by each tab screen. Switching tabs should replace the current route rather than push onto the stack; centralizing this in the bottom bar is tracked in issue #5.
+The four tabs (0 Home, 1 Sport, 2 Social, 3 Profile) are rendered by `CampusMotionBottomBar` (`lib/widgets/bottom_bar.dart`), passed to `MasterContainer.bottomNavigationBar` by each tab screen. Tapping an inactive tab calls `Navigator.pushReplacementNamed` with `AppRoutes.tabRoute(index)` so switching tabs replaces the current route instead of growing the back stack; tapping the active tab is a no-op.
 
 ### Data loading
 
