@@ -12,7 +12,7 @@ This document is the technical source of truth: tech stack, layers, repository l
 | State | `StatefulWidget` + `setState`, `FutureBuilder` | No state-management library. Do not add one for a single feature. |
 | Networking | `http` package behind `ApiService` | Bearer JWT, JSON in and out. |
 | Backend | Campus Motion REST API, `https://api.campusmotion.ch` | Self-hosted and GDPR-compliant. **No Firebase.** |
-| Other packages | `intl` (dates), `share_plus` (data export), `flutter_signin_button` | Add a package only with team agreement. |
+| Other packages | `intl` (dates), `share_plus` (data export), `flutter_signin_button`, `flutter_secure_storage` (token storage) | Add a package only with team agreement. |
 | Quality | `flutter_lints`, `dart format`, `flutter test`, coverage floor | Enforced in CI. |
 
 ## 2. History and key decisions
@@ -92,7 +92,7 @@ A screen folder uses `index.dart` for the tab's root screen and a descriptive na
 
 ### Startup and sign-in
 
-`main()` starts on `AppRoutes.login` (the welcome screen). Sign-in calls `AuthService.login`, which posts to `/auth/login`, stores the JWT in `ApiService`, and loads the current user. Sign-up calls `/auth/register`. The token lives in memory only, so a restart signs the user out.
+Sign-in calls `AuthService.login`, which posts to `/auth/login`, stores the JWT in platform secure storage via `ApiService.setToken`, and loads the current user. Sign-up calls `/auth/register`. On startup, `main()` reads the stored token and calls `AuthService.getProfile()`; if it succeeds, `MyApp` starts on `AppRoutes.dashboard`, and if no token is stored or the token is rejected/expired, `ApiService.clearToken` deletes it and `MyApp` starts on `AppRoutes.login` (the welcome screen). Signing out (`AuthService.logout`) deletes the stored token.
 
 ### Routing
 

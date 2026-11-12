@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/constants/colors.dart';
+import 'package:mobile_app/services/auth_service.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -13,15 +14,24 @@ class MyHttpOverrides extends HttpOverrides {
   }
 }
 
-void main() {
+Future<String> resolveInitialRoute() async {
+  final restored = await AuthService().restoreSession();
+  return restored ? AppRoutes.dashboard : AppRoutes.login;
+}
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   if (kDebugMode) {
     HttpOverrides.global = MyHttpOverrides();
   }
-  runApp(const MyApp());
+  final initialRoute = await resolveInitialRoute();
+  runApp(MyApp(initialRoute: initialRoute));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String initialRoute;
+
+  const MyApp({super.key, this.initialRoute = AppRoutes.login});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +42,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
       ),
       //Routes
-      initialRoute: AppRoutes.login,
+      initialRoute: initialRoute,
       onGenerateRoute: AppRoutes.generateRoute,
     );
   }

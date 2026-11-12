@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'mock_data_service.dart';
 
@@ -9,6 +10,7 @@ class ApiService {
   ApiService._internal();
 
   static const String baseUrl = 'https://api.campusmotion.ch';
+  static const String _tokenStorageKey = 'access_token';
 
   /// Global developer bypass / mock mode switch.
   /// Can be activated via --dart-define=MOCK_API=true or at runtime.
@@ -17,16 +19,40 @@ class ApiService {
     defaultValue: false,
   );
 
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   String? _token;
 
   String? get token => _token;
 
-  void setToken(String? token) {
+  Future<void> setToken(String? token) async {
     _token = token;
+    try {
+      if (token != null) {
+        await _secureStorage.write(key: _tokenStorageKey, value: token);
+      } else {
+        await _secureStorage.delete(key: _tokenStorageKey);
+      }
+    } catch (_) {
+      // Ignore secure storage platform errors when unavailable
+    }
   }
 
-  void clearToken() {
+  Future<void> clearToken() async {
     _token = null;
+    try {
+      await _secureStorage.delete(key: _tokenStorageKey);
+    } catch (_) {
+      // Ignore secure storage platform errors when unavailable
+    }
+  }
+
+  Future<String?> loadStoredToken() async {
+    try {
+      _token = await _secureStorage.read(key: _tokenStorageKey);
+    } catch (_) {
+      _token = null;
+    }
+    return _token;
   }
 
   void enableMockMode() {
@@ -54,17 +80,18 @@ class ApiService {
   }
 
   Future<http.Response> get(String path) async {
+    final headers = _getHeaders();
     if (mockMode) {
-      return MockDataService().handleGet(path);
+      return MockDataService().handleGet(path, headers: headers);
     }
     try {
       final uri = Uri.parse(_buildUrl(path));
-      final response = await http.get(uri, headers: _getHeaders());
+      final response = await http.get(uri, headers: headers);
       if (response.statusCode >= 500 && kDebugMode) {
         debugPrint(
           '[ApiService] Server returned ${response.statusCode} on $path. Falling back to developer mock data.',
         );
-        return MockDataService().handleGet(path);
+        return MockDataService().handleGet(path, headers: headers);
       }
       return response;
     } catch (e) {
@@ -72,7 +99,7 @@ class ApiService {
         debugPrint(
           '[ApiService] Request failed on $path ($e). Falling back to developer mock data.',
         );
-        return MockDataService().handleGet(path);
+        return MockDataService().handleGet(path, headers: headers);
       }
       rethrow;
     }

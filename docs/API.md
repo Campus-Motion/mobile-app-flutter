@@ -8,7 +8,7 @@ The REST contract the app consumes, as implemented in `mobile_app/lib/services/`
 |---|---|
 | Base URL | `https://api.campusmotion.ch` (`ApiService.baseUrl`) |
 | Format | JSON request and response bodies, `Content-Type: application/json; charset=UTF-8` |
-| Auth | `Authorization: Bearer <access_token>`, token returned by `POST /auth/login` and held in memory by `ApiService` |
+| Auth | `Authorization: Bearer <access_token>`, token returned by `POST /auth/login`, stored in platform secure storage and held in memory by `ApiService` |
 | List envelope | List endpoints return `{ "data": [ ... ] }` |
 | Web | The backend CORS allow-list must include the page origin; local runs use `http://localhost:8080` |
 

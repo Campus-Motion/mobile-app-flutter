@@ -18,10 +18,26 @@ class AuthService {
   /// Activates the developer mock bypass and sets up a local demo session.
   Future<User> enterDemoMode() async {
     _apiService.enableMockMode();
-    _apiService.setToken('mock-dev-jwt-token');
+    await _apiService.setToken('mock-dev-jwt-token');
     final user = await UserService().getMe();
     _currentUser = user;
     return user;
+  }
+
+  /// Restores a stored session on app startup.
+  /// Returns true if a stored token exists and [getProfile] succeeds.
+  Future<bool> restoreSession() async {
+    final storedToken = await _apiService.loadStoredToken();
+    if (storedToken == null || storedToken.isEmpty) {
+      return false;
+    }
+    final user = await getProfile();
+    if (user != null) {
+      return true;
+    }
+    await _apiService.clearToken();
+    _currentUser = null;
+    return false;
   }
 
   Future<User?> getProfile() async {
@@ -54,7 +70,7 @@ class AuthService {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       final token = data['access_token'] as String;
-      _apiService.setToken(token);
+      await _apiService.setToken(token);
 
       // Fetch the current user profile
       final user = await UserService().getMe();
@@ -112,7 +128,7 @@ class AuthService {
     } catch (_) {
       // Ignore logout backend failures, proceed to local logout
     } finally {
-      _apiService.clearToken();
+      await _apiService.clearToken();
       _currentUser = null;
     }
   }
