@@ -49,21 +49,6 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
     await Future.wait([_newsFuture, _eventsFuture]);
   }
 
-  static dynamic _navigationFunction(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        return Navigator.pushNamed(context, AppRoutes.dashboard);
-      case 1:
-        return Navigator.pushNamed(context, AppRoutes.trail);
-      case 2:
-        return Navigator.pushNamed(context, AppRoutes.social);
-      case 3:
-        return Navigator.pushNamed(context, AppRoutes.profile);
-      case _:
-        return Navigator.pushNamed(context, AppRoutes.dashboard);
-    }
-  }
-
   Widget _buildUpcomingEventsSlider() {
     return FutureBuilder<List<Event>>(
       future: _eventsFuture,
@@ -134,11 +119,7 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
     return MasterContainer(
       padding: EdgeInsets.zero,
       onRefresh: _refreshDashboard,
-      bottomNavigationBar: CampusMotionBottomBar(
-        currentIndex: 0,
-        onTap: _navigationFunction,
-        context: context,
-      ),
+      bottomNavigationBar: const CampusMotionBottomBar(currentIndex: 0),
       children: [
         const TopAppBar(),
         const SizedBox(height: 20),

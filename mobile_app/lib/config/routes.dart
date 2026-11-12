@@ -24,6 +24,21 @@ class AppRoutes {
   static const String parameters = 'profile/parameters';
   static const String eventDetails = '/events/details';
 
+  static String tabRoute(int index) {
+    switch (index) {
+      case 0:
+        return dashboard;
+      case 1:
+        return trail;
+      case 2:
+        return social;
+      case 3:
+        return profile;
+      case _:
+        return dashboard;
+    }
+  }
+
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case login:

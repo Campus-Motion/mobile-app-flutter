@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
 import 'package:mobile_app/constants/colors.dart';
@@ -150,21 +149,6 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
     }
   }
 
-  static dynamic _navigationFunction(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        return Navigator.pushNamed(context, AppRoutes.dashboard);
-      case 1:
-        return Navigator.pushNamed(context, AppRoutes.trail);
-      case 2:
-        return Navigator.pushNamed(context, AppRoutes.social);
-      case 3:
-        return Navigator.pushNamed(context, AppRoutes.profile);
-      case _:
-        return Navigator.pushNamed(context, AppRoutes.dashboard);
-    }
-  }
-
   @override
   void dispose() {
     _searchIdController.dispose();
@@ -178,11 +162,7 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
       child: MasterContainer(
         scrollable: false,
         padding: EdgeInsets.zero,
-        bottomNavigationBar: CampusMotionBottomBar(
-          currentIndex: 2,
-          onTap: _navigationFunction,
-          context: context,
-        ),
+        bottomNavigationBar: const CampusMotionBottomBar(currentIndex: 2),
         onRefresh: _loadSocialData,
         children: [
           const SizedBox(height: 50),
