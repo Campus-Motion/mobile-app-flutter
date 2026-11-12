@@ -105,21 +105,6 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
     }
   }
 
-  static dynamic _navigationFunction(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        return Navigator.pushNamed(context, AppRoutes.dashboard);
-      case 1:
-        return Navigator.pushNamed(context, AppRoutes.trail);
-      case 2:
-        return Navigator.pushNamed(context, AppRoutes.social);
-      case 3:
-        return Navigator.pushNamed(context, AppRoutes.profile);
-      case _:
-        return Navigator.pushNamed(context, AppRoutes.dashboard);
-    }
-  }
-
   void _shareProfile() {
     final username = _user?.username ?? 'a Campus Motion member';
     SharePlus.instance.share(
@@ -208,11 +193,7 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
     }
 
     return MasterContainer(
-      bottomNavigationBar: CampusMotionBottomBar(
-        currentIndex: 3,
-        onTap: _navigationFunction,
-        context: context,
-      ),
+      bottomNavigationBar: const CampusMotionBottomBar(currentIndex: 3),
       onRefresh: _loadProfileData,
       children: [
         // Top Navigation

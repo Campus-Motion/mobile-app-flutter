@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/config/routes.dart';
+import 'package:mobile_app/constants/colors.dart';
 
 class CampusMotionBottomBar extends StatelessWidget {
   final int currentIndex;
-  final Function(BuildContext, int) onTap; // Callback for navigation
-  final BuildContext context;
 
-  const CampusMotionBottomBar({
-    super.key,
-    required this.currentIndex,
-    required this.onTap,
-    required this.context,
-  });
+  const CampusMotionBottomBar({super.key, required this.currentIndex});
+
+  void _handleTap(BuildContext context, int index) {
+    if (index == currentIndex) return;
+    Navigator.pushReplacementNamed(context, AppRoutes.tabRoute(index));
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+        color: AppColors.cardBackground,
+        boxShadow: [BoxShadow(color: AppColors.shadow, blurRadius: 10)],
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
@@ -26,22 +26,27 @@ class CampusMotionBottomBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(0, Icons.home_rounded, "Home"),
-            _buildNavItem(1, Icons.sports_soccer_rounded, "Sport"),
-            _buildNavItem(2, Icons.supervisor_account, "Social"),
-            _buildNavItem(3, Icons.person_rounded, "Profile"),
+            _buildNavItem(context, 0, Icons.home_rounded, "Home"),
+            _buildNavItem(context, 1, Icons.sports_soccer_rounded, "Sport"),
+            _buildNavItem(context, 2, Icons.supervisor_account, "Social"),
+            _buildNavItem(context, 3, Icons.person_rounded, "Profile"),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(
+    BuildContext context,
+    int index,
+    IconData icon,
+    String label,
+  ) {
     final bool isActive = currentIndex == index;
-    final Color color = isActive ? Colors.blue : Colors.grey;
+    final Color color = isActive ? AppColors.primary : AppColors.textMuted;
 
     return GestureDetector(
-      onTap: () => onTap(context, index),
+      onTap: () => _handleTap(context, index),
       behavior: HitTestBehavior.opaque, // Makes the whole area clickable
       child: Column(
         mainAxisSize: MainAxisSize.min,
