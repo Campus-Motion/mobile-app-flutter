@@ -8,7 +8,7 @@ Widget _wrap(Widget child) => MaterialApp(
 
 void main() {
   testWidgets('shows a centred spinner', (tester) async {
-    await tester.pumpWidget(_wrap(const LoadingState(height: 100)));
+    await tester.pumpWidget(_wrap(const LoadingState()));
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 

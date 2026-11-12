@@ -31,26 +31,19 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
   @override
   void initState() {
     super.initState();
-    _newsFuture = _loadNews();
-    _eventsFuture = _loadEvents();
+    _newsFuture = _newsService.fetchLatestNews();
+    _eventsFuture = _loadUpcomingEvents();
   }
-
-  Future<List<NewsItem>> _loadNews() => _newsService.fetchLatestNews();
-
-  Future<List<Event>> _loadEvents() => _eventService.getEvents(
-    limit: 5,
-    after: DateTime.now().toIso8601String(),
-  );
 
   void _retryEvents() {
     setState(() {
-      _eventsFuture = _loadEvents();
+      _eventsFuture = _loadUpcomingEvents();
     });
   }
 
   void _retryNews() {
     setState(() {
-      _newsFuture = _loadNews();
+      _newsFuture = _newsService.fetchLatestNews();
     });
   }
 
@@ -63,8 +56,8 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
 
   Future<void> _refreshDashboard() async {
     setState(() {
-      _newsFuture = _loadNews();
-      _eventsFuture = _loadEvents();
+      _newsFuture = _newsService.fetchLatestNews();
+      _eventsFuture = _loadUpcomingEvents();
     });
     await Future.wait([_newsFuture, _eventsFuture]);
   }
@@ -89,7 +82,7 @@ class _HomeIndexScreenState extends State<HomeIndexScreen> {
       future: _eventsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const LoadingState(height: 140);
+          return const LoadingState(height: EventPreviewCard.size);
         } else if (snapshot.hasError) {
           return ErrorState(
             message: 'Failed to load events',
