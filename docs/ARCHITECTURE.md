@@ -77,9 +77,9 @@ mobile-app-v2/                      repository root: docs and agent instructions
         app/
           home/                     Home tab
           activity/                 Sport tab (activities, events, trail)
+          events/                   Event details
           social/                   Social tab
           profile/                  Profile tab, edit, settings
-          feed/  base_menu/         placeholders, not routed yet
     test/                           unit and widget tests
       widgets/                      one test file per shared widget
     tool/check_coverage.dart        coverage floor used by CI
@@ -108,8 +108,8 @@ Every screen is registered in `AppRoutes`:
 | `social` | `/social` | `SocialIndexScreen` (Social tab) |
 | `profile` | `/profile` | `ProfileIndexScreen` (Profile tab) |
 | `editProfile` | `/profile/edit` | `ProfileEditScreen` |
-| `parameters` | `profile/parameters` | `ProfileSettingsScreen` |
-| `shareProfile` | `profile/share` | placeholder, routes to Home |
+| `settings` | `/profile/settings` | `ProfileSettingsScreen` |
+| `eventDetails` | `/events/details` | `EventDetailsScreen` |
 
 To add a screen: add a constant, add a `case` in `generateRoute`, navigate with `Navigator.pushNamed(context, AppRoutes.<name>)`. Pass arguments through `RouteSettings.arguments`, not by constructing `MaterialPageRoute` inline in a screen. This table must be updated in the same PR.
 

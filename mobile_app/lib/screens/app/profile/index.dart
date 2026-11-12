@@ -232,7 +232,7 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
                   icon: const Icon(Icons.settings),
                   onPressed: () => Navigator.pushNamed(
                     context,
-                    AppRoutes.parameters,
+                    AppRoutes.settings,
                   ).then((_) => _loadProfileData()),
                   color: AppColors.primary,
                 ),
