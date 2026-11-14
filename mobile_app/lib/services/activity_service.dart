@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'api_service.dart';
 import '../models/activity.dart';
+import '../models/heatmap.dart';
 
 class ActivityService {
   static final ActivityService _instance = ActivityService._internal();
@@ -8,6 +9,19 @@ class ActivityService {
   ActivityService._internal();
 
   final ApiService _apiService = ApiService();
+
+  Future<HeatmapData?> getHeatmap() async {
+    final response = await _apiService
+        .get('/activities/heatmap')
+        .timeout(const Duration(seconds: 40));
+    if (response.statusCode == 204) return null;
+    if (response.statusCode != 200) {
+      throw Exception('Unable to load your heatmap');
+    }
+    return HeatmapData.fromJson(
+      json.decode(response.body) as Map<String, dynamic>,
+    );
+  }
 
   Future<List<Activity>> getActivities({
     int? limit,

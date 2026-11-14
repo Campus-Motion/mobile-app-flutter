@@ -57,6 +57,7 @@ Any feature that touches health data, location, or what other users can see must
 | Sign-in, sign-up, demo mode | Working |
 | Home: events carousel and news | Working |
 | Sport: activities (log, list, delete) | Working |
+| Sport: My heatmap | Personal route density for the latest 20 GPS activities; requires the internal heatmap renderer deployment. No street-map background. |
 | Sport: events (discover, join, leave) | Working |
 | Sport: connected trail | Placeholder ("coming soon") |
 | Social: follow, unfollow, search | Working |

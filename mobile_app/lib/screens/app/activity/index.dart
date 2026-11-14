@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_app/widgets/app_button.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/widgets/master_container.dart';
@@ -554,6 +555,17 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
           ),
 
           const SizedBox(height: 20),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: AppButton(
+              text: 'My heatmap',
+              icon: Icons.map_outlined,
+              variant: AppButtonVariant.outline,
+              onPressed: () => Navigator.pushNamed(context, AppRoutes.heatmap),
+            ),
+          ),
+          const SizedBox(height: 16),
 
           // TabBar (3 Tabs)
           TabBar(

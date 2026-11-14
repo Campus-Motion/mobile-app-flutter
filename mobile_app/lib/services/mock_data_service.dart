@@ -271,6 +271,56 @@ class MockDataService {
     final uri = Uri.parse(path.startsWith('/') ? path : '/$path');
     final cleanPath = uri.path;
 
+    if (cleanPath == '/activities/heatmap') {
+      // Synthetic route rendered locally; no personal GPS data or network tiles.
+      return http.Response(
+        json.encode({
+          'image':
+              'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAoCAYAAABOzvzpAAAHv0lEQVR4nO1ZS6wcVxE9'
+              'VffT83kfO5EiWYqUxFjEmAVC2QCLBCkS8gayISxAEUhI3sRRYrFkwYY9LxgWBCE+EopEEOwQQnxXWSXLYAdDEstSgB'
+              'B/3kz3dPe9VcXi9rz37ERBz++9bJgj9fTMqKfr1umqU1V3gBVWWGGFFVZY4f8VdJQ3P3fixGTqnC1iXK+inoUZG0DO'
+              'OQCAmu3YZyKDCAQAEUnX82/HfT+rReiFt99ujmqNh0rAM6dOVRK6U5H85xzhNIEeY8CYqAJwPwFEoL1W99o3WHkxwA'
+              'BcU7NOATLYn7PoJc32u4tXrr52mGs+FAK++sADo2MTesIxP+0Jpz3xvYFIPHNmIjiGsZFQcb8YvdPy4LUBMDMomRMF'
+              'iRmyqk+mLiveUbNfidgfty6/8cvDWPuBCbhw5iOn2Ox7wdNnK3YITLki1sAMzwRHBB4OB4D4TuOE4eEDAEwBAaBmkO'
+              'HIakiq6E25Ex31Kk1S+3Hq3bcvXrnyzkHWfyACnvvYg18KTBcr5zcnjtPIOYvMqJgRHcEzwRPBMYFRzssUuD0LBgKG'
+              'FBA16HDOZkhq6MXQqaITQatKC9G1VvT3Ocv55y+/eflDJ+CZhx/64tjzD8eeq6nzeewcJt6h8oyKCZVjeB/gQgQHD/'
+              'Ye5BzADkSuWKbBvJXnbyqAKkwyNGdoypC+Q5KMThStKNqsWIigFkWT02gh9uYsuc+88Prr//nQCPj6mfvvOU7VyxPv'
+              'Hlh3rp94j2l0mDjG2HnE0Rh+OoEbT+BGI/gYQT6CnAN5BhEX599DgAKi0JxhuUfuOkjbQhY10rxG37dosqIRQd0L5i'
+              'KY51QtRP7w7ly//NO33rq5X1/83RCwifh8ZHpozNyOvcNaKM6vVRFhfRNhYxNxbR1+MgGPJnAxgmIoUcAeYAbRHdxb'
+              'iQBTgeYE6xOk7yCLBrmu4SYzuNlNuO3twpuipIn5ThRn753yUwAu7teXfUfA+Y8/+Ikx+E9rwccNH3QjeKxHh7Uqoj'
+              'p2HPH4vag2jyFMN+DWJvDjCVxVgUMAD1EAYmCpB1jWPxvCvxCgqUdu20LAvEbavoV2+wbS9XfRbt/CrEvYToJ5ytjO'
+              '2ddJrnQ9Pb5fUdx3BHjDo97RWmTXRmZUnjFyjDhdQ9g8VpzfPI64sYmwNoUblTTgGEE+lDRgVyJgTwqYWYmAJQFdB9'
+              '91yE0NDgFgLkKZBdonjGSO3gy9MAJzZpaH4fMZAH85UgIYdNYxWSBCYEIgIIQAHk8RJ2vw03WE9XWE9TWE6TrcZAI3'
+              'GoMHMSTnwewGDdhzYzOoKExSEb+qg7SLgSzARKG5h7YN8niCsGjgCXA7lQbw4E8eOQEAGaPU9Z0S5wI4xuJkVcHHCF'
+              'eNwaMKrhrDjSpwqOB8AHkHYgZoVwfMSgvEojDxEJeW1REQgaYRXDUCxwoulmhi5+CIdg4GwcgeB7B1pAQwAL7j4YGo'
+              'OMPDt0vndtSeAR4OoiKCzLu/NYOpgdhgWq6hnWt339OgHeX+vNtVLpcB0/36s28CDEZiVjo1ADqot2aB5ZLDkhM0Z3'
+              'BK0JBBKRVnDGB1INXizN77DiIokgcRHM59LqGfh885lzRRgVrpGM3KBKHAjSMnQEH/1CUBqsjGkJSgXQNpG8iihlQR'
+              '2YfBaQNUoCmBfVdE0Ln39gEGmOwVwRYyiGCqG0hTQxcNcttA2xYigoyhVTaDKghqLx45AWb2YlY81ZlhpKVN7XKGr2'
+              't01awoPXERtZyhfQfXtuAQQLH0Ae+rAaYwVZhmWJ8hfQ/tWqSmQZ7PkLZvoZ9tI81myE2DTgQpF/vJlMVsRqT7ngv2'
+              'TcCM0qtO46Ve9aOtah+SwBPBNw2IrhftUoGmHrJYIDVjuKVA7pTBIY+XpBYWCgHLCOj7oRFaINdzpNk2uls3kG7eRN'
+              'O3WIhiIYpWFb1oFMOvty5dffXICfjRa9euXzh98ludyE8CgQORcRKAAKvn0CyQdoE8r0s7XI3BVSwRwMt5YCmSexkY'
+              'UkCHUtgnSNdBugVyXSPNZ0jzORZdi0YUTRK0ImhFfK9W52zf3a8vwAGGoQtnTv5s5PgrU+/r6TAITYamaOQdQhzBjS'
+              'q4WIFjVdpg7wHHYHq/VrjkM6SIaYmCDtK1kLZF33dY5PLEmyRosqDO2dUi1Il8beuvb/7ibvy4q1kAAHLP57soGwCe'
+              'UGgtZprVoXeGVhQxZfhFg+AYjhjs/G3l7H1Ggd00UIVKhqgiqZRxWA1tNnQqaLOgFvEL0a7L9v2tS3fnPHDA/YBnTp'
+              '3a8FG+GYjPjTxPRsx9ZGcVEzwzIhMcMxwtewe6bQq+fT+sQJd7AlbeJ9XdDRFVtKrcivpO9GYy/cbWa2/8/CA+HMqW'
+              '2LMPP/gF7/g5z/ypwIiRXR+Y1BOpo0IAgYbul/7HlpiVyjmQUEqtuqRGvWrIateT6qua5emtv139x0HXfmibouceeS'
+              'TE+sbnA9ujjuisZ9ok0H2OyJgAB0pLAj4ISwIEFtQAMSM1+5eo3hKj35DZD+bTe9544ZVX0mGs+0i2xc+dODEZbY5P'
+              'EuunHZGx8jGFPEml/aP3KuCwGBumAjNhuJeU9aaYkSm/7Ob9379z7drisNd6pP8L7MWTgPv30t5j+MCZ7T7AXip7oy'
+              'ussMIKK6ywwtHhv+Zgokqqx1XgAAAAAElFTkSuQmCC',
+          'bounds': [
+            [46.49981135346308, 6.49975927950072],
+            [46.5001886458824, 6.500646691911085],
+          ],
+          'runs': 1,
+          'points': 5,
+          'pixel_m': 0.5,
+          'saturation': 1.0,
+        }),
+        200,
+        headers: _jsonHeaders,
+      );
+    }
+
     if (cleanPath == '/users/me') {
       final authHeader = headers?['Authorization'];
       if (authHeader != null &&

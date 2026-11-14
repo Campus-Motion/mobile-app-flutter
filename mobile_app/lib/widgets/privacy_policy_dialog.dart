@@ -66,6 +66,7 @@ class PrivacyPolicyDialog extends StatelessWidget {
                     _buildSectionTitle('2. Information We Collect'),
                     _buildSectionBody(
                       '• Account Information: Username, email, password.\n'
+                      '• Activities and GPS routes: Existing routes can be used to render your personal heatmap inside Campus Motion. Heatmap generation does not store an extra copy or send your routes to a third-party map provider.\n'
                       '• Fitness Preferences: Preferred sports, levels, workout intensity, goals, distance settings.\n'
                       '• Sensitive Health Data: Weight, height, age/date of birth (if explicitly consented). This data is encrypted before transmission.',
                     ),

@@ -105,6 +105,7 @@ Every screen is registered in `AppRoutes`:
 | `signin` | `/signin` | `SignInScreen` |
 | `dashboard` | `/dashboard` | `HomeIndexScreen` (Home tab) |
 | `trail` | `/trail` | `ActivityIndexScreen` (Sport tab) |
+| `heatmap` | `/heatmap` | `HeatmapScreen` (personal route density, opened from Sport) |
 | `social` | `/social` | `SocialIndexScreen` (Social tab) |
 | `profile` | `/profile` | `ProfileIndexScreen` (Profile tab) |
 | `editProfile` | `/profile/edit` | `ProfileEditScreen` |

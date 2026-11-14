@@ -96,3 +96,88 @@ flutter test test/widgets/news_card_test.dart
 - [ARCHITECTURE.md](ARCHITECTURE.md) before writing code.
 - [DESIGN.md](DESIGN.md) before building a screen.
 - [../CONTRIBUTING.md](../CONTRIBUTING.md) before opening a pull request.
+
+## 7. Test the personal heatmap
+
+The heatmap changes span three repositories. Keep the matching local feature
+branches together; publishing a cloud environment does not push them to GitHub
+or deploy the backend.
+
+### Automated checks
+
+From `Trail-parcours/`:
+
+```sh
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m pytest -q
+```
+
+These test real FIT decoding, waypoint JSON, PNG/HTML rendering, invalid inputs,
+limits and the shared rendering lock.
+
+From `Back_End_App/api_v1/`:
+
+```sh
+npm ci
+npm run build
+npm test -- --runInBand test/activities/heatmaps.spec.ts
+```
+
+These cover JWT authentication, owner-scoped queries, 204 for empty routes,
+limits, renderer failures and `Cache-Control: no-store`.
+
+From `mobile-app-flutter/mobile_app/`:
+
+```sh
+flutter pub get
+flutter test test/services/heatmap_test.dart test/widgets/heatmap_view_test.dart test/screens/heatmap_screen_test.dart
+flutter analyze --fatal-infos
+dart format --output=none --set-exit-if-changed .
+flutter test --coverage
+dart run tool/check_coverage.dart
+```
+
+The focused tests cover response parsing, the narrow-screen viewer, loading,
+empty data, retry after failure and leaving during an unfinished request.
+
+### Try the interface without a server
+
+```sh
+flutter run -d chrome --web-port 8080 --dart-define=MOCK_API=true
+```
+
+1. Select **Demo Mode (Offline Bypass)** on the welcome screen.
+2. Open **Sport**, then **My heatmap**.
+3. Confirm a synthetic route appears with its activity count and geographic bounds.
+4. Zoom, pan, select **Refresh**, then use **Back** to return to Sport.
+
+This checks the interface only. It does not call Python, read real activity data
+or demonstrate authentication. No street-map background is expected.
+
+### Test the real service chain
+
+Use a test deployment of the matching backend and renderer first (see
+`Back_End_App/api_v1/README.md`). The app currently targets
+`https://api.campusmotion.ch`; mock mode does not test that server.
+
+With dedicated test accounts and synthetic GPS data:
+
+| Case | Expected result |
+|---|---|
+| No Bearer token on `GET /activities/heatmap` | 401 |
+| Signed-in user with no GPS routes | 204; app shows "No GPS routes yet" |
+| Private activity created with `POST /activities`, then at least two timestamped moving GPS points added using `POST /activities/{id}/waypoints` | 200 with PNG `image`, geographic `bounds` and activity count |
+| Another user's public activity | Excluded from the personal heatmap |
+| Delete the test activity and refresh | Deleted route is absent; 204 if no other routes remain |
+| Renderer stopped in the test deployment | 503; app offers retry |
+
+Do not enter real GPS tracks or production credentials into tests. The renderer
+accepts coordinates in degrees and ISO timestamps; sample points five seconds
+apart near latitude 46.5, with longitude increasing by 0.0001 each point, provide
+movement accepted by the filters. Merely logging an activity title does not
+create GPS waypoints.
+
+When checking failures in the app against the real API, use a release build
+without `MOCK_API=true`: debug builds automatically substitute mock data for
+network failures and 5xx responses. This existing fallback can conceal a real
+renderer outage during manual testing.
