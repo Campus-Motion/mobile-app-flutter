@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'api_service.dart';
 import '../models/user.dart';
 import '../models/user_preferences.dart';
@@ -133,23 +132,12 @@ class UserService {
     if (ApiService.mockMode) {
       return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
     }
-    final uri = Uri.parse('${ApiService.baseUrl}/users/me/photo');
-    final request = http.MultipartRequest('POST', uri);
-
-    final token = _apiService.token;
-    if (token != null) {
-      request.headers['Authorization'] = 'Bearer $token';
-    }
-
-    final multipartFile = http.MultipartFile.fromBytes(
-      'photo',
-      bytes,
+    final response = await _apiService.uploadFile(
+      '/users/me/photo',
+      bytes: bytes,
       filename: filename,
+      field: 'photo',
     );
-    request.files.add(multipartFile);
-
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);

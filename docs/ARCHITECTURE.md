@@ -12,7 +12,7 @@ This document is the technical source of truth: tech stack, layers, repository l
 | State | `StatefulWidget` + `setState`, `FutureBuilder` | No state-management library. Do not add one for a single feature. |
 | Networking | `http` package behind `ApiService` | Bearer JWT, JSON in and out. |
 | Backend | Campus Motion REST API, `https://api.campusmotion.ch` | Self-hosted and GDPR-compliant. **No Firebase.** |
-| Other packages | `intl` (dates), `share_plus` (data export), `flutter_signin_button`, `flutter_secure_storage` (token storage) | Add a package only with team agreement. |
+| Other packages | `intl` (dates), `share_plus` (data export), `flutter_signin_button`, `flutter_secure_storage` (token storage), `file_selector` (user-selected FIT files) | Add a package only with team agreement. |
 | Quality | `flutter_lints`, `dart format`, `flutter test`, coverage floor | Enforced in CI. |
 
 ## 2. History and key decisions

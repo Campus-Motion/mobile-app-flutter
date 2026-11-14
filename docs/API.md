@@ -115,4 +115,22 @@ returns 413 and an unavailable renderer returns 503.
 
 The app displays the raster in a zoomable viewer without third-party map tiles.
 Mock mode uses a synthetic route image. Manually logged activities have no GPS
-route; only activities populated through the existing waypoint endpoint appear.
+route; activities populated through FIT import or the existing waypoint endpoint appear.
+
+### FIT imports and activity export
+
+The import-enabled backend accepts `POST /activities/import-fit` with Bearer
+JWT and multipart field `file`. It creates one private activity (`type: other`,
+`title: Imported FIT activity`) plus its GPS waypoints, returning the activity
+with HTTP 201. The original file and health/sensor fields are discarded. Limits
+are one FIT file, 10 MiB and 100,000 GPS points; unsupported/corrupt files return
+422, oversized input 413, expired login 401 and an unavailable decoder 503.
+Each import creates a new activity; duplicate uploads are not deduplicated.
+
+`ActivityService.importFit` uses the shared `ApiService.uploadFile`. Multipart
+writes never fall back to mock success. Demo mode returns a controlled error
+without retaining the file or inventing a saved activity. `GET /activities/export`
+returns all owned activities with GPS waypoints for the Settings data export;
+other users' public activities are excluded. Import and export responses use
+`Cache-Control: no-store`. A backend and renderer deployment is needed to use
+these endpoints with real data.

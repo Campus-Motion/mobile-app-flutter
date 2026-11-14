@@ -181,3 +181,33 @@ When checking failures in the app against the real API, use a release build
 without `MOCK_API=true`: debug builds automatically substitute mock data for
 network failures and 5xx responses. This existing fallback can conceal a real
 renderer outage during manual testing.
+
+
+### Import your FIT file into a saved activity
+
+After deploying the import-enabled backend and Python renderer, sign in using
+the live API (not Demo Mode). Open **Sport → My heatmap → Choose FIT file**, pick
+one `.fit` file and confirm **Import**. The file must be nonempty, at most 10 MiB
+and contain at least two supported timestamped GPS records. The app refreshes
+the heatmap after saving and refreshes the activity list when you go back.
+
+Imports create a private activity named "Imported FIT activity" with type
+`other`. Only GPS coordinates and timestamps are saved. Raw files, original
+filenames and health/sensor fields are discarded. Reimporting creates another
+activity. Demo mode keeps the chooser disabled and never claims to save a real
+file. Real import needs the matching backend/parser deployments in addition to
+the Flutter branch. For local Chrome development use `--web-port 8080`; the
+updated backend CORS list permits that origin.
+
+Import regression tests:
+
+```sh
+flutter test test/screens/fit_import_screen_test.dart test/services/fit_import_test.dart
+```
+
+Check chooser cancellation, canceling confirmation, successful import and
+refresh, invalid/corrupt files, size limits, private ownership, export containing
+the GPS points and deletion removing them. Native macOS sandbox entitlements
+permit only user-selected file reads and network client access; no broad disk
+permission is requested. Native platform builds need their usual SDKs and should
+be checked on the target device; web and widget tests do not validate those builds.

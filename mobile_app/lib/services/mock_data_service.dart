@@ -271,6 +271,18 @@ class MockDataService {
     final uri = Uri.parse(path.startsWith('/') ? path : '/$path');
     final cleanPath = uri.path;
 
+    if (cleanPath == '/activities/export') {
+      return http.Response(
+        json.encode([
+          for (final activity in _mockActivities)
+            if (activity['user_id'] == _mockUser['id'])
+              {...activity, 'waypoints': <dynamic>[]},
+        ]),
+        200,
+        headers: _jsonHeaders,
+      );
+    }
+
     if (cleanPath == '/activities/heatmap') {
       // Synthetic route rendered locally; no personal GPS data or network tiles.
       return http.Response(
@@ -494,6 +506,15 @@ class MockDataService {
     }
 
     return http.Response(json.encode({'data': []}), 200, headers: _jsonHeaders);
+  }
+
+  http.Response handleUpload(String path) {
+    // A mock must never claim that a user's real file was parsed or persisted.
+    return http.Response(
+      json.encode({'message': 'File import requires the live API'}),
+      503,
+      headers: _jsonHeaders,
+    );
   }
 
   /// Handles POST requests

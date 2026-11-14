@@ -62,6 +62,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
 
     try {
       final activities = await _activityService.getActivities(limit: 50);
+      if (!mounted) return;
       setState(() {
         _myActivities = activities;
         _isLoadingActivities = false;
@@ -71,9 +72,13 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
       setState(() {
         _isLoadingActivities = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load activities: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Your activities could not be loaded. Please try again.',
+          ),
+        ),
+      );
     }
   }
 
@@ -562,7 +567,11 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
               text: 'My heatmap',
               icon: Icons.map_outlined,
               variant: AppButtonVariant.outline,
-              onPressed: () => Navigator.pushNamed(context, AppRoutes.heatmap),
+              onPressed: () async {
+                await Navigator.pushNamed(context, AppRoutes.heatmap);
+                if (!mounted) return;
+                _loadActivities();
+              },
             ),
           ),
           const SizedBox(height: 16),
