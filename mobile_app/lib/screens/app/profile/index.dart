@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/config/routes.dart';
+import 'package:mobile_app/widgets/activity_card.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
 import 'package:mobile_app/constants/colors.dart';
@@ -61,27 +62,10 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
       for (var act in activities) {
         if (act.duration != null) {
           durationSum += act.duration!;
-
-          // Estimate distance based on average speeds for different activities
-          double speedKmh = 5.0; // Default walking/other speed
-          switch (act.type.toLowerCase()) {
-            case 'run':
-              speedKmh = 10.0;
-              break;
-            case 'walk':
-              speedKmh = 5.0;
-              break;
-            case 'cycle':
-              speedKmh = 20.0;
-              break;
-            case 'hike':
-              speedKmh = 4.0;
-              break;
-            case 'swim':
-              speedKmh = 2.0;
-              break;
-          }
-          distanceSum += speedKmh * (act.duration! / 60.0);
+        }
+        final distanceKm = ActivityCard.getActivityDistanceKm(act);
+        if (distanceKm != null) {
+          distanceSum += distanceKm;
         }
       }
 
@@ -113,49 +97,6 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
             'Check out $username\'s Campus Motion profile! Join me and track your campus activities.',
       ),
     );
-  }
-
-  String _formatDuration(double totalMinutes) {
-    final int hours = (totalMinutes / 60).floor();
-    final int minutes = (totalMinutes % 60).round();
-    if (hours > 0) {
-      return '${hours}h ${minutes}m';
-    }
-    return '${minutes}m';
-  }
-
-  String _getActivityDurationString(double? minutes) {
-    if (minutes == null) return '--';
-    final int hrs = (minutes / 60).floor();
-    final int mins = (minutes % 60).round();
-    if (hrs > 0) {
-      return '${hrs}h ${mins}m';
-    }
-    return '${mins}m';
-  }
-
-  String _getActivityDistanceString(double? minutes, String type) {
-    if (minutes == null) return '--';
-    double speedKmh = 5.0;
-    switch (type.toLowerCase()) {
-      case 'run':
-        speedKmh = 10.0;
-        break;
-      case 'walk':
-        speedKmh = 5.0;
-        break;
-      case 'cycle':
-        speedKmh = 20.0;
-        break;
-      case 'hike':
-        speedKmh = 4.0;
-        break;
-      case 'swim':
-        speedKmh = 2.0;
-        break;
-    }
-    final distance = speedKmh * (minutes / 60.0);
-    return '${distance.toStringAsFixed(1)} km';
   }
 
   IconData _getActivityIcon(String type) {
@@ -309,7 +250,7 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
               ),
               _buildStatCard(
                 'Active Time',
-                _formatDuration(_totalDurationMinutes),
+                ActivityCard.getActivityDurationString(_totalDurationMinutes),
               ),
             ],
           ),
@@ -358,11 +299,10 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
                 icon: _getActivityIcon(activity.type),
                 title: activity.title,
                 date: formattedDate,
-                distance: _getActivityDistanceString(
+                distance: ActivityCard.getActivityDistanceString(activity),
+                duration: ActivityCard.getActivityDurationString(
                   activity.duration,
-                  activity.type,
                 ),
-                duration: _getActivityDurationString(activity.duration),
               );
             }),
         ],
