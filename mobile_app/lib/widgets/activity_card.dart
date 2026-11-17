@@ -53,6 +53,46 @@ class ActivityCard extends StatelessWidget {
     }
   }
 
+  static double? getActivityDistanceKm(Activity activity) {
+    if (activity.distanceKm != null) return activity.distanceKm;
+    if (activity.duration == null) return null;
+    double speedKmh = 5.0;
+    switch (activity.type.toLowerCase()) {
+      case 'run':
+        speedKmh = 10.0;
+        break;
+      case 'walk':
+        speedKmh = 5.0;
+        break;
+      case 'cycle':
+        speedKmh = 20.0;
+        break;
+      case 'hike':
+        speedKmh = 4.0;
+        break;
+      case 'swim':
+        speedKmh = 2.0;
+        break;
+    }
+    return speedKmh * (activity.duration! / 60.0);
+  }
+
+  static String getActivityDistanceString(Activity activity) {
+    final distance = getActivityDistanceKm(activity);
+    if (distance == null) return '--';
+    return '${distance.toStringAsFixed(1)} km';
+  }
+
+  static String getActivityDurationString(double? minutes) {
+    if (minutes == null) return '--';
+    final int hrs = (minutes / 60).floor();
+    final int mins = (minutes % 60).round();
+    if (hrs > 0) {
+      return '${hrs}h ${mins}m';
+    }
+    return '${mins}m';
+  }
+
   @override
   Widget build(BuildContext context) {
     final color = getActivityColor(activity.type);
@@ -115,13 +155,13 @@ class ActivityCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (activity.duration != null) ...[
+            if (activity.duration != null || activity.distanceKm != null) ...[
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${activity.duration!.toStringAsFixed(0)} min',
+                    getActivityDistanceString(activity),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -129,6 +169,14 @@ class ActivityCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
+                  Text(
+                    getActivityDurationString(activity.duration),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
                   Text(
                     activity.type.toUpperCase(),
                     style: const TextStyle(

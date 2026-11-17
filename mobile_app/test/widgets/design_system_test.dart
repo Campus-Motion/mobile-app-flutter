@@ -73,9 +73,37 @@ void main() {
       );
 
       expect(find.text('Morning Run'), findsOneWidget);
-      expect(find.text('35 min'), findsOneWidget);
+      expect(find.text('5.8 km'), findsOneWidget);
+      expect(find.text('35m'), findsOneWidget);
       expect(find.text('RUN'), findsOneWidget);
       expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+    });
+
+    testWidgets('ActivityCard prefers explicit distanceKm and formats hours', (
+      tester,
+    ) async {
+      final measuredActivity = Activity(
+        id: 2,
+        title: 'Lakefront Trail',
+        type: 'run',
+        userId: 10,
+        isPublic: true,
+        duration: 75.0,
+        distanceKm: 6.2,
+        createdAt: DateTime(2026, 4, 16),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: ActivityCard(activity: measuredActivity)),
+        ),
+      );
+
+      expect(find.text('Lakefront Trail'), findsOneWidget);
+      expect(find.text('6.2 km'), findsOneWidget);
+      expect(find.text('1h 15m'), findsOneWidget);
+      expect(find.text('RUN'), findsOneWidget);
+      expect(find.byIcon(Icons.public), findsOneWidget);
     });
   });
 }

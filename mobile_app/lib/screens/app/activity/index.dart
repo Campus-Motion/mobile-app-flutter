@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/config/routes.dart';
+import 'package:mobile_app/widgets/activity_card.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
 import 'package:mobile_app/constants/colors.dart';
@@ -484,40 +485,6 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     }
   }
 
-  String _getActivityDurationString(double? minutes) {
-    if (minutes == null) return '--';
-    final int hrs = (minutes / 60).floor();
-    final int mins = (minutes % 60).round();
-    if (hrs > 0) {
-      return '${hrs}h ${mins}m';
-    }
-    return '${mins}m';
-  }
-
-  String _getActivityDistanceString(double? minutes, String type) {
-    if (minutes == null) return '--';
-    double speedKmh = 5.0;
-    switch (type.toLowerCase()) {
-      case 'run':
-        speedKmh = 10.0;
-        break;
-      case 'walk':
-        speedKmh = 5.0;
-        break;
-      case 'cycle':
-        speedKmh = 20.0;
-        break;
-      case 'hike':
-        speedKmh = 4.0;
-        break;
-      case 'swim':
-        speedKmh = 2.0;
-        break;
-    }
-    final distance = speedKmh * (minutes / 60.0);
-    return '${distance.toStringAsFixed(1)} km';
-  }
-
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -755,10 +722,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        _getActivityDistanceString(
-                          activity.duration,
-                          activity.type,
-                        ),
+                        ActivityCard.getActivityDistanceString(activity),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
@@ -766,7 +730,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _getActivityDurationString(activity.duration),
+                        ActivityCard.getActivityDurationString(
+                          activity.duration,
+                        ),
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 12,
