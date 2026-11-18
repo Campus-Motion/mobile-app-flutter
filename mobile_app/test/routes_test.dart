@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_app/config/routes.dart';
+import 'package:mobile_app/screens/app/activity/details.dart';
 import 'package:mobile_app/screens/app/activity/index.dart';
 import 'package:mobile_app/screens/app/events/details.dart';
+import 'package:mobile_app/screens/app/heatmap/index.dart';
 import 'package:mobile_app/screens/app/home/index.dart';
 import 'package:mobile_app/screens/app/profile/edit.dart';
 import 'package:mobile_app/screens/app/profile/index.dart';
@@ -37,6 +39,8 @@ void main() {
       AppRoutes.editProfile: ProfileEditScreen,
       AppRoutes.settings: ProfileSettingsScreen,
       AppRoutes.eventDetails: EventDetailsScreen,
+      AppRoutes.activityDetails: ActivityDetailsScreen,
+      AppRoutes.heatmaps: HeatmapScreen,
     };
 
     test('all route constants start with /', () {
@@ -57,7 +61,11 @@ void main() {
           final route = AppRoutes.generateRoute(
             RouteSettings(
               name: entry.key,
-              arguments: entry.key == AppRoutes.eventDetails ? 101 : null,
+              arguments:
+                  (entry.key == AppRoutes.eventDetails ||
+                      entry.key == AppRoutes.activityDetails)
+                  ? 101
+                  : null,
             ),
           );
 

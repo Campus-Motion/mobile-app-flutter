@@ -129,9 +129,12 @@ class UserService {
   }
 
   Future<String> uploadPhoto(List<int> bytes, String filename) async {
+<<<<<<< Updated upstream
     if (ApiService.mockMode) {
       return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
     }
+=======
+>>>>>>> Stashed changes
     final response = await _apiService.uploadFile(
       '/users/me/photo',
       bytes: bytes,

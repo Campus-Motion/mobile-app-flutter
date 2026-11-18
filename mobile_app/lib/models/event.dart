@@ -7,6 +7,7 @@ class Event {
   final double? distanceM;
   final int participantCount;
   final DateTime createdAt;
+  final int? userId;
 
   Event({
     required this.id,
@@ -17,6 +18,7 @@ class Event {
     this.distanceM,
     required this.participantCount,
     required this.createdAt,
+    this.userId,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -44,6 +46,7 @@ class Event {
           ? DateTime.tryParse(json['created_at'] as String)?.toLocal() ??
                 DateTime.now()
           : DateTime.now(),
+      userId: json['user_id'] as int?,
     );
   }
 
@@ -54,6 +57,7 @@ class Event {
       'start_time': startTime.toUtc().toIso8601String(),
       'end_time': endTime.toUtc().toIso8601String(),
       if (distanceM != null) 'distance_m': distanceM,
+      if (userId != null) 'user_id': userId,
     };
   }
 }

@@ -67,6 +67,7 @@ Check this list before building anything. Reuse first, compose second, create a 
 | `LoadingState` | `loading_state.dart` | Centred brand-coloured spinner with optional fixed `height`. |
 | `ErrorState` | `error_state.dart` | Error icon, message and optional `onRetry` `AppButton`. |
 | `EmptyState` | `empty_state.dart` | Icon, title and optional subtitle when a section or list has no items. |
+| `RouteMap` | `route_map.dart` | OpenStreetMap route preview for activities and discipline heatmaps with polyline tracks (single track with start/finish badges or multi-track heatmaps), and attribution. |
 
 ### Building from a Figma screenshot
 

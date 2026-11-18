@@ -4,8 +4,12 @@ import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'api_service.dart';
 import '../models/activity.dart';
+<<<<<<< Updated upstream
 import '../models/fit_import_exception.dart';
 import '../models/heatmap.dart';
+=======
+import '../models/waypoint.dart';
+>>>>>>> Stashed changes
 
 class ActivityService {
   static final ActivityService _instance = ActivityService._internal();
@@ -14,19 +18,28 @@ class ActivityService {
 
   final ApiService _apiService = ApiService();
 
+<<<<<<< Updated upstream
   static const maxFitBytes = 10 * 1024 * 1024;
+=======
+  static const int maxFitBytes = 10 * 1024 * 1024;
+>>>>>>> Stashed changes
 
   Future<XFile?> pickFitFile() => openFile(
     acceptedTypeGroups: [
       XTypeGroup(
         label: 'FIT activities',
+<<<<<<< Updated upstream
         extensions: const ['fit'],
+=======
+        extensions: const ['fit', 'FIT'],
+>>>>>>> Stashed changes
         uniformTypeIdentifiers:
             !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS
             ? const ['public.data']
             : null,
       ),
     ],
+<<<<<<< Updated upstream
     confirmButtonText: 'Choose FIT file',
   );
 
@@ -91,6 +104,26 @@ class ActivityService {
     }
     return HeatmapData.fromJson(
       json.decode(response.body) as Map<String, dynamic>,
+=======
+    confirmButtonText: 'Choisir un fichier .fit',
+  );
+
+  Future<Activity> importFitFile(XFile file) async {
+    final filename = file.name.isNotEmpty
+        ? file.name
+        : file.path.split(RegExp(r'[/\\]')).last;
+    if (!filename.toLowerCase().endsWith('.fit')) {
+      throw Exception('Veuillez sélectionner un fichier .fit.');
+    }
+    final length = await file.length();
+    if (length > maxFitBytes) {
+      throw Exception('Le fichier .fit ne doit pas dépasser 10 Mo.');
+    }
+    final bytes = await file.readAsBytes();
+    return importFit(
+      bytes,
+      filename: filename.isNotEmpty ? filename : 'activity.fit',
+>>>>>>> Stashed changes
     );
   }
 
@@ -165,5 +198,62 @@ class ActivityService {
     if (response.statusCode != 200) {
       throw Exception('Failed to delete activity');
     }
+  }
+
+  Future<List<Waypoint>> getWaypoints(int activityId) async {
+    final response = await _apiService.get('/activities/$activityId/waypoints');
+
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      final List<dynamic> list = decoded is List
+          ? decoded
+          : (decoded is Map && decoded['data'] is List
+                ? decoded['data'] as List
+                : []);
+      return list
+          .map((json) => Waypoint.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } else if (response.statusCode == 404) {
+      return [];
+    } else {
+      throw Exception('Failed to load waypoints');
+    }
+  }
+
+  Future<Activity> importFit(
+    List<int> bytes, {
+    String filename = 'activity.fit',
+  }) async {
+    if (bytes.isEmpty) {
+      throw Exception('FIT file cannot be empty');
+    }
+
+    final response = await _apiService.uploadFile(
+      '/activities/import-fit',
+      bytes: bytes,
+      filename: filename,
+      field: 'file',
+    );
+
+    if (response.statusCode == 201) {
+      final data = json.decode(response.body);
+      return Activity.fromJson(data as Map<String, dynamic>);
+    } else {
+      throw Exception('Failed to import FIT activity: ${response.statusCode}');
+    }
+  }
+
+  Future<List<List<Waypoint>>> getDisciplineTracks(String sport) async {
+    final normalizedSport = sport.toLowerCase().trim();
+    if (normalizedSport == 'other') {
+      return [];
+    }
+
+    final activities = await getActivities(type: normalizedSport, limit: 50);
+    final tracks = await Future.wait(
+      activities.map((activity) => getWaypoints(activity.id)),
+    );
+
+    return tracks.where((track) => track.length >= 2).toList();
   }
 }

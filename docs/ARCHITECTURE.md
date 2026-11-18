@@ -69,7 +69,7 @@ mobile-app-v2/                      repository root: docs and agent instructions
       main.dart                     entry point, theme, initial route
       config/routes.dart            AppRoutes
       constants/colors.dart         AppColors
-      models/                       activity, event, health, news_item, user, user_preferences
+      models/                       activity, event, health, news_item, user, user_preferences, waypoint
       services/                     api, auth, user, activity, event, news, mock_data
       widgets/                      shared components (catalog in DESIGN.md)
       screens/
@@ -111,6 +111,8 @@ Every screen is registered in `AppRoutes`:
 | `editProfile` | `/profile/edit` | `ProfileEditScreen` |
 | `settings` | `/profile/settings` | `ProfileSettingsScreen` |
 | `eventDetails` | `/events/details` | `EventDetailsScreen` |
+| `activityDetails` | `/activities/details` | `ActivityDetailsScreen` |
+| `heatmaps` | `/heatmaps` | `HeatmapScreen` |
 
 To add a screen: add a constant, add a `case` in `generateRoute`, navigate with `Navigator.pushNamed(context, AppRoutes.<name>)`. Pass arguments through `RouteSettings.arguments`, not by constructing `MaterialPageRoute` inline in a screen. This table must be updated in the same PR.
 

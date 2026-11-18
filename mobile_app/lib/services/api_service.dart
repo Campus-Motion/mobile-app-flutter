@@ -210,4 +210,68 @@ class ApiService {
       rethrow;
     }
   }
+
+  Future<http.Response> uploadFile(
+    String path, {
+    required List<int> bytes,
+    required String filename,
+    String field = 'file',
+    Map<String, String>? fields,
+  }) async {
+    if (mockMode) {
+      return MockDataService().handleUpload(
+        path,
+        bytes: bytes,
+        filename: filename,
+        field: field,
+        fields: fields,
+      );
+    }
+    try {
+      final uri = Uri.parse(_buildUrl(path));
+      final request = http.MultipartRequest('POST', uri);
+      if (_token != null) {
+        request.headers['Authorization'] = 'Bearer $_token';
+      }
+      if (fields != null) {
+        request.fields.addAll(fields);
+      }
+      final multipartFile = http.MultipartFile.fromBytes(
+        field,
+        bytes,
+        filename: filename,
+      );
+      request.files.add(multipartFile);
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      if (response.statusCode >= 500 && kDebugMode) {
+        debugPrint(
+          '[ApiService] Server returned ${response.statusCode} on upload $path. Falling back to developer mock data.',
+        );
+        return await MockDataService().handleUpload(
+          path,
+          bytes: bytes,
+          filename: filename,
+          field: field,
+          fields: fields,
+        );
+      }
+      return response;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          '[ApiService] Upload failed on $path ($e). Falling back to developer mock data.',
+        );
+        return await MockDataService().handleUpload(
+          path,
+          bytes: bytes,
+          filename: filename,
+          field: field,
+          fields: fields,
+        );
+      }
+      rethrow;
+    }
+  }
 }

@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+<<<<<<< Updated upstream
 import 'package:mobile_app/screens/app/heatmap/index.dart';
+=======
+import 'package:mobile_app/models/activity.dart';
+import 'package:mobile_app/screens/app/activity/details.dart';
+>>>>>>> Stashed changes
 import 'package:mobile_app/screens/app/activity/index.dart';
 import 'package:mobile_app/screens/app/events/details.dart';
+import 'package:mobile_app/screens/app/heatmap/index.dart';
 import 'package:mobile_app/screens/app/home/index.dart';
 import 'package:mobile_app/screens/app/profile/edit.dart';
 import 'package:mobile_app/screens/app/profile/index.dart';
@@ -26,6 +32,8 @@ class AppRoutes {
   static const String editProfile = '/profile/edit';
   static const String settings = '/profile/settings';
   static const String eventDetails = '/events/details';
+  static const String activityDetails = '/activities/details';
+  static const String heatmaps = '/heatmaps';
 
   static String tabRoute(int index) {
     switch (index) {
@@ -70,6 +78,24 @@ class AppRoutes {
             : null;
         return MaterialPageRoute(
           builder: (_) => EventDetailsScreen(eventId: eventId),
+          settings: routeSettings,
+        );
+      case activityDetails:
+        final args = routeSettings.arguments;
+        final activityId = args is int
+            ? args
+            : (args is Activity ? args.id : null);
+        final initialActivity = args is Activity ? args : null;
+        return MaterialPageRoute(
+          builder: (_) => ActivityDetailsScreen(
+            activityId: activityId,
+            initialActivity: initialActivity,
+          ),
+          settings: routeSettings,
+        );
+      case heatmaps:
+        return MaterialPageRoute(
+          builder: (_) => const HeatmapScreen(),
           settings: routeSettings,
         );
       default:

@@ -1,22 +1,33 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/constants/colors.dart';
 import 'package:mobile_app/models/event.dart';
 import 'package:mobile_app/models/user.dart';
+import 'package:mobile_app/models/waypoint.dart';
 import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/event_service.dart';
 import 'package:mobile_app/services/user_service.dart';
 import 'package:mobile_app/widgets/app_button.dart';
 import 'package:mobile_app/widgets/app_card.dart';
 import 'package:mobile_app/widgets/master_container.dart';
+import 'package:mobile_app/widgets/route_map.dart';
 import 'package:mobile_app/widgets/section_header.dart';
 import 'package:mobile_app/widgets/stat_item.dart';
 import 'package:mobile_app/widgets/user_list_tile.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   final int? eventId;
+  final TileProvider? tileProvider;
+  final Future<XFile?> Function()? pickFitFile;
 
-  const EventDetailsScreen({super.key, required this.eventId});
+  const EventDetailsScreen({
+    super.key,
+    required this.eventId,
+    this.tileProvider,
+    this.pickFitFile,
+  });
 
   @override
   State<EventDetailsScreen> createState() => _EventDetailsScreenState();
@@ -29,11 +40,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   Event? _event;
   List<User> _participants = [];
+  List<Waypoint> _eventWaypoints = [];
   User? _currentUser;
   int _participantCount = 0;
   bool _isJoined = false;
   bool _isLoading = true;
   bool _isActionLoading = false;
+  bool _isImportingTrack = false;
   bool _hasError = false;
   String? _errorMessage;
 
@@ -60,8 +73,15 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     });
 
     try {
-      final event = await _eventService.getEvent(widget.eventId!);
-      final participants = await _eventService.getParticipants(widget.eventId!);
+      final futures = await Future.wait([
+        _eventService.getEvent(widget.eventId!),
+        _eventService.getParticipants(widget.eventId!),
+        _eventService.getEventWaypoints(widget.eventId!),
+      ]);
+
+      final event = futures[0] as Event;
+      final participants = futures[1] as List<User>;
+      final waypoints = futures[2] as List<Waypoint>;
 
       User? currentUser = _authService.currentUser;
       if (currentUser == null) {
@@ -85,6 +105,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       setState(() {
         _event = event;
         _participants = List<User>.from(participants);
+        _eventWaypoints = waypoints;
         _currentUser = currentUser;
         _participantCount = event.participantCount > participants.length
             ? event.participantCount
@@ -100,6 +121,45 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         _hasError = true;
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
       });
+    }
+  }
+
+  Future<void> _importEventTrack() async {
+    if (_event == null) return;
+
+    try {
+      final picker = widget.pickFitFile ?? _eventService.pickFitFile;
+      final file = await picker();
+      if (file == null) {
+        return;
+      }
+
+      setState(() => _isImportingTrack = true);
+
+      final waypoints = await _eventService.importEventFitFile(
+        _event!.id,
+        file,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _eventWaypoints = waypoints;
+        _isImportingTrack = false;
+      });
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tracé GPS ajouté et distribué aux participants !'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isImportingTrack = false);
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur import tracé: $e')));
     }
   }
 
@@ -282,6 +342,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
     final event = _event!;
     final durationMinutes = event.endTime.difference(event.startTime).inMinutes;
+    final isPastEvent = DateTime.now().isAfter(event.endTime);
+    final isOrganizer =
+        _currentUser != null &&
+        (event.userId == null ||
+            event.userId == _currentUser!.id ||
+            _currentUser!.role == 'admin' ||
+            _currentUser!.role == 'moderator');
 
     return MasterContainer(
       onRefresh: _loadEventDetails,
@@ -379,16 +446,42 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           ),
         ),
 
-        // Action Button
-        AppButton(
-          text: _isJoined ? 'Leave Event' : 'Join Event',
-          variant: _isJoined
-              ? AppButtonVariant.outline
-              : AppButtonVariant.primary,
-          isLoading: _isActionLoading,
-          onPressed: _toggleJoinLeave,
-        ),
-        const SizedBox(height: 28),
+        // Action Buttons: If past event and organizer without track, allow importing track.
+        // Otherwise, if upcoming, allow joining/leaving.
+        if (isPastEvent) ...[
+          if (isOrganizer && _eventWaypoints.isEmpty) ...[
+            AppButton(
+              text: 'Ajouter le tracé GPS (.fit)',
+              isLoading: _isImportingTrack,
+              onPressed: _importEventTrack,
+            ),
+            const SizedBox(height: 20),
+          ],
+        ] else ...[
+          AppButton(
+            text: _isJoined ? 'Leave Event' : 'Join Event',
+            variant: _isJoined
+                ? AppButtonVariant.outline
+                : AppButtonVariant.primary,
+            isLoading: _isActionLoading,
+            onPressed: _toggleJoinLeave,
+          ),
+          const SizedBox(height: 28),
+        ],
+
+        // GPS Route Map (conditioned to presence of GPS points)
+        if (_eventWaypoints.isNotEmpty) ...[
+          const SectionHeader(
+            title: 'Tracé GPS',
+            padding: EdgeInsets.only(bottom: 12),
+          ),
+          RouteMap(
+            waypoints: _eventWaypoints,
+            height: 260,
+            tileProvider: widget.tileProvider,
+          ),
+          const SizedBox(height: 24),
+        ],
 
         // Description Section
         const SectionHeader(title: 'About the Event'),

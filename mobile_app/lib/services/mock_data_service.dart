@@ -140,6 +140,7 @@ class MockDataService {
       'id': 104,
       'title': 'Past Campus Welcome Run',
       'body': 'Completed 5km campus welcome run.',
+      'user_id': 1,
       'start_time': DateTime.now()
           .subtract(const Duration(days: 2))
           .toIso8601String(),
@@ -193,7 +194,103 @@ class MockDataService {
           .subtract(const Duration(days: 5))
           .toIso8601String(),
     },
+    {
+      'id': 204,
+      'title': 'Lakeside Walk',
+      'type': 'walk',
+      'user_id': 1,
+      'is_public': true,
+      'duration': 30.0,
+      'distance_km': 2.5,
+      'body': 'Gentle stroll along Lake Geneva.',
+      'created_at': DateTime.now()
+          .subtract(const Duration(days: 2))
+          .toIso8601String(),
+    },
+    {
+      'id': 205,
+      'title': 'Campus Hill Hike',
+      'type': 'hike',
+      'user_id': 1,
+      'is_public': true,
+      'duration': 75.0,
+      'distance_km': 6.8,
+      'body': 'Scenic hike towards Mount Dorigny view.',
+      'created_at': DateTime.now()
+          .subtract(const Duration(days: 4))
+          .toIso8601String(),
+    },
   ];
+
+  // Mock Waypoints for activities
+  final List<Map<String, dynamic>> _defaultMockWaypoints = [
+    {
+      'id': 1,
+      'sequence_order': 0,
+      'latitude': 46.5190,
+      'longitude': 6.5660,
+      'altitude_m': 395.0,
+      'recorded_at': '2026-11-16T08:00:00Z',
+    },
+    {
+      'id': 2,
+      'sequence_order': 1,
+      'latitude': 46.5205,
+      'longitude': 6.5680,
+      'altitude_m': 393.5,
+      'recorded_at': '2026-11-16T08:05:00Z',
+    },
+    {
+      'id': 3,
+      'sequence_order': 2,
+      'latitude': 46.5218,
+      'longitude': 6.5725,
+      'altitude_m': 388.0,
+      'recorded_at': '2026-11-16T08:12:00Z',
+    },
+    {
+      'id': 4,
+      'sequence_order': 3,
+      'latitude': 46.5195,
+      'longitude': 6.5760,
+      'altitude_m': 385.0,
+      'recorded_at': '2026-11-16T08:18:00Z',
+    },
+    {
+      'id': 5,
+      'sequence_order': 4,
+      'latitude': 46.5170,
+      'longitude': 6.5720,
+      'altitude_m': 390.0,
+      'recorded_at': '2026-11-16T08:25:00Z',
+    },
+    {
+      'id': 6,
+      'sequence_order': 5,
+      'latitude': 46.5160,
+      'longitude': 6.5665,
+      'altitude_m': 398.0,
+      'recorded_at': '2026-11-16T08:31:00Z',
+    },
+    {
+      'id': 7,
+      'sequence_order': 6,
+      'latitude': 46.5190,
+      'longitude': 6.5660,
+      'altitude_m': 395.0,
+      'recorded_at': '2026-11-16T08:34:30Z',
+    },
+  ];
+
+  late final Map<int, List<Map<String, dynamic>>> _mockWaypoints = {
+    201: _defaultMockWaypoints,
+    202: _defaultMockWaypoints,
+    203: [],
+    204: _defaultMockWaypoints,
+    205: _defaultMockWaypoints,
+  };
+
+  final Map<int, List<Map<String, dynamic>>> _mockEventWaypoints = {};
 
   // Mock Followers & Following
   final List<Map<String, dynamic>> _mockFollowers = [
@@ -456,6 +553,24 @@ class MockDataService {
       return http.Response(json.encode(activity), 200, headers: _jsonHeaders);
     }
 
+    final waypointsMatch = RegExp(
+      r'^/activities/(\d+)/waypoints$',
+    ).firstMatch(cleanPath);
+    if (waypointsMatch != null) {
+      final activityId = int.parse(waypointsMatch.group(1)!);
+      final waypoints = _mockWaypoints[activityId] ?? _defaultMockWaypoints;
+      return http.Response(json.encode(waypoints), 200, headers: _jsonHeaders);
+    }
+
+    final eventWaypointsMatch = RegExp(
+      r'^/events/(\d+)/waypoints$',
+    ).firstMatch(cleanPath);
+    if (eventWaypointsMatch != null) {
+      final eventId = int.parse(eventWaypointsMatch.group(1)!);
+      final waypoints = _mockEventWaypoints[eventId] ?? [];
+      return http.Response(json.encode(waypoints), 200, headers: _jsonHeaders);
+    }
+
     final followersMatch = RegExp(
       r'^/users/(\d+)/followers$',
     ).firstMatch(cleanPath);
@@ -570,6 +685,30 @@ class MockDataService {
       _mockActivities.insert(0, newActivity);
       return http.Response(
         json.encode(newActivity),
+        201,
+        headers: _jsonHeaders,
+      );
+    }
+
+    final postWaypointsMatch = RegExp(
+      r'^/activities/(\d+)/waypoints$',
+    ).firstMatch(cleanPath);
+    if (postWaypointsMatch != null) {
+      final activityId = int.parse(postWaypointsMatch.group(1)!);
+      Map<String, dynamic> data = {};
+      if (body is Map<String, dynamic>) {
+        data = body;
+      } else if (body is String) {
+        data = json.decode(body);
+      }
+      final wpList = data['waypoints'] is List
+          ? (data['waypoints'] as List)
+                .map((w) => Map<String, dynamic>.from(w as Map))
+                .toList()
+          : <Map<String, dynamic>>[];
+      _mockWaypoints[activityId] = wpList;
+      return http.Response(
+        json.encode({'inserted': wpList.length, 'waypoints': wpList}),
         201,
         headers: _jsonHeaders,
       );
@@ -795,5 +934,118 @@ class MockDataService {
       200,
       headers: _jsonHeaders,
     );
+  }
+
+  Future<http.Response> handleUpload(
+    String path, {
+    required List<int> bytes,
+    required String filename,
+    String field = 'file',
+    Map<String, String>? fields,
+  }) async {
+    final cleanPath = path.split('?').first;
+
+    if (cleanPath == '/users/me/photo') {
+      return http.Response(
+        json.encode({
+          'photo_url':
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
+        }),
+        200,
+        headers: _jsonHeaders,
+      );
+    }
+
+    if (cleanPath == '/activities/import-fit') {
+      final newActivityId =
+          (_mockActivities
+              .map((a) => a['id'] as int)
+              .fold(200, (max, id) => id > max ? id : max)) +
+          1;
+      final newActivity = {
+        'id': newActivityId,
+        'title': 'Imported FIT activity',
+        'type': 'other',
+        'user_id': 1,
+        'is_public': false,
+        'duration': 45.0,
+        'distance_km': 5.2,
+        'created_at': DateTime.now().toUtc().toIso8601String(),
+      };
+      _mockActivities.insert(0, newActivity);
+      _mockWaypoints[newActivityId] = List<Map<String, dynamic>>.from(
+        _defaultMockWaypoints,
+      );
+      return http.Response(
+        json.encode(newActivity),
+        201,
+        headers: _jsonHeaders,
+      );
+    }
+
+    final eventImportMatch = RegExp(
+      r'^/events/(\d+)/import-fit$',
+    ).firstMatch(cleanPath);
+    if (eventImportMatch != null) {
+      final eventId = int.parse(eventImportMatch.group(1)!);
+      _mockEventWaypoints[eventId] = List<Map<String, dynamic>>.from(
+        _defaultMockWaypoints,
+      );
+
+      final event = _mockEvents.firstWhere(
+        (e) => e['id'] == eventId,
+        orElse: () => {},
+      );
+
+      final participants = _mockEventParticipants[eventId] ?? [_mockUser];
+      for (final p in participants) {
+        final pId = p['id'] as int;
+        final newActId =
+            (_mockActivities
+                .map((a) => a['id'] as int)
+                .fold(200, (max, id) => id > max ? id : max)) +
+            1;
+        final newAct = {
+          'id': newActId,
+          'title': event['title'] ?? 'Event Outing',
+          'type': 'run',
+          'user_id': pId,
+          'is_public': true,
+          'duration': 45.0,
+          'distance_km':
+              ((event['distance_m'] as num?)?.toDouble() ?? 5000.0) / 1000.0,
+          'created_at':
+              event['start_time'] ?? DateTime.now().toUtc().toIso8601String(),
+        };
+        _mockActivities.insert(0, newAct);
+        _mockWaypoints[newActId] = List<Map<String, dynamic>>.from(
+          _defaultMockWaypoints,
+        );
+      }
+
+      return http.Response(
+        json.encode({
+          'inserted': _defaultMockWaypoints.length,
+          'waypoints': _defaultMockWaypoints,
+          'distributed_participants': participants.length,
+        }),
+        201,
+        headers: _jsonHeaders,
+      );
+    }
+
+    return http.Response(
+      json.encode({'message': 'Uploaded successfully'}),
+      200,
+      headers: _jsonHeaders,
+    );
+  }
+
+  void clearEventWaypoints([int? eventId]) {
+    if (eventId != null) {
+      _mockEventWaypoints.remove(eventId);
+    } else {
+      _mockEventWaypoints.clear();
+    }
   }
 }
