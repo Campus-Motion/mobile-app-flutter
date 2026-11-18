@@ -2,4 +2,7 @@
 class FitImportException implements Exception {
   const FitImportException(this.message);
   final String message;
+
+  @override
+  String toString() => message;
 }

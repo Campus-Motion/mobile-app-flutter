@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-<<<<<<< Updated upstream
-import 'package:mobile_app/widgets/app_button.dart';
-=======
 import 'package:file_selector/file_selector.dart';
->>>>>>> Stashed changes
+import 'package:mobile_app/widgets/activity_card.dart';
+import 'package:mobile_app/widgets/app_button.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/widgets/master_container.dart';

@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
-<<<<<<< Updated upstream
-import 'package:mobile_app/screens/app/heatmap/index.dart';
-=======
 import 'package:mobile_app/models/activity.dart';
 import 'package:mobile_app/screens/app/activity/details.dart';
->>>>>>> Stashed changes
 import 'package:mobile_app/screens/app/activity/index.dart';
 import 'package:mobile_app/screens/app/events/details.dart';
 import 'package:mobile_app/screens/app/heatmap/index.dart';

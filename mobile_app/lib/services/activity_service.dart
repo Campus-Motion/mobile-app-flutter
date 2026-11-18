@@ -4,12 +4,9 @@ import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'api_service.dart';
 import '../models/activity.dart';
-<<<<<<< Updated upstream
 import '../models/fit_import_exception.dart';
 import '../models/heatmap.dart';
-=======
 import '../models/waypoint.dart';
->>>>>>> Stashed changes
 
 class ActivityService {
   static final ActivityService _instance = ActivityService._internal();
@@ -18,46 +15,48 @@ class ActivityService {
 
   final ApiService _apiService = ApiService();
 
-<<<<<<< Updated upstream
-  static const maxFitBytes = 10 * 1024 * 1024;
-=======
   static const int maxFitBytes = 10 * 1024 * 1024;
->>>>>>> Stashed changes
+
+  bool get canImportFit => !ApiService.mockMode;
 
   Future<XFile?> pickFitFile() => openFile(
     acceptedTypeGroups: [
       XTypeGroup(
         label: 'FIT activities',
-<<<<<<< Updated upstream
-        extensions: const ['fit'],
-=======
         extensions: const ['fit', 'FIT'],
->>>>>>> Stashed changes
         uniformTypeIdentifiers:
             !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS
             ? const ['public.data']
             : null,
       ),
     ],
-<<<<<<< Updated upstream
-    confirmButtonText: 'Choose FIT file',
+    confirmButtonText: 'Choisir un fichier .fit',
   );
 
   Future<Activity> importFitFile(XFile file) async {
-    if (!file.name.toLowerCase().endsWith('.fit')) {
-      throw const FitImportException('Please choose a .fit file.');
+    final filename = file.name.isNotEmpty
+        ? file.name
+        : file.path.split(RegExp(r'[/\\]')).last;
+    if (!filename.toLowerCase().endsWith('.fit')) {
+      throw const FitImportException('Veuillez sélectionner un fichier .fit.');
     }
-    if (await file.length() > maxFitBytes) {
+    final length = await file.length();
+    if (length > maxFitBytes) {
       throw const FitImportException(
-        'The FIT file must be no larger than 10 MiB.',
+        'Le fichier .fit ne doit pas dépasser 10 Mo.',
       );
     }
-    return importFit(await file.readAsBytes());
+    final bytes = await file.readAsBytes();
+    return importFit(
+      bytes,
+      filename: filename.isNotEmpty ? filename : 'activity.fit',
+    );
   }
 
-  bool get canImportFit => !ApiService.mockMode;
-
-  Future<Activity> importFit(List<int> bytes) async {
+  Future<Activity> importFit(
+    List<int> bytes, {
+    String filename = 'activity.fit',
+  }) async {
     if (bytes.isEmpty) {
       throw const FitImportException('Choose a nonempty FIT file.');
     }
@@ -66,24 +65,26 @@ class ActivityService {
         'The FIT file must be no larger than 10 MiB.',
       );
     }
+
     final response = await _apiService.uploadFile(
       '/activities/import-fit',
       bytes: bytes,
-      filename: 'activity.fit',
+      filename: filename,
       field: 'file',
     );
+
     if (response.statusCode == 201) {
-      return Activity.fromJson(
-        json.decode(response.body) as Map<String, dynamic>,
-      );
+      final data = json.decode(response.body);
+      return Activity.fromJson(data as Map<String, dynamic>);
+    } else {
+      throw FitImportException(switch (response.statusCode) {
+        413 => 'This FIT activity exceeds the import limits.',
+        400 || 422 =>
+          'The file is invalid or has fewer than two supported GPS points.',
+        401 => 'Please sign in again before importing.',
+        _ => 'Failed to import FIT activity: ${response.statusCode}',
+      });
     }
-    throw FitImportException(switch (response.statusCode) {
-      413 => 'This FIT activity exceeds the import limits.',
-      400 ||
-      422 => 'The file is invalid or has fewer than two supported GPS points.',
-      401 => 'Please sign in again before importing.',
-      _ => 'FIT import is unavailable. Please try again later.',
-    });
   }
 
   Future<List<Map<String, dynamic>>> exportActivities() async {
@@ -104,26 +105,6 @@ class ActivityService {
     }
     return HeatmapData.fromJson(
       json.decode(response.body) as Map<String, dynamic>,
-=======
-    confirmButtonText: 'Choisir un fichier .fit',
-  );
-
-  Future<Activity> importFitFile(XFile file) async {
-    final filename = file.name.isNotEmpty
-        ? file.name
-        : file.path.split(RegExp(r'[/\\]')).last;
-    if (!filename.toLowerCase().endsWith('.fit')) {
-      throw Exception('Veuillez sélectionner un fichier .fit.');
-    }
-    final length = await file.length();
-    if (length > maxFitBytes) {
-      throw Exception('Le fichier .fit ne doit pas dépasser 10 Mo.');
-    }
-    final bytes = await file.readAsBytes();
-    return importFit(
-      bytes,
-      filename: filename.isNotEmpty ? filename : 'activity.fit',
->>>>>>> Stashed changes
     );
   }
 
@@ -217,29 +198,6 @@ class ActivityService {
       return [];
     } else {
       throw Exception('Failed to load waypoints');
-    }
-  }
-
-  Future<Activity> importFit(
-    List<int> bytes, {
-    String filename = 'activity.fit',
-  }) async {
-    if (bytes.isEmpty) {
-      throw Exception('FIT file cannot be empty');
-    }
-
-    final response = await _apiService.uploadFile(
-      '/activities/import-fit',
-      bytes: bytes,
-      filename: filename,
-      field: 'file',
-    );
-
-    if (response.statusCode == 201) {
-      final data = json.decode(response.body);
-      return Activity.fromJson(data as Map<String, dynamic>);
-    } else {
-      throw Exception('Failed to import FIT activity: ${response.statusCode}');
     }
   }
 

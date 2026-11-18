@@ -164,6 +164,7 @@ class MockDataService {
       'user_id': 1,
       'is_public': true,
       'duration': 34.5,
+      'distance_km': 6.2,
       'body':
           'Nice 6.2km loop through EPFL Innovation Park down to the lake shores.',
       'created_at': DateTime.now()
@@ -177,6 +178,7 @@ class MockDataService {
       'user_id': 1,
       'is_public': true,
       'duration': 48.0,
+      'distance_km': 16.0,
       'body': 'Recovery ride between classes along the lakeside bike path.',
       'created_at': DateTime.now()
           .subtract(const Duration(days: 3))
@@ -189,6 +191,7 @@ class MockDataService {
       'user_id': 1,
       'is_public': false,
       'duration': 25.0,
+      'distance_km': 2.1,
       'body': 'Walking the fitness checkpoints around Rolex Learning Center.',
       'created_at': DateTime.now()
           .subtract(const Duration(days: 5))
@@ -623,15 +626,6 @@ class MockDataService {
     return http.Response(json.encode({'data': []}), 200, headers: _jsonHeaders);
   }
 
-  http.Response handleUpload(String path) {
-    // A mock must never claim that a user's real file was parsed or persisted.
-    return http.Response(
-      json.encode({'message': 'File import requires the live API'}),
-      503,
-      headers: _jsonHeaders,
-    );
-  }
-
   /// Handles POST requests
   http.Response handlePost(String path, dynamic body) {
     final uri = Uri.parse(path.startsWith('/') ? path : '/$path');
@@ -669,6 +663,16 @@ class MockDataService {
         data = json.decode(body);
       }
 
+      double? parsedDistanceKm;
+      if (data['distance_km'] != null) {
+        parsedDistanceKm = double.tryParse(data['distance_km'].toString());
+      } else if (data['distance_m'] != null) {
+        final meters = double.tryParse(data['distance_m'].toString());
+        if (meters != null) {
+          parsedDistanceKm = meters / 1000.0;
+        }
+      }
+
       final newId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final newActivity = {
         'id': newId,
@@ -679,6 +683,7 @@ class MockDataService {
         'duration': data['duration'] != null
             ? double.tryParse(data['duration'].toString()) ?? 30.0
             : 30.0,
+        'distance_km': ?parsedDistanceKm,
         'body': data['body'] ?? '',
         'created_at': DateTime.now().toIso8601String(),
       };

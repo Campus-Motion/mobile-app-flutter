@@ -7,6 +7,7 @@ class Activity {
   final DateTime createdAt;
   final double?
   duration; // In minutes, hours, or seconds depending on frontend representation
+  final double? distanceKm;
   final String? body;
 
   Activity({
@@ -17,8 +18,20 @@ class Activity {
     required this.isPublic,
     required this.createdAt,
     this.duration,
+    this.distanceKm,
     this.body,
   });
+
+  static double? _parseDistanceKm(Map<String, dynamic> json) {
+    final km = json['distance_km'] != null
+        ? double.tryParse(json['distance_km'].toString())
+        : null;
+    if (km != null) return km;
+    final meters = json['distance_m'] != null
+        ? double.tryParse(json['distance_m'].toString())
+        : null;
+    return meters != null ? meters / 1000.0 : null;
+  }
 
   factory Activity.fromJson(Map<String, dynamic> json) {
     return Activity(
@@ -34,6 +47,7 @@ class Activity {
       duration: json['duration'] != null
           ? double.tryParse(json['duration'].toString())
           : null,
+      distanceKm: _parseDistanceKm(json),
       body: json['body'] as String?,
     );
   }
@@ -43,6 +57,8 @@ class Activity {
       'title': title,
       'type': type,
       if (body != null) 'body': body,
+      if (duration != null) 'duration': duration,
+      if (distanceKm != null) 'distance_km': distanceKm,
       'is_public': isPublic,
     };
   }

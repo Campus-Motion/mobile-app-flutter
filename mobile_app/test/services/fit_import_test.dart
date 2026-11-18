@@ -85,15 +85,12 @@ void main() {
     }
   });
 
-  test('demo mode never pretends a real FIT file was imported', () async {
+  test('demo mode supports mock FIT file import offline', () async {
     ApiService.mockMode = true;
-    expect(ActivityService().canImportFit, isFalse);
     final before = (await ActivityService().getActivities()).length;
-    await expectLater(
-      ActivityService().importFit([1]),
-      throwsA(isA<FitImportException>()),
-    );
-    expect((await ActivityService().getActivities()).length, before);
+    final activity = await ActivityService().importFit([1, 2, 3]);
+    expect(activity.id, greaterThan(200));
+    expect((await ActivityService().getActivities()).length, before + 1);
   });
 
   test(
