@@ -54,21 +54,17 @@ void main() {
     );
   }
 
-  group('ActivityIndexScreen FIT import & heatmaps banner tests', () {
-    testWidgets('renders "Mes Heatmaps" banner and navigates on tap', (
+  group('ActivityIndexScreen FIT import & heatmaps tests', () {
+    testWidgets('renders "Mes Heatmap" button and navigates on tap', (
       tester,
     ) async {
       await tester.pumpWidget(buildTestApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('Mes Heatmaps'), findsOneWidget);
-      expect(
-        find.text('Visualisez vos sorties GPS par discipline'),
-        findsOneWidget,
-      );
+      expect(find.text('Mes Heatmap'), findsOneWidget);
 
-      // Tap banner
-      await tester.tap(find.text('Mes Heatmaps'));
+      // Tap button
+      await tester.tap(find.text('Mes Heatmap'));
       await tester.pumpAndSettle();
 
       expect(find.byType(HeatmapScreen), findsOneWidget);

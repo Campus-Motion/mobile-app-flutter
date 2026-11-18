@@ -227,6 +227,9 @@ Project skills live in `.claude/skills/` (Claude) and `.agents/skills/` (other a
 
 All commands run from `mobile_app/`.
 
+> [!IMPORTANT]
+> **Windows Sandbox Notice**: In sandboxed agent environments (such as Antigravity / agent runners), the Flutter SDK on Windows attempts to write a lockfile to its cache (`bin/cache/flutter.bat.lock`). Because the sandbox restricts external directory writes, `flutter.bat` enters an infinite busy-wait loop (`GOTO acquire_lock`). Run all `flutter` commands outside the sandbox (`BypassSandbox: true`) so they execute in seconds rather than hanging.
+
 | Goal | Command |
 |---|---|
 | Install dependencies | `flutter pub get` |

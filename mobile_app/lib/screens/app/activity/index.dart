@@ -695,85 +695,16 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
             ),
           ),
 
-          const SizedBox(height: 12),
-
-          // Mes Heatmaps Banner Button
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: InkWell(
-              onTap: () => Navigator.pushNamed(context, AppRoutes.heatmaps),
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.map,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Mes Heatmaps',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryDark,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Visualisez vos sorties GPS par discipline',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: AppColors.primary,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
           const SizedBox(height: 16),
 
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: AppButton(
-              text: 'My heatmap',
+              text: 'Mes Heatmap',
               icon: Icons.map_outlined,
               variant: AppButtonVariant.outline,
               onPressed: () async {
-                await Navigator.pushNamed(context, AppRoutes.heatmap);
+                await Navigator.pushNamed(context, AppRoutes.heatmaps);
                 if (!mounted) return;
                 _loadActivities();
               },
