@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/widgets/activity_card.dart';
+import 'package:mobile_app/widgets/app_button.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
 import 'package:mobile_app/constants/colors.dart';
@@ -53,6 +54,12 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
 
   Future<void> _loadAllData() async {
     await Future.wait([_loadActivities(), _loadEventsData()]);
+  }
+
+  Future<void> _openRecordActivity() async {
+    await Navigator.pushNamed(context, AppRoutes.recordActivity);
+    if (!mounted) return;
+    _loadActivities();
   }
 
   Future<void> _loadActivities() async {
@@ -571,6 +578,22 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
   // TAB 1: MY PERSONAL ACTIVITIES FEED
   // ==========================================
   Widget _buildActivitiesTab() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+          child: AppButton(
+            text: 'Start activity',
+            icon: Icons.play_arrow,
+            onPressed: _openRecordActivity,
+          ),
+        ),
+        Expanded(child: _buildActivitiesList()),
+      ],
+    );
+  }
+
+  Widget _buildActivitiesList() {
     if (_myActivities.isEmpty) {
       return Center(
         child: Padding(
