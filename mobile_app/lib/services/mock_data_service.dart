@@ -1016,6 +1016,34 @@ class MockDataService {
       return http.Response(json.encode(waypoints), 200, headers: _jsonHeaders);
     }
 
+    if (cleanPath == '/users/search') {
+      final query = (uri.queryParameters['q'] ?? '').trim().toLowerCase();
+      if (query.length < 2) {
+        return http.Response(
+          json.encode({'message': 'q must be at least 2 characters'}),
+          400,
+          headers: _jsonHeaders,
+        );
+      }
+      final matches = <int, Map<String, dynamic>>{};
+      for (final user in _mockFollowers.followedBy(_mockFollowing)) {
+        final username = (user['username'] as String).toLowerCase();
+        if (user['id'] != _mockUser['id'] && username.startsWith(query)) {
+          // Public fields only, like the real endpoint: no email.
+          matches[user['id'] as int] = Map.of(user)..remove('email');
+        }
+      }
+      final data = matches.values.take(20).toList();
+      return http.Response(
+        json.encode({
+          'data': data,
+          'meta': {'total': data.length, 'limit': 20},
+        }),
+        200,
+        headers: _jsonHeaders,
+      );
+    }
+
     final followersMatch = RegExp(
       r'^/users/(\d+)/followers$',
     ).firstMatch(cleanPath);
@@ -1189,13 +1217,19 @@ class MockDataService {
     if (followMatch != null) {
       final targetId = int.parse(followMatch.group(1)!);
       if (!_mockFollowing.any((u) => u['id'] == targetId)) {
-        _mockFollowing.add({
-          'id': targetId,
-          'username': 'Student_$targetId',
-          'email': 'student$targetId@epfl.ch',
-          'role': 'student',
-          'created_at': DateTime.now().toIso8601String(),
-        });
+        // Reuse a known mock user (for example one found by search).
+        _mockFollowing.add(
+          _mockFollowers.firstWhere(
+            (u) => u['id'] == targetId,
+            orElse: () => {
+              'id': targetId,
+              'username': 'Student_$targetId',
+              'email': 'student$targetId@epfl.ch',
+              'role': 'student',
+              'created_at': DateTime.now().toIso8601String(),
+            },
+          ),
+        );
       }
       return http.Response(
         json.encode({'message': 'Followed user'}),

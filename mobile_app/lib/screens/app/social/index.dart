@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:mobile_app/widgets/empty_state.dart';
+import 'package:mobile_app/widgets/error_state.dart';
+import 'package:mobile_app/widgets/loading_state.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
 import 'package:mobile_app/constants/colors.dart';
@@ -23,11 +27,14 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
   List<User> _following = [];
   bool _isLoading = true;
 
-  // Search User State
-  final TextEditingController _searchIdController = TextEditingController();
-  User? _searchedUser;
+  // Find people state
+  static const int _minSearchLength = 2;
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounce;
+  String _searchQuery = '';
+  List<User> _searchResults = [];
   bool _isSearching = false;
-  String? _searchError;
+  bool _searchFailed = false;
 
   @override
   void initState() {
@@ -67,42 +74,44 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
     }
   }
 
-  Future<void> _searchUser() async {
-    final idText = _searchIdController.text.trim();
-    if (idText.isEmpty) return;
-
-    final id = int.tryParse(idText);
-    if (id == null) {
+  /// Waits for a pause in typing so one request is sent, not one per key.
+  void _onSearchChanged(String text) {
+    _searchDebounce?.cancel();
+    final query = text.trim();
+    if (query.length < _minSearchLength) {
       setState(() {
-        _searchError = 'Please enter a valid numeric ID';
-        _searchedUser = null;
+        _searchQuery = query;
+        _searchResults = [];
+        _isSearching = false;
+        _searchFailed = false;
       });
       return;
     }
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 300),
+      () => _searchUsers(query),
+    );
+  }
 
-    if (id == _authService.currentUser?.id) {
-      setState(() {
-        _searchError = 'You cannot search or follow yourself';
-        _searchedUser = null;
-      });
-      return;
-    }
-
+  Future<void> _searchUsers(String query) async {
     setState(() {
+      _searchQuery = query;
       _isSearching = true;
-      _searchError = null;
-      _searchedUser = null;
+      _searchFailed = false;
     });
 
     try {
-      final user = await _userService.getUser(id);
+      final results = await _userService.searchUsers(query);
+      // Ignore a response that arrives after the user changed the query.
+      if (!mounted || query != _searchQuery) return;
       setState(() {
-        _searchedUser = user;
+        _searchResults = results;
         _isSearching = false;
       });
-    } catch (e) {
+    } catch (_) {
+      if (!mounted || query != _searchQuery) return;
       setState(() {
-        _searchError = 'User with ID $id not found';
+        _searchFailed = true;
         _isSearching = false;
       });
     }
@@ -136,10 +145,6 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
         ),
       );
       _loadSocialData(); // Refresh followers/following lists
-      // Refresh searched user to update follow state
-      if (_searchedUser != null && _searchedUser!.id == user.id) {
-        _searchUser();
-      }
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Dismiss loading dialog
@@ -151,7 +156,8 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
 
   @override
   void dispose() {
-    _searchIdController.dispose();
+    _searchDebounce?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -194,7 +200,7 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
             tabs: [
               Tab(text: 'Following'),
               Tab(text: 'Followers'),
-              Tab(text: 'Find User'),
+              Tab(text: 'Find people'),
             ],
           ),
 
@@ -249,194 +255,97 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
       itemCount: users.length,
       itemBuilder: (context, index) {
         final user = users[index];
-        final isFollowing = _following.any((u) => u.id == user.id);
-
-        return UserListTile(
-          user: user,
-          trailing: ElevatedButton(
-            onPressed: () => _toggleFollowUser(user, isFollowing),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isFollowing
-                  ? Colors.grey.shade200
-                  : AppColors.primary,
-              foregroundColor: isFollowing ? Colors.black87 : Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-            child: Text(
-              isFollowing ? 'Unfollow' : 'Follow',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-            ),
-          ),
-        );
+        return UserListTile(user: user, trailing: _buildFollowButton(user));
       },
     );
   }
 
-  Widget _buildSearchTab() {
-    final isFollowingSearched =
-        _searchedUser != null &&
-        _following.any((u) => u.id == _searchedUser!.id);
+  Widget _buildFollowButton(User user) {
+    final isFollowing = _following.any((u) => u.id == user.id);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+    return ElevatedButton(
+      onPressed: () => _toggleFollowUser(user, isFollowing),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isFollowing ? Colors.grey.shade200 : AppColors.primary,
+        foregroundColor: isFollowing ? Colors.black87 : Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
+      child: Text(
+        isFollowing ? 'Unfollow' : 'Follow',
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildSearchTab() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Find User by ID',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 15),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchIdController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'Enter User ID (e.g. 2)',
-                    filled: true,
-                    fillColor: Colors.grey.shade100,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: AppColors.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                  ),
+          TextField(
+            controller: _searchController,
+            onChanged: _onSearchChanged,
+            autocorrect: false,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'Search by username',
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: AppColors.surfaceLight,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 1.5,
                 ),
               ),
-              const SizedBox(width: 12),
-              SizedBox(
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _searchUser,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Search',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
               ),
-            ],
+            ),
           ),
-          if (_searchError != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              _searchError!,
-              style: const TextStyle(
-                color: Colors.red,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-          const SizedBox(height: 30),
-          if (_isSearching)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(30.0),
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
-            )
-          else if (_searchedUser != null) ...[
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade200),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    backgroundImage: _searchedUser!.photoUrl != null
-                        ? NetworkImage(_searchedUser!.fullPhotoUrl!)
-                        : const AssetImage('assets/images/splash-icon.png')
-                              as ImageProvider,
-                    radius: 40,
-                    backgroundColor: Colors.grey.shade200,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _searchedUser!.username,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Role: ${_searchedUser!.role.toUpperCase()}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Member since: ${DateFormat('yyyy-MM-dd').format(_searchedUser!.createdAt)}',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () => _toggleFollowUser(
-                        _searchedUser!,
-                        isFollowingSearched,
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isFollowingSearched
-                            ? Colors.grey.shade200
-                            : AppColors.primary,
-                        foregroundColor: isFollowingSearched
-                            ? Colors.black87
-                            : Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        isFollowingSearched ? 'Unfollow User' : 'Follow User',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          Expanded(child: _buildSearchResults()),
         ],
       ),
+    );
+  }
+
+  Widget _buildSearchResults() {
+    if (_searchQuery.length < _minSearchLength) {
+      return const EmptyState(
+        icon: Icons.person_search_outlined,
+        title: 'Find people',
+        subtitle: 'Type at least 2 letters of a username.',
+      );
+    }
+    if (_isSearching) return const LoadingState();
+    if (_searchFailed) {
+      return ErrorState(
+        message: 'Search is unavailable right now.',
+        onRetry: () => _searchUsers(_searchQuery),
+      );
+    }
+    if (_searchResults.isEmpty) {
+      return EmptyState(
+        icon: Icons.person_off_outlined,
+        title: 'No members match "$_searchQuery"',
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      itemCount: _searchResults.length,
+      itemBuilder: (context, index) {
+        final user = _searchResults[index];
+        return UserListTile(user: user, trailing: _buildFollowButton(user));
+      },
     );
   }
 }
