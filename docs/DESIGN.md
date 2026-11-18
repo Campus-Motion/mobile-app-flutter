@@ -66,6 +66,9 @@ Check this list before building anything. Reuse first, compose second, create a 
 | `LoadingState` | `loading_state.dart` | Centred brand-coloured spinner with optional fixed `height`. |
 | `ErrorState` | `error_state.dart` | Error icon, message and optional `onRetry` `AppButton`. |
 | `EmptyState` | `empty_state.dart` | Icon, title and optional subtitle when a section or list has no items. |
+| `SportTypeSelector` | `sport_type_selector.dart` | Horizontal selectable sport pills (`run`, `walk`, `cycle`, `hike`, `swim`, `climbing`, `other`) using `ActivityCard` icons and colours. |
+| `WorkoutMetricsPanel` | `workout_metrics_panel.dart` | Live workout telemetry card showing status badge (`Ready`, `Recording`, `Paused`), elapsed time, distance and average pace. |
+| `WorkoutControlBar` | `workout_control_bar.dart` | Workout recording controls (`Start activity`, `Pause`, `Resume`, `Finish`, `Discard`) built with `AppButton` variants. |
 
 ### Building from a Figma screenshot
 
