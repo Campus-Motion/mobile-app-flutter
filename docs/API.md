@@ -46,6 +46,7 @@ List endpoints accept optional pagination and filter parameters, for example `GE
 | GET | `/users/me/preferences` | Sport preferences. |
 | PUT | `/users/me/preferences` | Update preferences. |
 | GET | `/users/{id}` | Another user's public profile. |
+| GET | `/users/search?q=&limit=` | Members whose username starts with `q` (case-insensitive, at least 2 characters, at most 20 results, public fields only). |
 | GET | `/users/{id}/followers` | Followers list. |
 | GET | `/users/{id}/following` | Following list. |
 | POST | `/users/{id}/follow` | Follow a user. |

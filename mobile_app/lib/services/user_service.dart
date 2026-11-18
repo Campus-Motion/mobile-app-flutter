@@ -34,6 +34,20 @@ class UserService {
     }
   }
 
+  /// Members whose username starts with [query] (case-insensitive).
+  /// The backend requires at least 2 characters and returns at most 20.
+  Future<List<User>> searchUsers(String query) async {
+    final response = await _apiService.get(
+      '/users/search?q=${Uri.encodeQueryComponent(query)}',
+    );
+
+    if (response.statusCode == 200) {
+      return _parseUserList(response.body);
+    } else {
+      throw Exception('Failed to search users');
+    }
+  }
+
   Future<User> updateMe({String? username, String? email}) async {
     final body = <String, dynamic>{};
     if (username != null) body['username'] = username;
@@ -163,12 +177,7 @@ class UserService {
     final response = await _apiService.get('/users/$id/followers');
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      // Backend returns either directly list or standard envelope. Let's handle both.
-      final List<dynamic> list = (data is Map && data.containsKey('data'))
-          ? data['data'] as List
-          : (data as List? ?? []);
-      return list.map((json) => User.fromJson(json)).toList();
+      return _parseUserList(response.body);
     } else {
       throw Exception('Failed to load followers');
     }
@@ -178,14 +187,19 @@ class UserService {
     final response = await _apiService.get('/users/$id/following');
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final List<dynamic> list = (data is Map && data.containsKey('data'))
-          ? data['data'] as List
-          : (data as List? ?? []);
-      return list.map((json) => User.fromJson(json)).toList();
+      return _parseUserList(response.body);
     } else {
       throw Exception('Failed to load following');
     }
+  }
+
+  /// Backend returns either a plain list or the `{ data, meta }` envelope.
+  List<User> _parseUserList(String body) {
+    final data = json.decode(body);
+    final List<dynamic> list = (data is Map && data.containsKey('data'))
+        ? data['data'] as List
+        : (data as List? ?? []);
+    return list.map((json) => User.fromJson(json)).toList();
   }
 
   Future<void> followUser(int id) async {
