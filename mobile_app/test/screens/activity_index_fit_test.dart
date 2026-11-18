@@ -154,5 +154,52 @@ void main() {
         findsNothing,
       );
     });
+
+    testWidgets(
+      'importing FIT with running sport autocompletes run and saves without error',
+      (tester) async {
+        final runningFitBytes = Uint8List.fromList([
+          14, 0x10, 0x88, 0x08,
+          11, 0x00, 0x00, 0x00, // 11 data bytes
+          0x2E, 0x46, 0x49, 0x54, // .FIT
+          0x00, 0x00,
+          // Def msg for local 0 -> global 12 (sport)
+          0x40, 0x00, 0x00, 0x0C, 0x00, 0x01,
+          0x00, 0x01, 0x00,
+          // Data msg for local 0: sport = 1 (run)
+          0x00, 0x01,
+        ]);
+
+        await tester.pumpWidget(
+          buildTestApp(
+            pickFitFile: () async => XFile.fromData(
+              runningFitBytes,
+              name: 'run.fit',
+              path: 'run.fit',
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Importer un fichier .FIT'));
+        await tester.pumpAndSettle();
+
+        // No warning because sport is 'run'
+        expect(
+          find.textContaining('veuillez préciser votre sport'),
+          findsNothing,
+        );
+
+        // Save activity (tests handlePut and ensures no TypeError is thrown)
+        await tester.tap(find.text('Save Activity'));
+        await tester.pumpAndSettle();
+
+        // Confirms dialog is dismissed and success snackbar appears
+        expect(find.text('Activity logged successfully!'), findsOneWidget);
+      },
+    );
   });
 }

@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'fit_decoder.dart';
 
 /// In-memory mock data store providing realistic backend responses
 /// for developer demos and offline testing when the database is unavailable.
@@ -814,7 +816,7 @@ class MockDataService {
     }
 
     if (cleanPath == '/users/me/preferences') {
-      _mockPreferences.addAll(data);
+      data.forEach((k, v) => _mockPreferences[k] = v);
       return http.Response(
         json.encode(_mockPreferences),
         200,
@@ -824,7 +826,7 @@ class MockDataService {
 
     if (cleanPath == '/health') {
       if (_mockHealth != null) {
-        _mockHealth!.addAll(data);
+        data.forEach((k, v) => _mockHealth![k] = v);
       }
       return http.Response(
         json.encode(_mockHealth),
@@ -848,7 +850,9 @@ class MockDataService {
       final activityId = int.parse(singleActivityMatch.group(1)!);
       final idx = _mockActivities.indexWhere((a) => a['id'] == activityId);
       if (idx != -1) {
-        _mockActivities[idx].addAll(data);
+        final updated = Map<String, dynamic>.from(_mockActivities[idx]);
+        data.forEach((k, v) => updated[k] = v);
+        _mockActivities[idx] = updated;
         return http.Response(
           json.encode(_mockActivities[idx]),
           200,
@@ -962,25 +966,36 @@ class MockDataService {
     }
 
     if (cleanPath == '/activities/import-fit') {
+      final meta = FitDecoder.parseMetadata(Uint8List.fromList(bytes));
       final newActivityId =
           (_mockActivities
               .map((a) => a['id'] as int)
               .fold(200, (max, id) => id > max ? id : max)) +
           1;
-      final newActivity = {
+      final defaultTitle = switch (meta.sport) {
+        'run' => 'Course à pied',
+        'cycle' => 'Cyclisme',
+        'walk' => 'Marche',
+        'hike' => 'Randonnée',
+        'swim' => 'Natation',
+        _ => 'Imported FIT activity',
+      };
+      final newActivity = <String, dynamic>{
         'id': newActivityId,
-        'title': 'Imported FIT activity',
-        'type': 'other',
+        'title': defaultTitle,
+        'type': meta.sport,
         'user_id': 1,
         'is_public': false,
-        'duration': 45.0,
-        'distance_km': 5.2,
-        'created_at': DateTime.now().toUtc().toIso8601String(),
+        'duration': meta.durationMinutes ?? 45.0,
+        'distance_km': meta.distanceKm ?? 5.2,
+        'created_at':
+            meta.startTime?.toUtc().toIso8601String() ??
+            DateTime.now().toUtc().toIso8601String(),
       };
       _mockActivities.insert(0, newActivity);
-      _mockWaypoints[newActivityId] = List<Map<String, dynamic>>.from(
-        _defaultMockWaypoints,
-      );
+      _mockWaypoints[newActivityId] = meta.waypoints.length >= 2
+          ? List<Map<String, dynamic>>.from(meta.waypoints)
+          : List<Map<String, dynamic>>.from(_defaultMockWaypoints);
       return http.Response(
         json.encode(newActivity),
         201,
@@ -993,9 +1008,11 @@ class MockDataService {
     ).firstMatch(cleanPath);
     if (eventImportMatch != null) {
       final eventId = int.parse(eventImportMatch.group(1)!);
-      _mockEventWaypoints[eventId] = List<Map<String, dynamic>>.from(
-        _defaultMockWaypoints,
-      );
+      final meta = FitDecoder.parseMetadata(Uint8List.fromList(bytes));
+      final waypointsToUse = meta.waypoints.length >= 2
+          ? List<Map<String, dynamic>>.from(meta.waypoints)
+          : List<Map<String, dynamic>>.from(_defaultMockWaypoints);
+      _mockEventWaypoints[eventId] = waypointsToUse;
 
       final event = _mockEvents.firstWhere(
         (e) => e['id'] == eventId,
@@ -1010,28 +1027,29 @@ class MockDataService {
                 .map((a) => a['id'] as int)
                 .fold(200, (max, id) => id > max ? id : max)) +
             1;
-        final newAct = {
+        final newAct = <String, dynamic>{
           'id': newActId,
           'title': event['title'] ?? 'Event Outing',
-          'type': 'run',
+          'type': meta.sport != 'other' ? meta.sport : 'run',
           'user_id': pId,
           'is_public': true,
-          'duration': 45.0,
+          'duration': meta.durationMinutes ?? 45.0,
           'distance_km':
-              ((event['distance_m'] as num?)?.toDouble() ?? 5000.0) / 1000.0,
+              meta.distanceKm ??
+              (((event['distance_m'] as num?)?.toDouble() ?? 5000.0) / 1000.0),
           'created_at':
               event['start_time'] ?? DateTime.now().toUtc().toIso8601String(),
         };
         _mockActivities.insert(0, newAct);
         _mockWaypoints[newActId] = List<Map<String, dynamic>>.from(
-          _defaultMockWaypoints,
+          waypointsToUse,
         );
       }
 
       return http.Response(
         json.encode({
-          'inserted': _defaultMockWaypoints.length,
-          'waypoints': _defaultMockWaypoints,
+          'inserted': waypointsToUse.length,
+          'waypoints': waypointsToUse,
           'distributed_participants': participants.length,
         }),
         201,

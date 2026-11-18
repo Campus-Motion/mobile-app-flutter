@@ -7,6 +7,7 @@ import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
 import 'package:mobile_app/constants/colors.dart';
+import 'package:mobile_app/services/fit_decoder.dart';
 import 'package:mobile_app/services/event_service.dart';
 import 'package:mobile_app/services/activity_service.dart';
 import 'package:mobile_app/services/auth_service.dart';
@@ -342,6 +343,11 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                                       isImportingFit = true;
                                     });
 
+                                    final bytes = await file.readAsBytes();
+                                    final localMeta = FitDecoder.parseMetadata(
+                                      bytes,
+                                    );
+
                                     final activity = await _activityService
                                         .importFitFile(file);
 
@@ -350,14 +356,45 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                                     setModalState(() {
                                       isImportingFit = false;
                                       importedActivityId = activity.id;
-                                      titleController.text = activity.title;
-                                      durationController.text =
-                                          (activity.duration?.toInt() ?? 45)
-                                              .toString();
-                                      selectedType = activity.type;
-                                      if (selectedType == 'other') {
-                                        showSportWarning = true;
+
+                                      final resolvedType =
+                                          (activity.type.isNotEmpty &&
+                                              activity.type != 'other')
+                                          ? activity.type
+                                          : localMeta.sport;
+
+                                      selectedType = resolvedType;
+
+                                      if (activity.title.isNotEmpty &&
+                                          activity.title !=
+                                              'Imported FIT activity') {
+                                        titleController.text = activity.title;
+                                      } else {
+                                        final timeLabel =
+                                            switch (resolvedType) {
+                                              'run' => '$timeOfDay Run',
+                                              'cycle' => '$timeOfDay Ride',
+                                              'walk' => '$timeOfDay Walk',
+                                              'hike' => '$timeOfDay Hike',
+                                              'swim' => '$timeOfDay Swim',
+                                              _ => '$timeOfDay Workout',
+                                            };
+                                        titleController.text = timeLabel;
                                       }
+
+                                      final dur =
+                                          (activity.duration != null &&
+                                              activity.duration! > 0)
+                                          ? activity.duration
+                                          : localMeta.durationMinutes;
+                                      if (dur != null && dur > 0) {
+                                        durationController.text = dur
+                                            .round()
+                                            .toString();
+                                      }
+
+                                      showSportWarning =
+                                          (resolvedType == 'other');
                                     });
                                   } catch (e) {
                                     if (modalContext.mounted) {
@@ -544,15 +581,17 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
 
                               try {
                                 if (importedActivityId != null) {
-                                  await _activityService
-                                      .updateActivity(importedActivityId!, {
-                                        'title': titleController.text,
-                                        'type': selectedType,
-                                        'is_public': isPublic,
-                                        'duration': double.parse(
-                                          durationController.text,
-                                        ),
-                                      });
+                                  await _activityService.updateActivity(
+                                    importedActivityId!,
+                                    <String, dynamic>{
+                                      'title': titleController.text,
+                                      'type': selectedType,
+                                      'is_public': isPublic,
+                                      'duration': double.parse(
+                                        durationController.text,
+                                      ),
+                                    },
+                                  );
                                 } else {
                                   final activity = Activity(
                                     id: 0,
