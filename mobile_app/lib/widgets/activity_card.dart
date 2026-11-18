@@ -53,6 +53,23 @@ class ActivityCard extends StatelessWidget {
     }
   }
 
+  static String getDefaultActivityTitle(String type, {DateTime? now}) {
+    final hour = (now ?? DateTime.now()).hour;
+    final String timeOfDay;
+    if (hour < 12) {
+      timeOfDay = 'Morning';
+    } else if (hour < 17) {
+      timeOfDay = 'Afternoon';
+    } else {
+      timeOfDay = 'Evening';
+    }
+    final normalized = type.trim().toLowerCase();
+    final sportLabel = normalized.isEmpty
+        ? 'Workout'
+        : '${normalized[0].toUpperCase()}${normalized.substring(1)}';
+    return '$timeOfDay $sportLabel';
+  }
+
   static double getActivitySpeedKmh(String type) {
     switch (type.toLowerCase()) {
       case 'run':
