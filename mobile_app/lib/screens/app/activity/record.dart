@@ -3,11 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/constants/colors.dart';
 import 'package:mobile_app/models/activity.dart';
+import 'package:mobile_app/models/loop_route.dart';
 import 'package:mobile_app/services/activity_service.dart';
 import 'package:mobile_app/services/auth_service.dart';
+import 'package:mobile_app/services/loop_route_service.dart';
+import 'package:mobile_app/services/user_service.dart';
 import 'package:mobile_app/widgets/activity_card.dart';
 import 'package:mobile_app/widgets/app_button.dart';
 import 'package:mobile_app/widgets/app_card.dart';
+import 'package:mobile_app/widgets/loop_route_card.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/section_header.dart';
 import 'package:mobile_app/widgets/sport_type_selector.dart';
@@ -15,12 +19,20 @@ import 'package:mobile_app/widgets/stat_item.dart';
 import 'package:mobile_app/widgets/workout_control_bar.dart';
 import 'package:mobile_app/widgets/workout_metrics_panel.dart';
 
-/// Live workout recording screen with sport selection, periodic timer,
-/// pause/resume controls, post-workout summary, and exit confirmation while active.
+/// Live workout recording screen with sport selection, optional target-distance
+/// loop preview, periodic timer, pause/resume controls, post-workout summary,
+/// and exit confirmation while active.
 class ActivityRecordScreen extends StatefulWidget {
   final ActivityService? activityService;
+  final UserService? userService;
+  final LoopRouteService? loopRouteService;
 
-  const ActivityRecordScreen({super.key, this.activityService});
+  const ActivityRecordScreen({
+    super.key,
+    this.activityService,
+    this.userService,
+    this.loopRouteService,
+  });
 
   @override
   State<ActivityRecordScreen> createState() => _ActivityRecordScreenState();
@@ -29,6 +41,9 @@ class ActivityRecordScreen extends StatefulWidget {
 class _ActivityRecordScreenState extends State<ActivityRecordScreen> {
   late final ActivityService _activityService =
       widget.activityService ?? ActivityService();
+  late final UserService _userService = widget.userService ?? UserService();
+  late final LoopRouteService _loopRouteService =
+      widget.loopRouteService ?? LoopRouteService();
   final AuthService _authService = AuthService();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
@@ -39,6 +54,13 @@ class _ActivityRecordScreenState extends State<ActivityRecordScreen> {
   double _distanceKm = 0.0;
   Timer? _timer;
 
+  bool _isLoopMode = false;
+  double _targetDistanceKm = LoopRoute.defaultDistanceKm;
+  bool _hasEditedTargetDistance = false;
+  LoopRoute? _generatedLoop;
+  bool _isGeneratingLoop = false;
+  String? _loopErrorMessage;
+
   bool _isSummarizing = false;
   bool _isPublic = false;
   bool _isSaving = false;
@@ -48,6 +70,75 @@ class _ActivityRecordScreenState extends State<ActivityRecordScreen> {
       return null;
     }
     return (_elapsed.inSeconds / 60.0) / _distanceKm;
+  }
+
+  double? get _activeLoopTargetKm => _isLoopMode
+      ? (_generatedLoop?.estimatedDistanceKm ?? _targetDistanceKm)
+      : null;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferredDistance();
+  }
+
+  Future<void> _loadPreferredDistance() async {
+    try {
+      final prefs = await _userService.getPreferences();
+      if (!mounted || _hasEditedTargetDistance) return;
+      setState(() {
+        _targetDistanceKm = LoopRoute.clampDistanceKm(prefs.maxDistanceKm);
+      });
+    } catch (e) {
+      debugPrint('[ActivityRecordScreen] Failed to load preferences: $e');
+    }
+  }
+
+  void _handleLoopModeChanged(bool enabled) {
+    setState(() {
+      _isLoopMode = enabled;
+      if (!enabled) {
+        _generatedLoop = null;
+        _loopErrorMessage = null;
+      }
+    });
+  }
+
+  void _handleTargetDistanceChanged(double value) {
+    final rounded = (value * 2).round() / 2.0;
+    setState(() {
+      _hasEditedTargetDistance = true;
+      _targetDistanceKm = LoopRoute.clampDistanceKm(rounded);
+      _generatedLoop = null;
+      _loopErrorMessage = null;
+    });
+  }
+
+  Future<void> _generateLoop() async {
+    if (_isGeneratingLoop) return;
+    setState(() {
+      _isGeneratingLoop = true;
+      _loopErrorMessage = null;
+    });
+    try {
+      final route = await _loopRouteService.generateLoop(
+        targetDistanceKm: _targetDistanceKm,
+        sportType: _selectedSport,
+      );
+      if (!mounted) return;
+      setState(() {
+        _generatedLoop = route;
+        _isGeneratingLoop = false;
+      });
+    } catch (e) {
+      debugPrint('[ActivityRecordScreen] Failed to generate loop: $e');
+      if (!mounted) return;
+      setState(() {
+        _isGeneratingLoop = false;
+        _loopErrorMessage =
+            'Could not generate loop preview. Please try again.';
+      });
+    }
   }
 
   @override
@@ -379,7 +470,7 @@ class _ActivityRecordScreenState extends State<ActivityRecordScreen> {
       },
       child: MasterContainer(
         crossAxisAlignment: CrossAxisAlignment.start,
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
         children: [
           Row(
             children: [
@@ -395,7 +486,7 @@ class _ActivityRecordScreenState extends State<ActivityRecordScreen> {
               const Expanded(child: SectionHeader(title: 'Activity Mode')),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           if (_isSummarizing)
             _buildSummaryView()
           else ...[
@@ -407,25 +498,46 @@ class _ActivityRecordScreenState extends State<ActivityRecordScreen> {
                 color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             SportTypeSelector(
               selectedType: _selectedSport,
               enabled: _status == WorkoutStatus.idle,
               onSelected: (type) {
                 setState(() {
                   _selectedSport = type;
+                  if (_generatedLoop != null &&
+                      _generatedLoop!.sportType != type) {
+                    _generatedLoop = null;
+                    _loopErrorMessage = null;
+                  }
                 });
               },
             ),
-            const SizedBox(height: 24),
+            if (_status == WorkoutStatus.idle) ...[
+              const SizedBox(height: 12),
+              LoopRouteCard(
+                isLoopMode: _isLoopMode,
+                targetDistanceKm: _targetDistanceKm,
+                generatedLoop: _generatedLoop,
+                isGenerating: _isGeneratingLoop,
+                errorMessage: _loopErrorMessage,
+                onModeChanged: _handleLoopModeChanged,
+                onDistanceChanged: _handleTargetDistanceChanged,
+                onGenerateLoop: _generateLoop,
+              ),
+            ],
+            const SizedBox(height: 12),
             WorkoutMetricsPanel(
               elapsed: _elapsed,
               distanceKm: _distanceKm,
               paceMinPerKm: _paceMinPerKm,
               status: _status,
               sportType: _selectedSport,
+              targetDistanceKm: _status == WorkoutStatus.idle
+                  ? null
+                  : _activeLoopTargetKm,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
             WorkoutControlBar(
               status: _status,
               onStart: _startWorkout,

@@ -9,13 +9,14 @@ import 'package:mobile_app/widgets/stat_item.dart';
 enum WorkoutStatus { idle, recording, paused }
 
 /// Telemetry card displaying live workout status, elapsed duration, distance,
-/// and average pace.
+/// average pace, and optional target loop progress.
 class WorkoutMetricsPanel extends StatelessWidget {
   final Duration elapsed;
   final double distanceKm;
   final double? paceMinPerKm;
   final WorkoutStatus status;
   final String? sportType;
+  final double? targetDistanceKm;
 
   const WorkoutMetricsPanel({
     super.key,
@@ -24,6 +25,7 @@ class WorkoutMetricsPanel extends StatelessWidget {
     this.paceMinPerKm,
     this.status = WorkoutStatus.idle,
     this.sportType,
+    this.targetDistanceKm,
   });
 
   static String formatDuration(Duration duration) {
@@ -214,8 +216,72 @@ class WorkoutMetricsPanel extends StatelessWidget {
               ),
             ],
           ),
+          if (targetDistanceKm != null && targetDistanceKm! > 0) ...[
+            const SizedBox(height: 16),
+            Container(height: 1, color: AppColors.divider),
+            const SizedBox(height: 12),
+            _buildLoopProgress(accentColor),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildLoopProgress(Color accentColor) {
+    final target = targetDistanceKm!;
+    final clampedDistance = distanceKm < 0 ? 0.0 : distanceKm;
+    final progress = (clampedDistance / target).clamp(0.0, 1.0);
+    final isComplete = clampedDistance >= target;
+    final barColor = isComplete ? AppColors.success : accentColor;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Icon(
+              isComplete ? Icons.check_circle_outline : Icons.loop,
+              size: 16,
+              color: barColor,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                isComplete ? 'Loop target reached' : 'Loop progress',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${formatDistance(clampedDistance)} / ${target.toStringAsFixed(1)} km',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: barColor,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Semantics(
+          label: 'Loop progress ${(progress * 100).round()} percent',
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              key: const ValueKey<String>('loop_progress_bar'),
+              value: progress,
+              minHeight: 8,
+              backgroundColor: AppColors.surfaceLight,
+              color: barColor,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

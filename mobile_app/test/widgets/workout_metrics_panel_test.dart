@@ -115,5 +115,48 @@ void main() {
 
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'displays loop target progress when targetDistanceKm is provided',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            const WorkoutMetricsPanel(
+              elapsed: Duration(minutes: 15),
+              distanceKm: 2.5,
+              status: WorkoutStatus.recording,
+              sportType: 'run',
+              targetDistanceKm: 5.0,
+            ),
+          ),
+        );
+
+        expect(find.text('Loop progress'), findsOneWidget);
+        expect(find.text('2.50 / 5.0 km'), findsOneWidget);
+        final indicator = tester.widget<LinearProgressIndicator>(
+          find.byKey(const ValueKey<String>('loop_progress_bar')),
+        );
+        expect(indicator.value, closeTo(0.5, 0.001));
+
+        await tester.pumpWidget(
+          _wrap(
+            const WorkoutMetricsPanel(
+              elapsed: Duration(minutes: 32),
+              distanceKm: 5.4,
+              status: WorkoutStatus.recording,
+              sportType: 'run',
+              targetDistanceKm: 5.0,
+            ),
+          ),
+        );
+
+        expect(find.text('Loop target reached'), findsOneWidget);
+        expect(find.text('5.40 / 5.0 km'), findsOneWidget);
+        final completedIndicator = tester.widget<LinearProgressIndicator>(
+          find.byKey(const ValueKey<String>('loop_progress_bar')),
+        );
+        expect(completedIndicator.value, 1.0);
+      },
+    );
   });
 }

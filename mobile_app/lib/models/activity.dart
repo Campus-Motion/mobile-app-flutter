@@ -22,6 +22,25 @@ class Activity {
     this.body,
   });
 
+  /// Default cruising speed in km/h for a sport type, used when estimating
+  /// activity distance or preview loop duration.
+  static double defaultSpeedKmh(String type) {
+    switch (type.toLowerCase()) {
+      case 'run':
+        return 10.0;
+      case 'walk':
+        return 5.0;
+      case 'cycle':
+        return 20.0;
+      case 'hike':
+        return 4.0;
+      case 'swim':
+        return 2.0;
+      default:
+        return 5.0;
+    }
+  }
+
   static double? _parseDistanceKm(Map<String, dynamic> json) {
     final km = json['distance_km'] != null
         ? double.tryParse(json['distance_km'].toString())
