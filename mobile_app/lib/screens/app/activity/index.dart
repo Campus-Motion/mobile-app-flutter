@@ -238,19 +238,8 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController();
 
-    // Choose default title based on time
-    final hour = DateTime.now().hour;
-    String timeOfDay = 'Workout';
-    if (hour < 12) {
-      timeOfDay = 'Morning';
-    } else if (hour < 17) {
-      timeOfDay = 'Afternoon';
-    } else {
-      timeOfDay = 'Evening';
-    }
-
     String selectedType = 'run';
-    titleController.text = '$timeOfDay Run';
+    titleController.text = ActivityCard.getDefaultActivityTitle(selectedType);
 
     final durationController = TextEditingController();
     bool isPublic = false;
@@ -329,11 +318,8 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                         if (val != null) {
                           setModalState(() {
                             selectedType = val;
-                            // Dynamically update default title
-                            final capitalizedType =
-                                val[0].toUpperCase() + val.substring(1);
                             titleController.text =
-                                '$timeOfDay $capitalizedType';
+                                ActivityCard.getDefaultActivityTitle(val);
                           });
                         }
                       },

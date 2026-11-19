@@ -56,7 +56,7 @@ Any feature that touches health data, location, or what other users can see must
 |---|---|
 | Sign-in, sign-up, demo mode | Working |
 | Home: events carousel and news | Working |
-| Sport: activities (log, list, delete) | Working |
+| Sport: activities (record live, log, list, delete) | Working |
 | Sport: events (discover, join, leave) | Working |
 | Sport: connected trail | Placeholder ("coming soon") |
 | Social: follow, unfollow, search | Working |
