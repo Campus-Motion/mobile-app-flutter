@@ -70,22 +70,8 @@ class ActivityCard extends StatelessWidget {
     return '$timeOfDay $sportLabel';
   }
 
-  static double getActivitySpeedKmh(String type) {
-    switch (type.toLowerCase()) {
-      case 'run':
-        return 10.0;
-      case 'walk':
-        return 5.0;
-      case 'cycle':
-        return 20.0;
-      case 'hike':
-        return 4.0;
-      case 'swim':
-        return 2.0;
-      default:
-        return 5.0;
-    }
-  }
+  static double getActivitySpeedKmh(String type) =>
+      Activity.defaultSpeedKmh(type);
 
   static double? getActivityDistanceKm(Activity activity) {
     if (activity.distanceKm != null) return activity.distanceKm;

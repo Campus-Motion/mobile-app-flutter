@@ -4,13 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/models/activity.dart';
+import 'package:mobile_app/models/health.dart';
+import 'package:mobile_app/models/user.dart';
+import 'package:mobile_app/models/user_preferences.dart';
 import 'package:mobile_app/screens/app/activity/index.dart';
 import 'package:mobile_app/screens/app/activity/record.dart';
 import 'package:mobile_app/services/activity_service.dart';
 import 'package:mobile_app/services/api_service.dart';
 import 'package:mobile_app/services/auth_service.dart';
+import 'package:mobile_app/services/user_service.dart';
 import 'package:mobile_app/widgets/activity_card.dart';
 import 'package:mobile_app/widgets/app_button.dart';
+import 'package:mobile_app/widgets/loop_route_card.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/sport_type_selector.dart';
 import 'package:mobile_app/widgets/stat_item.dart';
@@ -45,6 +50,59 @@ class _FakeActivityService implements ActivityService {
 
   @override
   Future<Activity> updateActivity(int id, Map<String, dynamic> body) =>
+      throw UnimplementedError();
+}
+
+class _FailingPreferencesUserService implements UserService {
+  @override
+  Future<UserPreferences> getPreferences() =>
+      Future.error(Exception('Preferences unavailable'));
+
+  @override
+  Future<HealthData> createHealth(HealthData health) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> deleteHealth() => throw UnimplementedError();
+
+  @override
+  Future<void> deleteMe() => throw UnimplementedError();
+
+  @override
+  Future<void> followUser(int id) => throw UnimplementedError();
+
+  @override
+  Future<List<User>> getFollowers(int id) => throw UnimplementedError();
+
+  @override
+  Future<List<User>> getFollowing(int id) => throw UnimplementedError();
+
+  @override
+  Future<HealthData?> getHealth() => throw UnimplementedError();
+
+  @override
+  Future<User> getMe() => throw UnimplementedError();
+
+  @override
+  Future<User> getUser(int id) => throw UnimplementedError();
+
+  @override
+  Future<void> unfollowUser(int id) => throw UnimplementedError();
+
+  @override
+  Future<HealthData> updateHealth(HealthData health) =>
+      throw UnimplementedError();
+
+  @override
+  Future<User> updateMe({String? username, String? email}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<UserPreferences> updatePreferences(UserPreferences preferences) =>
+      throw UnimplementedError();
+
+  @override
+  Future<String> uploadPhoto(List<int> bytes, String filename) =>
       throw UnimplementedError();
 }
 
@@ -735,5 +793,79 @@ void main() {
       expect(find.text('Save activity'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'toggles Distance loop initialized from UserPreferences, generates preview and tracks loop progress while recording',
+      (tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(home: ActivityRecordScreen()),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(LoopRouteCard), findsOneWidget);
+        expect(find.text('Loop progress'), findsNothing);
+
+        await tester.tap(
+          find.byKey(const ValueKey<String>('mode_distance_loop')),
+        );
+        await tester.pumpAndSettle();
+
+        // MockDataService user preferences set max_distance_km to 15.0.
+        expect(find.text('15.0 km'), findsOneWidget);
+
+        await tester.tap(find.widgetWithText(AppButton, 'Generate loop'));
+        await tester.pumpAndSettle();
+
+        // 15.0 km at default run speed (10 km/h) = 1h 30m.
+        expect(find.text('Loop summary'), findsOneWidget);
+        expect(find.text('15.0'), findsOneWidget);
+        expect(find.text('1h 30m'), findsOneWidget);
+
+        // Changing sport clears stale preview and recalculates on next generate.
+        await tester.tap(
+          find.byKey(const ValueKey<String>('sport_pill_cycle')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Loop summary'), findsNothing);
+
+        await tester.tap(find.widgetWithText(AppButton, 'Generate loop'));
+        await tester.pumpAndSettle();
+        // 15.0 km at cycle speed (20 km/h) = 45m.
+        expect(find.text('45m'), findsOneWidget);
+
+        final startButton = find.widgetWithText(AppButton, 'Start activity');
+        await tester.ensureVisible(startButton);
+        await tester.tap(startButton);
+        await tester.pump();
+
+        expect(find.byType(LoopRouteCard), findsNothing);
+        expect(find.text('Loop progress'), findsOneWidget);
+        expect(find.text('0.00 / 15.0 km'), findsOneWidget);
+
+        await tester.pump(const Duration(seconds: 9));
+        expect(find.text('0.05 / 15.0 km'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'falls back to 5.0 km default target distance when preferences cannot load',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ActivityRecordScreen(
+              userService: _FailingPreferencesUserService(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.byKey(const ValueKey<String>('mode_distance_loop')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('5.0 km'), findsOneWidget);
+      },
+    );
   });
 }
