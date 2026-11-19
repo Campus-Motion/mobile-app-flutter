@@ -7,6 +7,7 @@ import '../models/activity.dart';
 import '../models/fit_import_exception.dart';
 import '../models/heatmap.dart';
 import '../models/waypoint.dart';
+import 'fit_decoder.dart';
 
 class ActivityService {
   static final ActivityService _instance = ActivityService._internal();
@@ -30,7 +31,7 @@ class ActivityService {
             : null,
       ),
     ],
-    confirmButtonText: 'Choisir un fichier .fit',
+    confirmButtonText: 'Choose a .fit file',
   );
 
   Future<Activity> importFitFile(XFile file) async {
@@ -38,13 +39,11 @@ class ActivityService {
         ? file.name
         : file.path.split(RegExp(r'[/\\]')).last;
     if (!filename.toLowerCase().endsWith('.fit')) {
-      throw const FitImportException('Veuillez sélectionner un fichier .fit.');
+      throw const FitImportException('Please select a .fit file.');
     }
     final length = await file.length();
     if (length > maxFitBytes) {
-      throw const FitImportException(
-        'Le fichier .fit ne doit pas dépasser 10 Mo.',
-      );
+      throw const FitImportException('The .fit file must not exceed 10 MB.');
     }
     final bytes = await file.readAsBytes();
     return importFit(
@@ -159,6 +158,59 @@ class ActivityService {
       throw Exception(
         'Failed to create activity: ${response.statusCode} - ${response.body}',
       );
+    }
+  }
+
+  Future<Activity> attachFitFile(int activityId, XFile file) async {
+    final filename = file.name.isNotEmpty
+        ? file.name
+        : file.path.split(RegExp(r'[/\\]')).last;
+    if (!filename.toLowerCase().endsWith('.fit')) {
+      throw const FitImportException('Please select a .fit file.');
+    }
+    final length = await file.length();
+    if (length > maxFitBytes) {
+      throw const FitImportException('The .fit file must not exceed 10 MB.');
+    }
+    final bytes = await file.readAsBytes();
+    final meta = FitDecoder.parseMetadata(bytes);
+
+    final response = await _apiService.uploadFile(
+      '/activities/$activityId/fit',
+      bytes: bytes,
+      filename: filename.isNotEmpty ? filename : 'track.fit',
+      field: 'file',
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = json.decode(response.body);
+      return Activity.fromJson(data as Map<String, dynamic>);
+    } else {
+      if (meta.waypoints.isNotEmpty) {
+        await addWaypoints(activityId, meta.waypoints);
+      }
+      final updateBody = <String, dynamic>{
+        'has_fit': true,
+        if (meta.durationMinutes != null && meta.durationMinutes! > 0)
+          'duration': meta.durationMinutes,
+        if (meta.distanceKm != null && meta.distanceKm! > 0)
+          'distance_km': meta.distanceKm,
+        if (meta.sport != 'other') 'type': meta.sport,
+      };
+      return updateActivity(activityId, updateBody);
+    }
+  }
+
+  Future<void> addWaypoints(
+    int activityId,
+    List<Map<String, dynamic>> waypoints,
+  ) async {
+    final response = await _apiService.post(
+      '/activities/$activityId/waypoints',
+      {'waypoints': waypoints},
+    );
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Failed to add waypoints');
     }
   }
 

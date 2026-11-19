@@ -158,7 +158,7 @@ class MockDataService {
   ];
 
   // Mock Activities
-  final List<Map<String, dynamic>> _mockActivities = [
+  static List<Map<String, dynamic>> _buildInitialActivities() => [
     {
       'id': 201,
       'title': 'Morning Campus Run',
@@ -167,6 +167,7 @@ class MockDataService {
       'is_public': true,
       'duration': 34.5,
       'distance_km': 6.2,
+      'has_fit': true,
       'body':
           'Nice 6.2km loop through EPFL Innovation Park down to the lake shores.',
       'created_at': DateTime.now()
@@ -181,6 +182,7 @@ class MockDataService {
       'is_public': true,
       'duration': 48.0,
       'distance_km': 16.0,
+      'has_fit': true,
       'body': 'Recovery ride between classes along the lakeside bike path.',
       'created_at': DateTime.now()
           .subtract(const Duration(days: 3))
@@ -194,6 +196,7 @@ class MockDataService {
       'is_public': false,
       'duration': 25.0,
       'distance_km': 2.1,
+      'has_fit': false,
       'body': 'Walking the fitness checkpoints around Rolex Learning Center.',
       'created_at': DateTime.now()
           .subtract(const Duration(days: 5))
@@ -207,6 +210,7 @@ class MockDataService {
       'is_public': true,
       'duration': 30.0,
       'distance_km': 2.5,
+      'has_fit': false,
       'body': 'Gentle stroll along Lake Geneva.',
       'created_at': DateTime.now()
           .subtract(const Duration(days: 2))
@@ -220,12 +224,16 @@ class MockDataService {
       'is_public': true,
       'duration': 75.0,
       'distance_km': 6.8,
+      'has_fit': true,
       'body': 'Scenic hike towards Mount Dorigny view.',
       'created_at': DateTime.now()
           .subtract(const Duration(days: 4))
           .toIso8601String(),
     },
   ];
+
+  late final List<Map<String, dynamic>> _mockActivities =
+      _buildInitialActivities();
 
   // Mock Waypoints for activities
   final List<Map<String, dynamic>> _defaultMockWaypoints = [
@@ -291,7 +299,7 @@ class MockDataService {
     201: _defaultMockWaypoints,
     202: _defaultMockWaypoints,
     203: [],
-    204: _defaultMockWaypoints,
+    204: [],
     205: _defaultMockWaypoints,
   };
 
@@ -563,7 +571,7 @@ class MockDataService {
     ).firstMatch(cleanPath);
     if (waypointsMatch != null) {
       final activityId = int.parse(waypointsMatch.group(1)!);
-      final waypoints = _mockWaypoints[activityId] ?? _defaultMockWaypoints;
+      final waypoints = _mockWaypoints[activityId] ?? [];
       return http.Response(json.encode(waypoints), 200, headers: _jsonHeaders);
     }
 
@@ -973,11 +981,11 @@ class MockDataService {
               .fold(200, (max, id) => id > max ? id : max)) +
           1;
       final defaultTitle = switch (meta.sport) {
-        'run' => 'Course à pied',
-        'cycle' => 'Cyclisme',
-        'walk' => 'Marche',
-        'hike' => 'Randonnée',
-        'swim' => 'Natation',
+        'run' => 'Running',
+        'cycle' => 'Cycling',
+        'walk' => 'Walking',
+        'hike' => 'Hiking',
+        'swim' => 'Swimming',
         _ => 'Imported FIT activity',
       };
       final newActivity = <String, dynamic>{
@@ -988,6 +996,7 @@ class MockDataService {
         'is_public': false,
         'duration': meta.durationMinutes ?? 45.0,
         'distance_km': meta.distanceKm ?? 5.2,
+        'has_fit': true,
         'created_at':
             meta.startTime?.toUtc().toIso8601String() ??
             DateTime.now().toUtc().toIso8601String(),
@@ -999,6 +1008,40 @@ class MockDataService {
       return http.Response(
         json.encode(newActivity),
         201,
+        headers: _jsonHeaders,
+      );
+    }
+
+    final activityFitMatch = RegExp(
+      r'^/activities/(\d+)/fit$',
+    ).firstMatch(cleanPath);
+    if (activityFitMatch != null) {
+      final actId = int.parse(activityFitMatch.group(1)!);
+      final meta = FitDecoder.parseMetadata(Uint8List.fromList(bytes));
+      final waypointsToUse = meta.waypoints.length >= 2
+          ? List<Map<String, dynamic>>.from(meta.waypoints)
+          : List<Map<String, dynamic>>.from(_defaultMockWaypoints);
+      _mockWaypoints[actId] = waypointsToUse;
+
+      final idx = _mockActivities.indexWhere((a) => a['id'] == actId);
+      if (idx != -1) {
+        final current = Map<String, dynamic>.from(_mockActivities[idx]);
+        current['has_fit'] = true;
+        if (meta.sport != 'other') {
+          current['type'] = meta.sport;
+        }
+        if (meta.durationMinutes != null && meta.durationMinutes! > 0) {
+          current['duration'] = meta.durationMinutes;
+        }
+        if (meta.distanceKm != null && meta.distanceKm! > 0) {
+          current['distance_km'] = meta.distanceKm;
+        }
+        _mockActivities[idx] = current;
+        return http.Response(json.encode(current), 200, headers: _jsonHeaders);
+      }
+      return http.Response(
+        json.encode({'message': 'Activity not found'}),
+        404,
         headers: _jsonHeaders,
       );
     }
@@ -1070,5 +1113,20 @@ class MockDataService {
     } else {
       _mockEventWaypoints.clear();
     }
+  }
+
+  void resetMockActivities() {
+    _mockActivities
+      ..clear()
+      ..addAll(_buildInitialActivities());
+    _mockWaypoints
+      ..clear()
+      ..addAll({
+        201: _defaultMockWaypoints,
+        202: _defaultMockWaypoints,
+        203: [],
+        204: [],
+        205: _defaultMockWaypoints,
+      });
   }
 }

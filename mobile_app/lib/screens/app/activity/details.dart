@@ -1,3 +1,4 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:intl/intl.dart';
@@ -20,12 +21,14 @@ class ActivityDetailsScreen extends StatefulWidget {
   final int? activityId;
   final Activity? initialActivity;
   final TileProvider? tileProvider;
+  final Future<XFile?> Function()? pickFitFile;
 
   const ActivityDetailsScreen({
     super.key,
     required this.activityId,
     this.initialActivity,
     this.tileProvider,
+    this.pickFitFile,
   });
 
   @override
@@ -67,9 +70,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen> {
 
     try {
       final futures = await Future.wait([
-        widget.initialActivity != null
-            ? Future.value(widget.initialActivity)
-            : _activityService.getActivity(id),
+        _activityService.getActivity(id),
         _activityService.getWaypoints(id),
       ]);
 
@@ -100,6 +101,485 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen> {
     final mins = paceMin.floor();
     final secs = ((paceMin - mins) * 60).round();
     return "$mins:${secs.toString().padLeft(2, '0')}";
+  }
+
+  Future<void> _addFitFile() async {
+    final picker = widget.pickFitFile ?? _activityService.pickFitFile;
+    final file = await picker();
+    if (file == null) return;
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+    );
+
+    try {
+      final id = widget.activityId ?? _activity?.id;
+      if (id == null) throw Exception('No activity ID');
+
+      final updated = await _activityService.attachFitFile(id, file);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading spinner
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('FIT file attached successfully.')),
+      );
+
+      setState(() {
+        _activity = updated;
+      });
+      _loadDetails();
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading spinner
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error attaching FIT file: $e')));
+    }
+  }
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete activity'),
+        content: Text('Are you sure you want to delete "${_activity?.title}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted && _activity != null) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+
+      try {
+        await _activityService.deleteActivity(_activity!.id);
+        if (!mounted) return;
+        Navigator.pop(context); // Dismiss loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Activity deleted successfully.')),
+        );
+        Navigator.pop(context, true); // Pop back to activities screen
+      } catch (e) {
+        if (!mounted) return;
+        Navigator.pop(context); // Dismiss loading dialog
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error deleting activity: $e')));
+      }
+    }
+  }
+
+  void _showEditDialog() {
+    if (_activity == null) return;
+    final activity = _activity!;
+    final formKey = GlobalKey<FormState>();
+    final titleController = TextEditingController(text: activity.title);
+    bool isPublic = activity.isPublic;
+    String selectedType = activity.type.isNotEmpty ? activity.type : 'other';
+
+    // The activity's sport is locked IF it was auto-detected from FIT and is NOT 'other'
+    final hasFit = activity.hasFit || _waypoints.isNotEmpty;
+    final isTypeLocked = hasFit && (activity.type.toLowerCase() != 'other');
+    final isDurationLocked =
+        hasFit && (activity.duration != null && activity.duration! > 0);
+    final isDistanceLocked =
+        hasFit && (activity.distanceKm != null && activity.distanceKm! > 0);
+
+    final durationController = TextEditingController(
+      text: activity.duration != null && activity.duration! > 0
+          ? (activity.duration! % 1 == 0
+                ? activity.duration!.toInt().toString()
+                : activity.duration!.toStringAsFixed(1))
+          : '',
+    );
+    final distanceController = TextEditingController(
+      text: activity.distanceKm != null && activity.distanceKm! > 0
+          ? (activity.distanceKm! % 1 == 0
+                ? activity.distanceKm!.toInt().toString()
+                : activity.distanceKm!.toStringAsFixed(1))
+          : '',
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (modalContext) {
+        return StatefulBuilder(
+          builder: (modalContext, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(modalContext).viewInsets.bottom + 24,
+              ),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Edit activity',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(modalContext),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Title field
+                      TextFormField(
+                        controller: titleController,
+                        decoration: InputDecoration(
+                          labelText: 'Activity Title',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Please enter a title';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Sport Type Dropdown
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedType,
+                        decoration: InputDecoration(
+                          labelText: 'Sport Type',
+                          helperText: isTypeLocked
+                              ? 'Sport locked by FIT file'
+                              : null,
+                          helperStyle: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                          suffixIcon: isTypeLocked
+                              ? const Icon(
+                                  Icons.lock_outline,
+                                  size: 18,
+                                  color: AppColors.textMuted,
+                                )
+                              : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'run',
+                            child: Text('Running (run)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'cycle',
+                            child: Text('Cycling (cycle)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'walk',
+                            child: Text('Walking (walk)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'hike',
+                            child: Text('Hiking (hike)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'swim',
+                            child: Text('Swimming (swim)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'other',
+                            child: Text('Other (other)'),
+                          ),
+                        ],
+                        onChanged: isTypeLocked
+                            ? null
+                            : (val) {
+                                if (val != null) {
+                                  setModalState(() {
+                                    selectedType = val;
+                                  });
+                                }
+                              },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Duration field
+                      TextFormField(
+                        controller: durationController,
+                        readOnly: isDurationLocked,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Duration (minutes)',
+                          helperText: isDurationLocked
+                              ? 'Duration locked by FIT file'
+                              : null,
+                          helperStyle: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                          suffixIcon: isDurationLocked
+                              ? const Icon(
+                                  Icons.lock_outline,
+                                  size: 18,
+                                  color: AppColors.textMuted,
+                                )
+                              : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Please enter a duration';
+                          }
+                          final parsed = double.tryParse(
+                            val.trim().replaceAll(',', '.'),
+                          );
+                          if (parsed == null || parsed <= 0) {
+                            return 'Please enter a valid duration';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Distance field
+                      TextFormField(
+                        controller: distanceController,
+                        readOnly: isDistanceLocked,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Distance (km)',
+                          helperText: isDistanceLocked
+                              ? 'Distance locked by FIT file'
+                              : null,
+                          helperStyle: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                          suffixIcon: isDistanceLocked
+                              ? const Icon(
+                                  Icons.lock_outline,
+                                  size: 18,
+                                  color: AppColors.textMuted,
+                                )
+                              : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        validator: (val) {
+                          if (val != null && val.trim().isNotEmpty) {
+                            final parsed = double.tryParse(
+                              val.trim().replaceAll(',', '.'),
+                            );
+                            if (parsed == null || parsed < 0) {
+                              return 'Please enter a valid distance';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Public toggle
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Make activity public'),
+                        subtitle: const Text(
+                          'Visible to other campus users in their feeds',
+                        ),
+                        value: isPublic,
+                        activeThumbColor: AppColors.primary,
+                        onChanged: (val) {
+                          setModalState(() {
+                            isPublic = val;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Save Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () async {
+                            if (formKey.currentState!.validate()) {
+                              Navigator.pop(modalContext);
+                              final rawDuration = durationController.text
+                                  .trim();
+                              final parsedDuration = rawDuration.isNotEmpty
+                                  ? double.tryParse(
+                                      rawDuration.replaceAll(',', '.'),
+                                    )
+                                  : null;
+                              final rawDistance = distanceController.text
+                                  .trim();
+                              final parsedDistance = rawDistance.isNotEmpty
+                                  ? double.tryParse(
+                                      rawDistance.replaceAll(',', '.'),
+                                    )
+                                  : null;
+
+                              await _saveChanges(
+                                title: titleController.text.trim(),
+                                type: selectedType,
+                                isPublic: isPublic,
+                                duration: parsedDuration,
+                                distanceKm: parsedDistance,
+                              );
+                            }
+                          },
+                          child: const Text(
+                            'Save',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Delete Button inside modal
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: AppColors.error,
+                            size: 20,
+                          ),
+                          label: const Text(
+                            'Delete this activity',
+                            style: TextStyle(
+                              color: AppColors.error,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: AppColors.error),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(modalContext);
+                            _confirmDelete();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _saveChanges({
+    required String title,
+    required String type,
+    required bool isPublic,
+    double? duration,
+    double? distanceKm,
+  }) async {
+    final id = widget.activityId ?? _activity?.id;
+    if (id == null) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+    );
+
+    try {
+      final updated = await _activityService
+          .updateActivity(id, <String, dynamic>{
+            'title': title,
+            'type': type,
+            'is_public': isPublic,
+            'duration': ?duration,
+            'distance_km': ?distanceKm,
+          });
+
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading dialog
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Activity updated successfully.')),
+      );
+
+      setState(() {
+        _activity = updated;
+      });
+      _loadDetails();
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading dialog
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error updating activity: $e')));
+    }
   }
 
   @override
@@ -198,19 +678,52 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen> {
             ),
             Row(
               children: [
-                Icon(
-                  activity.isPublic ? Icons.public : Icons.lock_outline,
-                  size: 16,
-                  color: AppColors.textMuted,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.divider),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        activity.isPublic ? Icons.public : Icons.lock_outline,
+                        size: 14,
+                        color: AppColors.textMuted,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        activity.isPublic ? 'Public' : 'Private',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  activity.isPublic ? 'Public' : 'Private',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.w500,
+                IconButton(
+                  tooltip: 'Edit',
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.textPrimary,
                   ),
+                  onPressed: _showEditDialog,
+                ),
+                IconButton(
+                  tooltip: 'Delete',
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.error,
+                  ),
+                  onPressed: _confirmDelete,
                 ),
               ],
             ),
@@ -268,26 +781,40 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen> {
         AppCard(
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              StatItem(
-                label: 'Distance',
-                value: distanceStr.replaceAll(' km', ''),
-                unit: distanceStr.contains('km') ? 'km' : null,
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: StatItem(
+                    label: 'Distance',
+                    value: distanceStr.replaceAll(' km', ''),
+                    unit: distanceStr.contains('km') ? 'km' : null,
+                  ),
+                ),
               ),
               Container(height: 40, width: 1, color: AppColors.divider),
-              StatItem(label: 'Duration', value: durationStr),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: StatItem(label: 'Duration', value: durationStr),
+                ),
+              ),
               Container(height: 40, width: 1, color: AppColors.divider),
-              StatItem(
-                label: 'Pace',
-                value: paceStr,
-                unit: paceStr != '--' ? 'min/km' : null,
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: StatItem(
+                    label: 'Pace',
+                    value: paceStr,
+                    unit: paceStr != '--' ? 'min/km' : null,
+                  ),
+                ),
               ),
             ],
           ),
         ),
 
-        // GPS Route Map (conditioned to presence of GPS points)
+        // GPS Route Map or Encouragement Card on grey background
         if (_waypoints.isNotEmpty) ...[
           const SectionHeader(
             title: 'GPS Route',
@@ -321,6 +848,73 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen> {
                       color: AppColors.textMuted,
                     ),
                   ),
+              ],
+            ),
+          ),
+        ] else ...[
+          const SectionHeader(
+            title: 'GPS Route',
+            padding: EdgeInsets.only(top: 8, bottom: 12),
+          ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLight,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.divider),
+            ),
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.map_outlined,
+                  size: 40,
+                  color: AppColors.textMuted,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'No GPS route recorded',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Attach a .fit file to this activity to display your route on the map and include your workout in heatmaps!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(
+                      Icons.file_upload_outlined,
+                      color: AppColors.primary,
+                    ),
+                    label: const Text(
+                      'Attach a .fit file',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.primary),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: _addFitFile,
+                  ),
+                ),
               ],
             ),
           ),

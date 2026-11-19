@@ -55,16 +55,16 @@ void main() {
   }
 
   group('ActivityIndexScreen FIT import & heatmaps tests', () {
-    testWidgets('renders "Mes Heatmap" button and navigates on tap', (
+    testWidgets('renders "My Heatmaps" button and navigates on tap', (
       tester,
     ) async {
       await tester.pumpWidget(buildTestApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('Mes Heatmap'), findsOneWidget);
+      expect(find.text('My Heatmaps'), findsOneWidget);
 
       // Tap button
-      await tester.tap(find.text('Mes Heatmap'));
+      await tester.tap(find.text('My Heatmaps'));
       await tester.pumpAndSettle();
 
       expect(find.byType(HeatmapScreen), findsOneWidget);
@@ -81,19 +81,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Log Activity'), findsOneWidget);
-      expect(find.text('Importer un fichier .FIT'), findsOneWidget);
+      expect(find.text('Import a .FIT file'), findsOneWidget);
 
       // Tap activity type dropdown
       await tester.tap(find.byType(DropdownButtonFormField<String>));
       await tester.pumpAndSettle();
 
       // Check standard watch categories are present
-      expect(find.text('Course à pied (run)'), findsWidgets);
-      expect(find.text('Cyclisme (cycle)'), findsWidgets);
-      expect(find.text('Marche (walk)'), findsWidgets);
-      expect(find.text('Randonnée (hike)'), findsWidgets);
-      expect(find.text('Natation (swim)'), findsWidgets);
-      expect(find.text('Autre (other)'), findsWidgets);
+      expect(find.text('Running (run)'), findsWidgets);
+      expect(find.text('Cycling (cycle)'), findsWidgets);
+      expect(find.text('Walking (walk)'), findsWidgets);
+      expect(find.text('Hiking (hike)'), findsWidgets);
+      expect(find.text('Swimming (swim)'), findsWidgets);
+      expect(find.text('Other (other)'), findsWidgets);
 
       // Climbing is removed per specification
       expect(find.text('Climbing'), findsNothing);
@@ -101,6 +101,40 @@ void main() {
       // Close dropdown by tapping outside
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
+
+      // Check duration and distance fields
+      expect(
+        find.widgetWithText(TextFormField, 'Duration (minutes)'),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(TextFormField, 'Distance (km)'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('manually logging activity with distance creates activity', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildTestApp());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Duration (minutes)'),
+        '30',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Distance (km)'),
+        '5.2',
+      );
+
+      await tester.tap(find.text('Save Activity'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Activity logged successfully!'), findsOneWidget);
     });
 
     testWidgets('importing FIT file displays warning if sport is "other"', (
@@ -114,28 +148,22 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap import FIT button
-      await tester.tap(find.text('Importer un fichier .FIT'));
+      await tester.tap(find.text('Import a .FIT file'));
       await tester.pumpAndSettle();
 
       // Warning banner must be visible because imported FIT is classified as "other"
-      expect(
-        find.textContaining('veuillez préciser votre sport'),
-        findsOneWidget,
-      );
-      expect(find.text('Fichier .FIT importé'), findsOneWidget);
+      expect(find.textContaining('please specify your sport'), findsOneWidget);
+      expect(find.text('FIT file imported'), findsOneWidget);
 
-      // Select 'Cyclisme (cycle)' from dropdown
+      // Select 'Cycling (cycle)' from dropdown
       await tester.tap(find.byType(DropdownButtonFormField<String>));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Cyclisme (cycle)').last);
+      await tester.tap(find.text('Cycling (cycle)').last);
       await tester.pumpAndSettle();
 
       // Warning disappears once a discipline is chosen
-      expect(
-        find.textContaining('veuillez préciser votre sport'),
-        findsNothing,
-      );
+      expect(find.textContaining('please specify your sport'), findsNothing);
     });
 
     testWidgets('cancelling FIT file selection does nothing', (tester) async {
@@ -145,14 +173,11 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Importer un fichier .FIT'));
+      await tester.tap(find.text('Import a .FIT file'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Importer un fichier .FIT'), findsOneWidget);
-      expect(
-        find.textContaining('veuillez préciser votre sport'),
-        findsNothing,
-      );
+      expect(find.text('Import a .FIT file'), findsOneWidget);
+      expect(find.textContaining('please specify your sport'), findsNothing);
     });
 
     testWidgets(
@@ -184,14 +209,11 @@ void main() {
         await tester.tap(find.byType(FloatingActionButton));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Importer un fichier .FIT'));
+        await tester.tap(find.text('Import a .FIT file'));
         await tester.pumpAndSettle();
 
         // No warning because sport is 'run'
-        expect(
-          find.textContaining('veuillez préciser votre sport'),
-          findsNothing,
-        );
+        expect(find.textContaining('please specify your sport'), findsNothing);
 
         // Save activity (tests handlePut and ensures no TypeError is thrown)
         await tester.tap(find.text('Save Activity'));

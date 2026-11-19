@@ -256,6 +256,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     titleController.text = '$timeOfDay Run';
 
     final durationController = TextEditingController();
+    final distanceController = TextEditingController();
     bool isPublic = false;
     int? importedActivityId;
     bool showSportWarning = false;
@@ -312,8 +313,8 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                                 ),
                           label: Text(
                             importedActivityId != null
-                                ? 'Fichier .FIT importé'
-                                : 'Importer un fichier .FIT',
+                                ? 'FIT file imported'
+                                : 'Import a .FIT file',
                             style: const TextStyle(
                               color: AppColors.primary,
                               fontWeight: FontWeight.bold,
@@ -393,6 +394,17 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                                             .toString();
                                       }
 
+                                      final dist =
+                                          (activity.distanceKm != null &&
+                                              activity.distanceKm! > 0)
+                                          ? activity.distanceKm
+                                          : localMeta.distanceKm;
+                                      if (dist != null && dist > 0) {
+                                        distanceController.text = dist % 1 == 0
+                                            ? dist.toInt().toString()
+                                            : dist.toStringAsFixed(1);
+                                      }
+
                                       showSportWarning =
                                           (resolvedType == 'other');
                                     });
@@ -405,9 +417,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                                         modalContext,
                                       ).showSnackBar(
                                         SnackBar(
-                                          content: Text(
-                                            'Erreur import FIT: $e',
-                                          ),
+                                          content: Text('FIT import error: $e'),
                                         ),
                                       );
                                     }
@@ -438,7 +448,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                               SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Attention : veuillez préciser votre sport ci-dessous. Sans discipline précise, l\'activité restera classée en "Autre" et sera exclue de toutes les heatmaps.',
+                                  'Warning: please specify your sport below. Without a specific discipline, the activity will remain classified as "Other" and will be excluded from all heatmaps.',
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: AppColors.textPrimary,
@@ -480,27 +490,27 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                         items: const [
                           DropdownMenuItem(
                             value: 'run',
-                            child: Text('Course à pied (run)'),
+                            child: Text('Running (run)'),
                           ),
                           DropdownMenuItem(
                             value: 'cycle',
-                            child: Text('Cyclisme (cycle)'),
+                            child: Text('Cycling (cycle)'),
                           ),
                           DropdownMenuItem(
                             value: 'walk',
-                            child: Text('Marche (walk)'),
+                            child: Text('Walking (walk)'),
                           ),
                           DropdownMenuItem(
                             value: 'hike',
-                            child: Text('Randonnée (hike)'),
+                            child: Text('Hiking (hike)'),
                           ),
                           DropdownMenuItem(
                             value: 'swim',
-                            child: Text('Natation (swim)'),
+                            child: Text('Swimming (swim)'),
                           ),
                           DropdownMenuItem(
                             value: 'other',
-                            child: Text('Autre (other)'),
+                            child: Text('Other (other)'),
                           ),
                         ],
                         onChanged: (val) {
@@ -544,6 +554,32 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                       ),
                       const SizedBox(height: 16),
 
+                      // Distance Input
+                      TextFormField(
+                        controller: distanceController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Distance (km)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value != null && value.trim().isNotEmpty) {
+                            final parsed = double.tryParse(
+                              value.trim().replaceAll(',', '.'),
+                            );
+                            if (parsed == null || parsed < 0) {
+                              return 'Please enter a valid distance';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
                       // Public Toggle
                       SwitchListTile(
                         title: const Text('Make Activity Public'),
@@ -580,6 +616,13 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                               );
 
                               try {
+                                final distText = distanceController.text.trim();
+                                final distKm = distText.isNotEmpty
+                                    ? double.tryParse(
+                                        distText.replaceAll(',', '.'),
+                                      )
+                                    : null;
+
                                 if (importedActivityId != null) {
                                   await _activityService.updateActivity(
                                     importedActivityId!,
@@ -590,6 +633,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                                       'duration': double.parse(
                                         durationController.text,
                                       ),
+                                      'distance_km': ?distKm,
                                     },
                                   );
                                 } else {
@@ -603,6 +647,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                                     duration: double.parse(
                                       durationController.text,
                                     ),
+                                    distanceKm: distKm,
                                   );
                                   await _activityService.createActivity(
                                     activity,
@@ -739,7 +784,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: AppButton(
-              text: 'Mes Heatmap',
+              text: 'My Heatmaps',
               icon: Icons.map_outlined,
               variant: AppButtonVariant.outline,
               onPressed: () async {

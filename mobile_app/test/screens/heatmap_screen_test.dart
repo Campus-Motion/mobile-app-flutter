@@ -37,11 +37,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Mes Heatmaps'), findsOneWidget);
-      expect(find.text('Course à pied'), findsOneWidget);
-      expect(find.text('Cyclisme'), findsOneWidget);
-      expect(find.text('Marche'), findsOneWidget);
-      expect(find.text('Randonnée'), findsOneWidget);
+      expect(find.text('My Heatmaps'), findsOneWidget);
+      expect(find.text('Running'), findsOneWidget);
+      expect(find.text('Cycling'), findsOneWidget);
+      expect(find.text('Walking'), findsOneWidget);
+      expect(find.text('Hiking'), findsOneWidget);
       expect(find.byType(RouteMap), findsOneWidget);
     });
 
@@ -55,7 +55,7 @@ void main() {
 
       expect(find.byType(EmptyState), findsOneWidget);
       expect(
-        find.text('Aucune sortie GPS enregistrée pour cette discipline.'),
+        find.text('No GPS activities recorded for this discipline.'),
         findsOneWidget,
       );
     });
@@ -80,8 +80,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(loadedDiscipline, 'run');
 
-      // Tap 'Cyclisme'
-      await tester.tap(find.text('Cyclisme'));
+      // Tap 'Cycling'
+      await tester.tap(find.text('Cycling'));
       await tester.pumpAndSettle();
 
       expect(loadedDiscipline, 'cycle');
@@ -108,7 +108,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ErrorState), findsOneWidget);
-      expect(find.text('Impossible de charger la heatmap.'), findsOneWidget);
+      expect(find.text('Unable to load heatmap.'), findsOneWidget);
 
       // Tap retry
       await tester.tap(find.text('Retry'));

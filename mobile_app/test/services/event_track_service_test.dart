@@ -105,7 +105,7 @@ void main() {
           predicate(
             (e) =>
                 e is Exception &&
-                e.toString().contains('Veuillez sélectionner un fichier .fit'),
+                e.toString().contains('Please select a .fit file'),
           ),
         ),
       );

@@ -9,6 +9,7 @@ class Activity {
   duration; // In minutes, hours, or seconds depending on frontend representation
   final double? distanceKm;
   final String? body;
+  final bool hasFit;
 
   Activity({
     required this.id,
@@ -20,6 +21,7 @@ class Activity {
     this.duration,
     this.distanceKm,
     this.body,
+    this.hasFit = false,
   });
 
   static double? _parseDistanceKm(Map<String, dynamic> json) {
@@ -49,6 +51,7 @@ class Activity {
           : null,
       distanceKm: _parseDistanceKm(json),
       body: json['body'] as String?,
+      hasFit: json['has_fit'] as bool? ?? (json['hasFit'] as bool? ?? false),
     );
   }
 
@@ -60,6 +63,17 @@ class Activity {
       if (duration != null) 'duration': duration,
       if (distanceKm != null) 'distance_km': distanceKm,
       'is_public': isPublic,
+      if (hasFit) 'has_fit': hasFit,
     };
   }
+
+  /// Returns whether the sport type is locked (i.e. auto-detected by FIT and not 'other').
+  bool get isTypeLocked => hasFit && type.toLowerCase() != 'other';
+
+  /// Returns whether the duration is locked (i.e. auto-detected by FIT and > 0).
+  bool get isDurationLocked => hasFit && (duration != null && duration! > 0);
+
+  /// Returns whether the distance is locked (i.e. auto-detected by FIT and > 0).
+  bool get isDistanceLocked =>
+      hasFit && (distanceKm != null && distanceKm! > 0);
 }

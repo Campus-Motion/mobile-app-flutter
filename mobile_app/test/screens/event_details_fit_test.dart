@@ -63,17 +63,17 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Past Campus Welcome Run'), findsOneWidget);
-        expect(find.text('Ajouter le tracé GPS (.fit)'), findsOneWidget);
+        expect(find.text('Add GPS route (.fit)'), findsOneWidget);
         expect(find.byType(RouteMap), findsNothing);
 
         // Tap import track button
-        await tester.tap(find.text('Ajouter le tracé GPS (.fit)'));
+        await tester.tap(find.text('Add GPS route (.fit)'));
         await tester.pumpAndSettle();
 
         // RouteMap is now displayed!
         expect(find.byType(RouteMap), findsOneWidget);
-        expect(find.text('Tracé GPS'), findsOneWidget);
-        expect(find.text('Ajouter le tracé GPS (.fit)'), findsNothing);
+        expect(find.text('GPS Route'), findsOneWidget);
+        expect(find.text('Add GPS route (.fit)'), findsNothing);
 
         // Verify activity was created and distributed
         final afterActivities =
@@ -90,7 +90,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Sunset Lake Trail Run'), findsOneWidget);
-      expect(find.text('Ajouter le tracé GPS (.fit)'), findsNothing);
+      expect(find.text('Add GPS route (.fit)'), findsNothing);
       expect(find.text('Leave Event'), findsOneWidget);
     });
 
@@ -98,12 +98,12 @@ void main() {
       await tester.pumpWidget(buildTestApp(104, pickFitFile: () async => null));
       await tester.pumpAndSettle();
 
-      expect(find.text('Ajouter le tracé GPS (.fit)'), findsOneWidget);
+      expect(find.text('Add GPS route (.fit)'), findsOneWidget);
 
-      await tester.tap(find.text('Ajouter le tracé GPS (.fit)'));
+      await tester.tap(find.text('Add GPS route (.fit)'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Ajouter le tracé GPS (.fit)'), findsOneWidget);
+      expect(find.text('Add GPS route (.fit)'), findsOneWidget);
       expect(find.byType(RouteMap), findsNothing);
     });
   });

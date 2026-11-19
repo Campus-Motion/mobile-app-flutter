@@ -26,10 +26,10 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
 
   // Allowed disciplines per specification (other is never included)
   static const List<Map<String, dynamic>> _disciplines = [
-    {'key': 'run', 'label': 'Course à pied', 'icon': Icons.directions_run},
-    {'key': 'cycle', 'label': 'Cyclisme', 'icon': Icons.pedal_bike},
-    {'key': 'walk', 'label': 'Marche', 'icon': Icons.directions_walk},
-    {'key': 'hike', 'label': 'Randonnée', 'icon': Icons.terrain},
+    {'key': 'run', 'label': 'Running', 'icon': Icons.directions_run},
+    {'key': 'cycle', 'label': 'Cycling', 'icon': Icons.pedal_bike},
+    {'key': 'walk', 'label': 'Walking', 'icon': Icons.directions_walk},
+    {'key': 'hike', 'label': 'Hiking', 'icon': Icons.terrain},
   ];
 
   String _selectedDiscipline = 'run';
@@ -98,7 +98,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
             ),
             const SizedBox(width: 4),
             const Text(
-              'Mes Heatmaps',
+              'My Heatmaps',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -113,7 +113,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 4.0),
           child: Text(
-            'Visualisez l\'ensemble de vos parcours GPS par discipline.',
+            'View all your GPS routes by discipline.',
             style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
         ),
@@ -169,7 +169,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
 
         // Map Section Header
         const SectionHeader(
-          title: 'Carte & Tracés',
+          title: 'Map & Routes',
           padding: EdgeInsets.only(bottom: 12),
         ),
 
@@ -177,17 +177,14 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
         if (_isLoading)
           const LoadingState(height: 360)
         else if (_hasError)
-          ErrorState(
-            message: 'Impossible de charger la heatmap.',
-            onRetry: _loadTracks,
-          )
+          ErrorState(message: 'Unable to load heatmap.', onRetry: _loadTracks)
         else if (_tracks.isEmpty)
           const SizedBox(
             height: 360,
             child: EmptyState(
               icon: Icons.map_outlined,
               title: 'No GPS data',
-              subtitle: 'Aucune sortie GPS enregistrée pour cette discipline.',
+              subtitle: 'No GPS activities recorded for this discipline.',
             ),
           )
         else ...[
@@ -210,7 +207,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
                 Icon(Icons.route, size: 18, color: activeColor),
                 const SizedBox(width: 8),
                 Text(
-                  '${_tracks.length} ${_tracks.length > 1 ? 'sorties GPS enregistrées' : 'sortie GPS enregistrée'}',
+                  '${_tracks.length} ${_tracks.length > 1 ? 'recorded GPS activities' : 'recorded GPS activity'}',
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

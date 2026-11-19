@@ -27,7 +27,7 @@ class EventService {
             : null,
       ),
     ],
-    confirmButtonText: 'Choisir un fichier .fit',
+    confirmButtonText: 'Choose a .fit file',
   );
 
   Future<List<Waypoint>> importEventFitFile(int eventId, XFile file) async {
@@ -35,11 +35,11 @@ class EventService {
         ? file.name
         : file.path.split(RegExp(r'[/\\]')).last;
     if (!filename.toLowerCase().endsWith('.fit')) {
-      throw Exception('Veuillez sélectionner un fichier .fit.');
+      throw Exception('Please select a .fit file.');
     }
     final length = await file.length();
     if (length > maxFitBytes) {
-      throw Exception('Le fichier .fit ne doit pas dépasser 10 Mo.');
+      throw Exception('The .fit file must not exceed 10 MB.');
     }
     final bytes = await file.readAsBytes();
     return addEventTrack(

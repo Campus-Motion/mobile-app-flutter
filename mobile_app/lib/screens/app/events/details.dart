@@ -150,7 +150,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Tracé GPS ajouté et distribué aux participants !'),
+          content: Text('GPS route added and shared with participants!'),
         ),
       );
     } catch (e) {
@@ -159,7 +159,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Erreur import tracé: $e')));
+      ).showSnackBar(SnackBar(content: Text('Error importing route: $e')));
     }
   }
 
@@ -451,7 +451,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         if (isPastEvent) ...[
           if (isOrganizer && _eventWaypoints.isEmpty) ...[
             AppButton(
-              text: 'Ajouter le tracé GPS (.fit)',
+              text: 'Add GPS route (.fit)',
               isLoading: _isImportingTrack,
               onPressed: _importEventTrack,
             ),
@@ -472,7 +472,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         // GPS Route Map (conditioned to presence of GPS points)
         if (_eventWaypoints.isNotEmpty) ...[
           const SectionHeader(
-            title: 'Tracé GPS',
+            title: 'GPS Route',
             padding: EdgeInsets.only(bottom: 12),
           ),
           RouteMap(
