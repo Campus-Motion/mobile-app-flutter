@@ -30,7 +30,7 @@ void main() {
       'getWaypoints returns empty list for activity without track',
       () async {
         final service = ActivityService();
-        final waypoints = await service.getWaypoints(203);
+        final waypoints = await service.getWaypoints(999);
 
         expect(waypoints, isEmpty);
       },

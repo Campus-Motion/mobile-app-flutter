@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:mobile_app/models/waypoint.dart';
 import 'package:mobile_app/services/activity_service.dart';
 import 'package:mobile_app/services/api_service.dart';
+import 'package:mobile_app/services/mock_data_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -91,15 +92,29 @@ void main() {
       expect(tracks, isEmpty);
     });
 
-    test('getDisciplineTracks returns valid tracks with length >= 2', () async {
-      ApiService.mockMode = true;
-      final runTracks = await ActivityService().getDisciplineTracks('run');
-      expect(runTracks, isNotEmpty);
-      for (final track in runTracks) {
-        expect(track.length, greaterThanOrEqualTo(2));
-        expect(track.first, isA<Waypoint>());
-      }
-    });
+    test(
+      'getDisciplineTracks returns 2 distinct tracks per discipline in mock mode',
+      () async {
+        ApiService.mockMode = true;
+        MockDataService().resetMockActivities();
+        for (final sport in ['run', 'cycle', 'walk', 'hike']) {
+          final tracks = await ActivityService().getDisciplineTracks(sport);
+          expect(tracks.length, 2, reason: 'Expected 2 tracks for $sport');
+          for (final track in tracks) {
+            expect(track.length, greaterThanOrEqualTo(2));
+            expect(track.first, isA<Waypoint>());
+          }
+        }
+        final runTracks = await ActivityService().getDisciplineTracks('run');
+        final cycleTracks = await ActivityService().getDisciplineTracks(
+          'cycle',
+        );
+        expect(
+          runTracks.first.first.latitude,
+          isNot(equals(cycleTracks.first.first.latitude)),
+        );
+      },
+    );
 
     test('importFitFile rejects non-.fit files', () async {
       final badFile = XFile.fromData(

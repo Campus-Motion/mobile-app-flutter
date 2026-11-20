@@ -260,8 +260,11 @@ class ActivityService {
     }
 
     final activities = await getActivities(type: normalizedSport, limit: 50);
+    final matchingActivities = activities
+        .where((a) => a.type.toLowerCase().trim() == normalizedSport)
+        .toList();
     final tracks = await Future.wait(
-      activities.map((activity) => getWaypoints(activity.id)),
+      matchingActivities.map((activity) => getWaypoints(activity.id)),
     );
 
     return tracks.where((track) => track.length >= 2).toList();

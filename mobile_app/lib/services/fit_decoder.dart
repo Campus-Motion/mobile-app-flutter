@@ -152,6 +152,7 @@ class FitDecoder {
         int? latSemi;
         int? lonSemi;
         int? recordTimeSec;
+        double? altitudeM;
 
         for (final f in defn.fields) {
           if (offset + f.size > totalEnd) break;
@@ -173,7 +174,12 @@ class FitDecoder {
               if (mapped != 'other') {
                 detectedSport = mapped;
               }
-            } else if ((f.fieldNum == 7 || f.fieldNum == 8) && f.size == 4) {
+            } else if (f.fieldNum == 7 && f.size == 4) {
+              final rawTime = bd.getUint32(offset, endian);
+              if (rawTime > 0 && rawTime != 0xFFFFFFFF) {
+                detectedDurationMinutes ??= (rawTime / 1000.0) / 60.0;
+              }
+            } else if (f.fieldNum == 8 && f.size == 4) {
               final rawTime = bd.getUint32(offset, endian);
               if (rawTime > 0 && rawTime != 0xFFFFFFFF) {
                 detectedDurationMinutes = (rawTime / 1000.0) / 60.0;
@@ -199,6 +205,16 @@ class FitDecoder {
               latSemi = bd.getInt32(offset, endian);
             } else if (f.fieldNum == 1 && f.size == 4) {
               lonSemi = bd.getInt32(offset, endian);
+            } else if (f.fieldNum == 2 && f.size == 2) {
+              final rawAlt = bd.getUint16(offset, endian);
+              if (rawAlt != 0xFFFF) {
+                altitudeM ??= (rawAlt / 5.0) - 500.0;
+              }
+            } else if (f.fieldNum == 78 && f.size == 4) {
+              final rawAlt = bd.getUint32(offset, endian);
+              if (rawAlt != 0xFFFFFFFF) {
+                altitudeM = (rawAlt / 5.0) - 500.0;
+              }
             } else if (f.fieldNum == 253 && f.size == 4) {
               recordTimeSec = bd.getUint32(offset, endian);
             }
@@ -228,6 +244,7 @@ class FitDecoder {
             'longitude': lon,
             'recorded_at': recDate,
             'sequence_order': waypoints.length + 1,
+            'altitude_m': ?altitudeM,
           });
         }
       }

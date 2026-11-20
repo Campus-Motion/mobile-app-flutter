@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_app/config/routes.dart';
+import 'package:mobile_app/models/activity.dart';
 import 'package:mobile_app/screens/app/activity/details.dart';
+import 'package:mobile_app/services/activity_service.dart';
 import 'package:mobile_app/services/api_service.dart';
 import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/mock_data_service.dart';
@@ -81,8 +83,11 @@ void main() {
       expect(find.text('Distance'), findsOneWidget);
       expect(find.text('Duration'), findsOneWidget);
       expect(find.text('Pace'), findsOneWidget);
+      expect(find.text('Elevation'), findsOneWidget);
       expect(find.text('6.2'), findsOneWidget);
-      expect(find.text('35m'), findsOneWidget);
+      expect(find.text('35'), findsOneWidget);
+      expect(find.text('min'), findsOneWidget);
+      expect(find.text('+13 / -13'), findsOneWidget);
 
       // Route Map
       expect(find.text('GPS Route'), findsOneWidget);
@@ -105,17 +110,30 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
 
+        final manual = await ActivityService().createActivity(
+          Activity(
+            id: 0,
+            title: 'Manual Campus Walk',
+            type: 'walk',
+            userId: 1,
+            isPublic: false,
+            createdAt: DateTime.now(),
+            duration: 25.0,
+            distanceKm: 2.1,
+          ),
+        );
+
         await tester.pumpWidget(
           MaterialApp(
             home: ActivityDetailsScreen(
-              activityId: 203,
+              activityId: manual.id,
               tileProvider: FakeTileProvider(),
             ),
           ),
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Campus Trail Walk'), findsOneWidget);
+        expect(find.text('Manual Campus Walk'), findsOneWidget);
         expect(find.byType(FlutterMap), findsNothing);
         expect(find.text('No GPS route recorded'), findsOneWidget);
         expect(
@@ -178,10 +196,23 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
 
+        final manual = await ActivityService().createActivity(
+          Activity(
+            id: 0,
+            title: 'Manual Stroll',
+            type: 'walk',
+            userId: 1,
+            isPublic: true,
+            createdAt: DateTime.now(),
+            duration: 30.0,
+            distanceKm: 2.5,
+          ),
+        );
+
         await tester.pumpWidget(
           MaterialApp(
             home: ActivityDetailsScreen(
-              activityId: 204,
+              activityId: manual.id,
               tileProvider: FakeTileProvider(),
             ),
           ),
@@ -221,7 +252,8 @@ void main() {
 
         expect(find.text('Activity updated successfully.'), findsOneWidget);
         expect(find.text('5.5'), findsOneWidget);
-        expect(find.text('45m'), findsOneWidget);
+        expect(find.text('45'), findsOneWidget);
+        expect(find.text('min'), findsOneWidget);
       },
     );
 
@@ -232,10 +264,23 @@ void main() {
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
 
+        final manual = await ActivityService().createActivity(
+          Activity(
+            id: 0,
+            title: 'Manual Workout',
+            type: 'walk',
+            userId: 1,
+            isPublic: false,
+            createdAt: DateTime.now(),
+            duration: 25.0,
+            distanceKm: 2.1,
+          ),
+        );
+
         await tester.pumpWidget(
           MaterialApp(
             home: ActivityDetailsScreen(
-              activityId: 203,
+              activityId: manual.id,
               tileProvider: FakeTileProvider(),
               pickFitFile: () async => XFile.fromData(
                 buildMockFitBytes(),
@@ -271,7 +316,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: ActivityDetailsScreen(
-            activityId: 204,
+            activityId: 206,
             tileProvider: FakeTileProvider(),
           ),
         ),

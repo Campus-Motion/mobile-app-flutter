@@ -27,11 +27,16 @@ class AppColors {
 
   // Activity Category Tokens (Used in Activity & Profile screens)
   static const Color activityRun = Colors.deepOrange;
-  static const Color activityWalk = Colors.teal;
+  static const Color activityWalk = Color(0xFFEAB308);
   static const Color activityCycle = Colors.blue;
   static const Color activityHike = Colors.green;
   static const Color activitySwim = Colors.cyan;
   static const Color activityDefault = AppColors.primary;
+
+  // Trail / Pace Colormap Tokens (from Trail/onecourse.py)
+  static const Color paceFast = Color(0xFF2DC653);
+  static const Color paceMedium = Color(0xFFFFD166);
+  static const Color paceSlow = Color(0xFFEF233C);
 
   // Shadow token (10% black opacity)
   static Color get shadow => Colors.black.withValues(alpha: 0.08);

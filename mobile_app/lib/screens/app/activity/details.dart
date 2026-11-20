@@ -98,9 +98,31 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen> {
       return '--';
     }
     final paceMin = activity.duration! / distanceKm;
-    final mins = paceMin.floor();
-    final secs = ((paceMin - mins) * 60).round();
+    final totalSecs = (paceMin * 60.0).round();
+    final mins = totalSecs ~/ 60;
+    final secs = totalSecs % 60;
     return "$mins:${secs.toString().padLeft(2, '0')}";
+  }
+
+  (int, int)? _calculateElevationGainLoss() {
+    double ascent = 0.0;
+    double descent = 0.0;
+    bool hasAltitude = false;
+    for (int i = 0; i < _waypoints.length - 1; i++) {
+      final alt1 = _waypoints[i].altitudeM;
+      final alt2 = _waypoints[i + 1].altitudeM;
+      if (alt1 != null && alt2 != null) {
+        hasAltitude = true;
+        final diff = alt2 - alt1;
+        if (diff > 0) {
+          ascent += diff;
+        } else {
+          descent += diff.abs();
+        }
+      }
+    }
+    if (!hasAltitude) return null;
+    return (ascent.round(), descent.round());
   }
 
   Future<void> _addFitFile() async {
@@ -657,10 +679,23 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen> {
       'EEEE, MMM d, yyyy • HH:mm',
     ).format(activity.createdAt);
     final distanceStr = ActivityCard.getActivityDistanceString(activity);
-    final durationStr = ActivityCard.getActivityDurationString(
-      activity.duration,
-    );
+    String durationValue = '--';
+    String? durationUnit;
+    if (activity.duration != null) {
+      final totalMins = activity.duration!.round();
+      final hrs = totalMins ~/ 60;
+      final mins = totalMins % 60;
+      durationValue = hrs > 0
+          ? '${hrs}h ${mins.toString().padLeft(2, '0')}'
+          : '$mins';
+      durationUnit = 'min';
+    }
     final paceStr = _calculatePace(activity);
+    final showElevation = activity.type.toLowerCase() != 'swim';
+    final elevation = showElevation ? _calculateElevationGainLoss() : null;
+    final elevationStr = elevation != null
+        ? '+${elevation.$1} / -${elevation.$2}'
+        : '--';
 
     return MasterContainer(
       onRefresh: _loadDetails,
@@ -780,38 +815,110 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen> {
         // Metrics Card
         AppCard(
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: StatItem(
-                    label: 'Distance',
-                    value: distanceStr.replaceAll(' km', ''),
-                    unit: distanceStr.contains('km') ? 'km' : null,
-                  ),
+          child: showElevation
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: StatItem(
+                              label: 'Distance',
+                              value: distanceStr.replaceAll(' km', ''),
+                              unit: distanceStr.contains('km') ? 'km' : null,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          height: 40,
+                          width: 1,
+                          color: AppColors.divider,
+                        ),
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: StatItem(
+                              label: 'Duration',
+                              value: durationValue,
+                              unit: durationUnit,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Container(height: 1, color: AppColors.divider),
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: StatItem(
+                              label: 'Pace',
+                              value: paceStr,
+                              unit: paceStr != '--' ? 'min/km' : null,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          height: 40,
+                          width: 1,
+                          color: AppColors.divider,
+                        ),
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: StatItem(
+                              label: 'Elevation',
+                              value: elevationStr,
+                              unit: elevation != null ? 'm' : null,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: StatItem(
+                          label: 'Distance',
+                          value: distanceStr.replaceAll(' km', ''),
+                          unit: distanceStr.contains('km') ? 'km' : null,
+                        ),
+                      ),
+                    ),
+                    Container(height: 40, width: 1, color: AppColors.divider),
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: StatItem(
+                          label: 'Duration',
+                          value: durationValue,
+                          unit: durationUnit,
+                        ),
+                      ),
+                    ),
+                    Container(height: 40, width: 1, color: AppColors.divider),
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: StatItem(
+                          label: 'Pace',
+                          value: paceStr,
+                          unit: paceStr != '--' ? 'min/km' : null,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              Container(height: 40, width: 1, color: AppColors.divider),
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: StatItem(label: 'Duration', value: durationStr),
-                ),
-              ),
-              Container(height: 40, width: 1, color: AppColors.divider),
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: StatItem(
-                    label: 'Pace',
-                    value: paceStr,
-                    unit: paceStr != '--' ? 'min/km' : null,
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
 
         // GPS Route Map or Encouragement Card on grey background
@@ -823,6 +930,7 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen> {
           RouteMap(
             waypoints: _waypoints,
             routeColor: color,
+            activityType: activity.type,
             tileProvider: widget.tileProvider,
           ),
           const SizedBox(height: 8),

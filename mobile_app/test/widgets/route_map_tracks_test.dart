@@ -54,19 +54,34 @@ void main() {
       expect(find.text('No GPS data'), findsOneWidget);
     });
 
-    testWidgets('renders FlutterMap and polylines when tracks are present', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: RouteMap(tracks: [sampleTrack1, sampleTrack2])),
-        ),
-      );
-      await tester.pumpAndSettle();
+    testWidgets(
+      'renders FlutterMap and raster heatmap overlay when tracks are present',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: RouteMap(tracks: [sampleTrack1, sampleTrack2]),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.byType(FlutterMap), findsOneWidget);
-      expect(find.byType(PolylineLayer), findsOneWidget);
-      expect(find.text('© OpenStreetMap'), findsOneWidget);
-    });
+        expect(find.byType(FlutterMap), findsOneWidget);
+        expect(find.byType(OverlayImageLayer), findsOneWidget);
+        expect(find.text('© OpenStreetMap'), findsOneWidget);
+        expect(find.text('Analyzed workouts'), findsOneWidget);
+        expect(find.text('Min intensity'), findsOneWidget);
+        expect(find.text('Max intensity'), findsOneWidget);
+        expect(find.textContaining('~'), findsNothing);
+
+        await tester.tap(find.byIcon(Icons.fullscreen));
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.fullscreen_exit), findsOneWidget);
+
+        await tester.tap(find.byIcon(Icons.fullscreen_exit));
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.fullscreen_exit), findsNothing);
+      },
+    );
   });
 }

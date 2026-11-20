@@ -157,7 +157,7 @@ class MockDataService {
     },
   ];
 
-  // Mock Activities
+  // Mock Activities (2 instances per discipline: run, cycle, walk, hike)
   static List<Map<String, dynamic>> _buildInitialActivities() => [
     {
       'id': 201,
@@ -176,6 +176,20 @@ class MockDataService {
     },
     {
       'id': 202,
+      'title': 'Evening Innovation Park Run',
+      'type': 'run',
+      'user_id': 1,
+      'is_public': true,
+      'duration': 28.0,
+      'distance_km': 5.1,
+      'has_fit': true,
+      'body': 'Tempo run crossing the central campus avenue toward Dorigny.',
+      'created_at': DateTime.now()
+          .subtract(const Duration(days: 2))
+          .toIso8601String(),
+    },
+    {
+      'id': 203,
       'title': 'Dorigny Lakefront Cycle',
       'type': 'cycle',
       'user_id': 1,
@@ -189,35 +203,49 @@ class MockDataService {
           .toIso8601String(),
     },
     {
-      'id': 203,
+      'id': 204,
+      'title': 'St-Sulpice Campus Ride',
+      'type': 'cycle',
+      'user_id': 1,
+      'is_public': true,
+      'duration': 42.0,
+      'distance_km': 14.2,
+      'has_fit': true,
+      'body': 'Afternoon ride from campus sharing the lakeside section.',
+      'created_at': DateTime.now()
+          .subtract(const Duration(days: 4))
+          .toIso8601String(),
+    },
+    {
+      'id': 205,
       'title': 'Campus Trail Walk',
       'type': 'walk',
       'user_id': 1,
       'is_public': false,
       'duration': 25.0,
       'distance_km': 2.1,
-      'has_fit': false,
+      'has_fit': true,
       'body': 'Walking the fitness checkpoints around Rolex Learning Center.',
       'created_at': DateTime.now()
           .subtract(const Duration(days: 5))
           .toIso8601String(),
     },
     {
-      'id': 204,
+      'id': 206,
       'title': 'Lakeside Walk',
       'type': 'walk',
       'user_id': 1,
       'is_public': true,
       'duration': 30.0,
       'distance_km': 2.5,
-      'has_fit': false,
-      'body': 'Gentle stroll along Lake Geneva.',
+      'has_fit': true,
+      'body': 'Gentle stroll along Lake Geneva crossing the esplanade.',
       'created_at': DateTime.now()
-          .subtract(const Duration(days: 2))
+          .subtract(const Duration(days: 6))
           .toIso8601String(),
     },
     {
-      'id': 205,
+      'id': 207,
       'title': 'Campus Hill Hike',
       'type': 'hike',
       'user_id': 1,
@@ -227,7 +255,21 @@ class MockDataService {
       'has_fit': true,
       'body': 'Scenic hike towards Mount Dorigny view.',
       'created_at': DateTime.now()
-          .subtract(const Duration(days: 4))
+          .subtract(const Duration(days: 7))
+          .toIso8601String(),
+    },
+    {
+      'id': 208,
+      'title': 'Chamberonne Forest Hike',
+      'type': 'hike',
+      'user_id': 1,
+      'is_public': true,
+      'duration': 65.0,
+      'distance_km': 5.9,
+      'has_fit': true,
+      'body': 'Forest loop crossing the northern hill ridge.',
+      'created_at': DateTime.now()
+          .subtract(const Duration(days: 8))
           .toIso8601String(),
     },
   ];
@@ -235,7 +277,7 @@ class MockDataService {
   late final List<Map<String, dynamic>> _mockActivities =
       _buildInitialActivities();
 
-  // Mock Waypoints for activities
+  // Default fallback Mock Waypoints (Run 1)
   final List<Map<String, dynamic>> _defaultMockWaypoints = [
     {
       'id': 1,
@@ -251,7 +293,7 @@ class MockDataService {
       'latitude': 46.5205,
       'longitude': 6.5680,
       'altitude_m': 393.5,
-      'recorded_at': '2026-11-16T08:05:00Z',
+      'recorded_at': '2026-11-16T08:00:55Z',
     },
     {
       'id': 3,
@@ -259,7 +301,7 @@ class MockDataService {
       'latitude': 46.5218,
       'longitude': 6.5725,
       'altitude_m': 388.0,
-      'recorded_at': '2026-11-16T08:12:00Z',
+      'recorded_at': '2026-11-16T08:02:35Z',
     },
     {
       'id': 4,
@@ -267,7 +309,7 @@ class MockDataService {
       'latitude': 46.5195,
       'longitude': 6.5760,
       'altitude_m': 385.0,
-      'recorded_at': '2026-11-16T08:18:00Z',
+      'recorded_at': '2026-11-16T08:04:30Z',
     },
     {
       'id': 5,
@@ -275,7 +317,7 @@ class MockDataService {
       'latitude': 46.5170,
       'longitude': 6.5720,
       'altitude_m': 390.0,
-      'recorded_at': '2026-11-16T08:25:00Z',
+      'recorded_at': '2026-11-16T08:07:00Z',
     },
     {
       'id': 6,
@@ -283,7 +325,7 @@ class MockDataService {
       'latitude': 46.5160,
       'longitude': 6.5665,
       'altitude_m': 398.0,
-      'recorded_at': '2026-11-16T08:31:00Z',
+      'recorded_at': '2026-11-16T08:10:00Z',
     },
     {
       'id': 7,
@@ -291,17 +333,314 @@ class MockDataService {
       'latitude': 46.5190,
       'longitude': 6.5660,
       'altitude_m': 395.0,
-      'recorded_at': '2026-11-16T08:34:30Z',
+      'recorded_at': '2026-11-16T08:11:35Z',
     },
   ];
 
-  late final Map<int, List<Map<String, dynamic>>> _mockWaypoints = {
-    201: _defaultMockWaypoints,
-    202: _defaultMockWaypoints,
-    203: [],
-    204: [],
-    205: _defaultMockWaypoints,
+  Map<int, List<Map<String, dynamic>>> _buildInitialWaypoints() => {
+    // Run 1 & Run 2: share the Innovation Park segment (46.5205,6.5680 -> 46.5218,6.5725 -> 46.5195,6.5760)
+    201: List<Map<String, dynamic>>.from(_defaultMockWaypoints),
+    202: [
+      {
+        'id': 21,
+        'sequence_order': 0,
+        'latitude': 46.5242,
+        'longitude': 6.5655,
+        'altitude_m': 405.0,
+        'recorded_at': '2026-11-15T17:00:00Z',
+      },
+      {
+        'id': 22,
+        'sequence_order': 1,
+        'latitude': 46.5205,
+        'longitude': 6.5680,
+        'altitude_m': 393.5,
+        'recorded_at': '2026-11-15T17:02:00Z',
+      },
+      {
+        'id': 23,
+        'sequence_order': 2,
+        'latitude': 46.5218,
+        'longitude': 6.5725,
+        'altitude_m': 388.0,
+        'recorded_at': '2026-11-15T17:03:45Z',
+      },
+      {
+        'id': 24,
+        'sequence_order': 3,
+        'latitude': 46.5195,
+        'longitude': 6.5760,
+        'altitude_m': 385.0,
+        'recorded_at': '2026-11-15T17:05:30Z',
+      },
+      {
+        'id': 25,
+        'sequence_order': 4,
+        'latitude': 46.5230,
+        'longitude': 6.5795,
+        'altitude_m': 396.0,
+        'recorded_at': '2026-11-15T17:07:40Z',
+      },
+      {
+        'id': 26,
+        'sequence_order': 5,
+        'latitude': 46.5252,
+        'longitude': 6.5740,
+        'altitude_m': 408.0,
+        'recorded_at': '2026-11-15T17:09:30Z',
+      },
+    ],
+    // Cycle 1 & Cycle 2: share the lakeside bike path (46.5152,6.5770 -> 46.5145,6.5650 -> 46.5135,6.5530)
+    203: [
+      {
+        'id': 31,
+        'sequence_order': 0,
+        'latitude': 46.5148,
+        'longitude': 6.5880,
+        'altitude_m': 374.0,
+        'recorded_at': '2026-11-14T14:00:00Z',
+      },
+      {
+        'id': 32,
+        'sequence_order': 1,
+        'latitude': 46.5152,
+        'longitude': 6.5770,
+        'altitude_m': 375.0,
+        'recorded_at': '2026-11-14T14:01:45Z',
+      },
+      {
+        'id': 33,
+        'sequence_order': 2,
+        'latitude': 46.5145,
+        'longitude': 6.5650,
+        'altitude_m': 374.0,
+        'recorded_at': '2026-11-14T14:03:20Z',
+      },
+      {
+        'id': 34,
+        'sequence_order': 3,
+        'latitude': 46.5135,
+        'longitude': 6.5530,
+        'altitude_m': 373.5,
+        'recorded_at': '2026-11-14T14:05:10Z',
+      },
+      {
+        'id': 35,
+        'sequence_order': 4,
+        'latitude': 46.5120,
+        'longitude': 6.5410,
+        'altitude_m': 373.0,
+        'recorded_at': '2026-11-14T14:07:15Z',
+      },
+    ],
+    204: [
+      {
+        'id': 41,
+        'sequence_order': 0,
+        'latitude': 46.5215,
+        'longitude': 6.5780,
+        'altitude_m': 392.0,
+        'recorded_at': '2026-11-13T16:00:00Z',
+      },
+      {
+        'id': 42,
+        'sequence_order': 1,
+        'latitude': 46.5152,
+        'longitude': 6.5770,
+        'altitude_m': 375.0,
+        'recorded_at': '2026-11-13T16:01:30Z',
+      },
+      {
+        'id': 43,
+        'sequence_order': 2,
+        'latitude': 46.5145,
+        'longitude': 6.5650,
+        'altitude_m': 374.0,
+        'recorded_at': '2026-11-13T16:03:10Z',
+      },
+      {
+        'id': 44,
+        'sequence_order': 3,
+        'latitude': 46.5135,
+        'longitude': 6.5530,
+        'altitude_m': 373.5,
+        'recorded_at': '2026-11-13T16:05:00Z',
+      },
+      {
+        'id': 45,
+        'sequence_order': 4,
+        'latitude': 46.5205,
+        'longitude': 6.5510,
+        'altitude_m': 389.0,
+        'recorded_at': '2026-11-13T16:07:10Z',
+      },
+    ],
+    // Walk 1 & Walk 2: share the central esplanade walkway (46.5192,6.5675 -> 46.5202,6.5715 -> 46.5212,6.5755)
+    205: [
+      {
+        'id': 51,
+        'sequence_order': 0,
+        'latitude': 46.5175,
+        'longitude': 6.5640,
+        'altitude_m': 392.0,
+        'recorded_at': '2026-11-12T12:00:00Z',
+      },
+      {
+        'id': 52,
+        'sequence_order': 1,
+        'latitude': 46.5192,
+        'longitude': 6.5675,
+        'altitude_m': 395.0,
+        'recorded_at': '2026-11-12T12:04:00Z',
+      },
+      {
+        'id': 53,
+        'sequence_order': 2,
+        'latitude': 46.5202,
+        'longitude': 6.5715,
+        'altitude_m': 391.0,
+        'recorded_at': '2026-11-12T12:08:30Z',
+      },
+      {
+        'id': 54,
+        'sequence_order': 3,
+        'latitude': 46.5212,
+        'longitude': 6.5755,
+        'altitude_m': 388.0,
+        'recorded_at': '2026-11-12T12:13:30Z',
+      },
+      {
+        'id': 55,
+        'sequence_order': 4,
+        'latitude': 46.5228,
+        'longitude': 6.5785,
+        'altitude_m': 390.0,
+        'recorded_at': '2026-11-12T12:18:00Z',
+      },
+    ],
+    206: [
+      {
+        'id': 61,
+        'sequence_order': 0,
+        'latitude': 46.5225,
+        'longitude': 6.5655,
+        'altitude_m': 399.0,
+        'recorded_at': '2026-11-11T12:30:00Z',
+      },
+      {
+        'id': 62,
+        'sequence_order': 1,
+        'latitude': 46.5192,
+        'longitude': 6.5675,
+        'altitude_m': 395.0,
+        'recorded_at': '2026-11-11T12:35:00Z',
+      },
+      {
+        'id': 63,
+        'sequence_order': 2,
+        'latitude': 46.5202,
+        'longitude': 6.5715,
+        'altitude_m': 391.0,
+        'recorded_at': '2026-11-11T12:39:40Z',
+      },
+      {
+        'id': 64,
+        'sequence_order': 3,
+        'latitude': 46.5212,
+        'longitude': 6.5755,
+        'altitude_m': 388.0,
+        'recorded_at': '2026-11-11T12:44:30Z',
+      },
+      {
+        'id': 65,
+        'sequence_order': 4,
+        'latitude': 46.5170,
+        'longitude': 6.5765,
+        'altitude_m': 381.0,
+        'recorded_at': '2026-11-11T12:50:30Z',
+      },
+    ],
+    // Hike 1 & Hike 2: share the northern hill ridge (46.5280,6.5630 -> 46.5305,6.5685)
+    207: [
+      {
+        'id': 71,
+        'sequence_order': 0,
+        'latitude': 46.5255,
+        'longitude': 6.5580,
+        'altitude_m': 410.0,
+        'recorded_at': '2026-11-10T09:00:00Z',
+      },
+      {
+        'id': 72,
+        'sequence_order': 1,
+        'latitude': 46.5280,
+        'longitude': 6.5630,
+        'altitude_m': 428.0,
+        'recorded_at': '2026-11-10T09:06:30Z',
+      },
+      {
+        'id': 73,
+        'sequence_order': 2,
+        'latitude': 46.5305,
+        'longitude': 6.5685,
+        'altitude_m': 445.0,
+        'recorded_at': '2026-11-10T09:13:30Z',
+      },
+      {
+        'id': 74,
+        'sequence_order': 3,
+        'latitude': 46.5335,
+        'longitude': 6.5745,
+        'altitude_m': 462.0,
+        'recorded_at': '2026-11-10T09:21:30Z',
+      },
+      {
+        'id': 75,
+        'sequence_order': 4,
+        'latitude': 46.5360,
+        'longitude': 6.5790,
+        'altitude_m': 478.0,
+        'recorded_at': '2026-11-10T09:28:00Z',
+      },
+    ],
+    208: [
+      {
+        'id': 81,
+        'sequence_order': 0,
+        'latitude': 46.5250,
+        'longitude': 6.5720,
+        'altitude_m': 412.0,
+        'recorded_at': '2026-11-09T10:00:00Z',
+      },
+      {
+        'id': 82,
+        'sequence_order': 1,
+        'latitude': 46.5280,
+        'longitude': 6.5630,
+        'altitude_m': 428.0,
+        'recorded_at': '2026-11-09T10:09:30Z',
+      },
+      {
+        'id': 83,
+        'sequence_order': 2,
+        'latitude': 46.5305,
+        'longitude': 6.5685,
+        'altitude_m': 445.0,
+        'recorded_at': '2026-11-09T10:16:30Z',
+      },
+      {
+        'id': 84,
+        'sequence_order': 3,
+        'latitude': 46.5350,
+        'longitude': 6.5620,
+        'altitude_m': 468.0,
+        'recorded_at': '2026-11-09T10:25:30Z',
+      },
+    ],
   };
+
+  late final Map<int, List<Map<String, dynamic>>> _mockWaypoints =
+      _buildInitialWaypoints();
 
   final Map<int, List<Map<String, dynamic>>> _mockEventWaypoints = {};
 
@@ -547,8 +886,34 @@ class MockDataService {
     }
 
     if (cleanPath == '/activities') {
+      var activities = List<Map<String, dynamic>>.from(_mockActivities);
+      final typeParam = uri.queryParameters['type'];
+      if (typeParam != null && typeParam.trim().isNotEmpty) {
+        final targetType = typeParam.toLowerCase().trim();
+        activities = activities
+            .where(
+              (a) =>
+                  (a['type'] as String? ?? '').toLowerCase().trim() ==
+                  targetType,
+            )
+            .toList();
+      }
+      final publicParam = uri.queryParameters['public'];
+      if (publicParam != null) {
+        final isPublic = publicParam.toLowerCase() == 'true';
+        activities = activities
+            .where((a) => (a['is_public'] as bool? ?? false) == isPublic)
+            .toList();
+      }
+      final limitParam = uri.queryParameters['limit'];
+      if (limitParam != null) {
+        final limit = int.tryParse(limitParam);
+        if (limit != null && activities.length > limit) {
+          activities = activities.sublist(0, limit);
+        }
+      }
       return http.Response(
-        json.encode({'data': _mockActivities}),
+        json.encode({'data': activities}),
         200,
         headers: _jsonHeaders,
       );
@@ -1121,12 +1486,6 @@ class MockDataService {
       ..addAll(_buildInitialActivities());
     _mockWaypoints
       ..clear()
-      ..addAll({
-        201: _defaultMockWaypoints,
-        202: _defaultMockWaypoints,
-        203: [],
-        204: [],
-        205: _defaultMockWaypoints,
-      });
+      ..addAll(_buildInitialWaypoints());
   }
 }

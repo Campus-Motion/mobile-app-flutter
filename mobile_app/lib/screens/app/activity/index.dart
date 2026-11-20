@@ -259,6 +259,10 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     final distanceController = TextEditingController();
     bool isPublic = false;
     int? importedActivityId;
+    double? importedExactDuration;
+    double? importedExactDistanceKm;
+    String? importedDurationText;
+    String? importedDistanceText;
     bool showSportWarning = false;
     bool isImportingFit = false;
 
@@ -389,9 +393,12 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                                           ? activity.duration
                                           : localMeta.durationMinutes;
                                       if (dur != null && dur > 0) {
-                                        durationController.text = dur
+                                        importedExactDuration = dur;
+                                        importedDurationText = dur
                                             .round()
                                             .toString();
+                                        durationController.text =
+                                            importedDurationText!;
                                       }
 
                                       final dist =
@@ -400,9 +407,12 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                                           ? activity.distanceKm
                                           : localMeta.distanceKm;
                                       if (dist != null && dist > 0) {
-                                        distanceController.text = dist % 1 == 0
+                                        importedExactDistanceKm = dist;
+                                        importedDistanceText = dist % 1 == 0
                                             ? dist.toInt().toString()
                                             : dist.toStringAsFixed(1);
+                                        distanceController.text =
+                                            importedDistanceText!;
                                       }
 
                                       showSportWarning =
@@ -616,6 +626,10 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                               );
 
                               try {
+                                final durText = durationController.text.trim();
+                                final parsedDur = double.parse(
+                                  durText.replaceAll(',', '.'),
+                                );
                                 final distText = distanceController.text.trim();
                                 final distKm = distText.isNotEmpty
                                     ? double.tryParse(
@@ -624,16 +638,24 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                                     : null;
 
                                 if (importedActivityId != null) {
+                                  final effectiveDuration =
+                                      (importedExactDuration != null &&
+                                          durText == importedDurationText)
+                                      ? importedExactDuration!
+                                      : parsedDur;
+                                  final effectiveDistanceKm =
+                                      (importedExactDistanceKm != null &&
+                                          distText == importedDistanceText)
+                                      ? importedExactDistanceKm
+                                      : distKm;
                                   await _activityService.updateActivity(
                                     importedActivityId!,
                                     <String, dynamic>{
                                       'title': titleController.text,
                                       'type': selectedType,
                                       'is_public': isPublic,
-                                      'duration': double.parse(
-                                        durationController.text,
-                                      ),
-                                      'distance_km': ?distKm,
+                                      'duration': effectiveDuration,
+                                      'distance_km': ?effectiveDistanceKm,
                                     },
                                   );
                                 } else {
@@ -644,9 +666,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                                     userId: _authService.currentUser?.id ?? 0,
                                     isPublic: isPublic,
                                     createdAt: DateTime.now(),
-                                    duration: double.parse(
-                                      durationController.text,
-                                    ),
+                                    duration: parsedDur,
                                     distanceKm: distKm,
                                   );
                                   await _activityService.createActivity(
@@ -1352,6 +1372,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     if (t.contains('cycle') || t.contains('bike') || t.contains('cycling')) {
       return Icons.pedal_bike;
     }
+    if (t.contains('walk')) {
+      return Icons.directions_walk;
+    }
     if (t.contains('volleyball')) {
       return Icons.sports_volleyball;
     }
@@ -1366,8 +1389,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     if (t.contains('basketball')) return Colors.orange;
     if (t.contains('yoga')) return Colors.teal;
     if (t.contains('tennis')) return Colors.green;
-    if (t.contains('run')) return Colors.deepOrange;
-    if (t.contains('cycle')) return Colors.blue;
+    if (t.contains('run')) return AppColors.activityRun;
+    if (t.contains('cycle')) return AppColors.activityCycle;
+    if (t.contains('walk')) return AppColors.activityWalk;
     if (t.contains('volleyball')) return Colors.purple;
     return AppColors.primary;
   }

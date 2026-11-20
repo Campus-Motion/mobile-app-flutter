@@ -187,37 +187,14 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
               subtitle: 'No GPS activities recorded for this discipline.',
             ),
           )
-        else ...[
+        else
           RouteMap(
             tracks: _tracks,
             routeColor: activeColor,
+            activityType: _selectedDiscipline,
             height: 380,
             tileProvider: widget.tileProvider,
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceLight,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.divider),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.route, size: 18, color: activeColor),
-                const SizedBox(width: 8),
-                Text(
-                  '${_tracks.length} ${_tracks.length > 1 ? 'recorded GPS activities' : 'recorded GPS activity'}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
         const SizedBox(height: 24),
       ],
     );
