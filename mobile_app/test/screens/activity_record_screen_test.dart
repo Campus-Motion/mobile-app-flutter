@@ -51,6 +51,9 @@ class _FakeActivityService implements ActivityService {
   @override
   Future<Activity> updateActivity(int id, Map<String, dynamic> body) =>
       throw UnimplementedError();
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _FailingPreferencesUserService implements UserService {
