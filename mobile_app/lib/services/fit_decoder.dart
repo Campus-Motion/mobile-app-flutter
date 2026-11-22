@@ -82,6 +82,9 @@ class FitDecoder {
     double? detectedDurationMinutes;
     double? detectedDistanceKm;
     DateTime? startTime;
+    int? firstRecordTimeSec;
+    int? lastRecordTimeSec;
+    int? lastRecordDistCm;
     final waypoints = <Map<String, dynamic>>[];
 
     while (offset < totalEnd) {
@@ -189,14 +192,17 @@ class FitDecoder {
               if (rawDist > 0 && rawDist != 0xFFFFFFFF) {
                 detectedDistanceKm = (rawDist / 100.0) / 1000.0;
               }
-            } else if (f.fieldNum == 253 && f.size == 4) {
+            } else if ((f.fieldNum == 2 || f.fieldNum == 253) && f.size == 4) {
               final fitTime = bd.getUint32(offset, endian);
               if (fitTime > 0 && fitTime != 0xFFFFFFFF) {
                 final unixSec = fitEpochUnixSeconds + fitTime;
-                startTime = DateTime.fromMillisecondsSinceEpoch(
+                final parsedTime = DateTime.fromMillisecondsSinceEpoch(
                   unixSec * 1000,
                   isUtc: true,
                 ).toLocal();
+                if (f.fieldNum == 2 || startTime == null) {
+                  startTime = parsedTime;
+                }
               }
             }
           } else if (globalMsgNum == 20) {
@@ -210,6 +216,11 @@ class FitDecoder {
               if (rawAlt != 0xFFFF) {
                 altitudeM ??= (rawAlt / 5.0) - 500.0;
               }
+            } else if (f.fieldNum == 5 && f.size == 4) {
+              final rawDist = bd.getUint32(offset, endian);
+              if (rawDist > 0 && rawDist != 0xFFFFFFFF) {
+                lastRecordDistCm = rawDist;
+              }
             } else if (f.fieldNum == 78 && f.size == 4) {
               final rawAlt = bd.getUint32(offset, endian);
               if (rawAlt != 0xFFFFFFFF) {
@@ -217,6 +228,10 @@ class FitDecoder {
               }
             } else if (f.fieldNum == 253 && f.size == 4) {
               recordTimeSec = bd.getUint32(offset, endian);
+              if (recordTimeSec > 0 && recordTimeSec != 0xFFFFFFFF) {
+                firstRecordTimeSec ??= recordTimeSec;
+                lastRecordTimeSec = recordTimeSec;
+              }
             }
           }
 
@@ -248,6 +263,24 @@ class FitDecoder {
           });
         }
       }
+    }
+
+    if (startTime == null && firstRecordTimeSec != null) {
+      startTime = DateTime.fromMillisecondsSinceEpoch(
+        (fitEpochUnixSeconds + firstRecordTimeSec) * 1000,
+        isUtc: true,
+      ).toLocal();
+    }
+    if (detectedDurationMinutes == null &&
+        firstRecordTimeSec != null &&
+        lastRecordTimeSec != null &&
+        lastRecordTimeSec > firstRecordTimeSec) {
+      detectedDurationMinutes = (lastRecordTimeSec - firstRecordTimeSec) / 60.0;
+    }
+    if (detectedDistanceKm == null &&
+        lastRecordDistCm != null &&
+        lastRecordDistCm > 0) {
+      detectedDistanceKm = (lastRecordDistCm / 100.0) / 1000.0;
     }
 
     return FitMetadata(

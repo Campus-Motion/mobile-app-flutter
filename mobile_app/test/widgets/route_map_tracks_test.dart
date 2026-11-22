@@ -68,11 +68,19 @@ void main() {
 
         expect(find.byType(FlutterMap), findsOneWidget);
         expect(find.byType(OverlayImageLayer), findsOneWidget);
-        expect(find.text('© OpenStreetMap'), findsOneWidget);
+        expect(find.text('Dark'), findsOneWidget);
+        expect(find.text('© Esri'), findsOneWidget);
         expect(find.text('Analyzed workouts'), findsOneWidget);
         expect(find.text('Min intensity'), findsOneWidget);
         expect(find.text('Max intensity'), findsOneWidget);
         expect(find.textContaining('~'), findsNothing);
+
+        // Switch heatmap base map from Dark to Standard OpenStreetMap
+        await tester.tap(find.byTooltip('Map style'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Standard').last);
+        await tester.pumpAndSettle();
+        expect(find.text('© OpenStreetMap'), findsOneWidget);
 
         await tester.tap(find.byIcon(Icons.fullscreen));
         await tester.pumpAndSettle();

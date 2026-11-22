@@ -753,6 +753,46 @@ class _PngEncoder {
   }
 }
 
+enum _MapBaseStyle {
+  dark(
+    label: 'Dark',
+    urlTemplate:
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    maxNativeZoom: 16,
+    attribution: '© Esri',
+    icon: Icons.dark_mode_outlined,
+  ),
+  standard(
+    label: 'Standard',
+    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    maxNativeZoom: 19,
+    attribution: '© OpenStreetMap',
+    icon: Icons.map_outlined,
+  ),
+  satellite(
+    label: 'Satellite',
+    urlTemplate:
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    maxNativeZoom: 17,
+    attribution: '© Esri',
+    icon: Icons.satellite_alt_outlined,
+  );
+
+  final String label;
+  final String urlTemplate;
+  final int maxNativeZoom;
+  final String attribution;
+  final IconData icon;
+
+  const _MapBaseStyle({
+    required this.label,
+    required this.urlTemplate,
+    required this.maxNativeZoom,
+    required this.attribution,
+    required this.icon,
+  });
+}
+
 /// Reusable map widget displaying either:
 /// - A single GPS workout in the style of `Trail/onecourse.py` (pace-colored
 ///   micro-segments from green #2DC653 to yellow #FFD166 to red #EF233C with
@@ -760,9 +800,9 @@ class _PngEncoder {
 ///   Campus Motion styled Pace Scale card).
 /// - A multi-activity Strava-style raster heatmap in the style of
 ///   `Trail/heatmap_v2.py` (Gaussian-blurred continuous raster overlay colored
-///   by discipline `routeColor` on top of OpenStreetMap tiles, with a Campus
-///   Motion styled summary card showing workouts, min intensity, and max
-///   intensity).
+///   by discipline `routeColor` on top of selectable base map tiles — Dark by
+///   default, Standard OpenStreetMap, or Satellite — with a Campus Motion
+///   styled summary card showing workouts, min intensity, and max intensity).
 class RouteMap extends StatefulWidget {
   final List<Waypoint> waypoints;
   final List<List<Waypoint>>? tracks;
@@ -788,6 +828,7 @@ class RouteMap extends StatefulWidget {
 }
 
 class _RouteMapState extends State<RouteMap> {
+  _MapBaseStyle _selectedStyle = _MapBaseStyle.dark;
   _CourseAnalysis? _singleAnalysis;
   _HeatmapRasterResult? _heatmapRaster;
   List<Polyline> _polylines = const [];
@@ -1059,6 +1100,148 @@ class _RouteMapState extends State<RouteMap> {
     );
   }
 
+  void _selectMapStyle(_MapBaseStyle style) {
+    if (_selectedStyle == style) return;
+    setState(() {
+      _selectedStyle = style;
+    });
+  }
+
+  Widget _buildFlutterMap({
+    required CameraFit cameraFit,
+    required TileProvider? effectiveTileProvider,
+    required _MapBaseStyle style,
+    required bool interactive,
+    required _HeatmapRasterResult? heatmapRaster,
+    required List<Polyline> polylines,
+    required List<Marker> markers,
+  }) {
+    return FlutterMap(
+      options: MapOptions(
+        initialCameraFit: cameraFit,
+        backgroundColor: style == _MapBaseStyle.dark
+            ? AppColors.textPrimary
+            : AppColors.surfaceLight,
+        interactionOptions: InteractionOptions(
+          flags: interactive ? InteractiveFlag.all : InteractiveFlag.none,
+        ),
+      ),
+      children: [
+        TileLayer(
+          key: ValueKey(style),
+          urlTemplate: style.urlTemplate,
+          maxNativeZoom: style.maxNativeZoom,
+          userAgentPackageName: 'ch.campusmotion.app',
+          tileProvider: effectiveTileProvider,
+        ),
+        if (heatmapRaster != null)
+          OverlayImageLayer(
+            overlayImages: [
+              OverlayImage(
+                bounds: heatmapRaster.bounds,
+                imageProvider: MemoryImage(heatmapRaster.pngBytes),
+                opacity: 1.0,
+              ),
+            ],
+          ),
+        if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
+        if (markers.isNotEmpty) MarkerLayer(markers: markers),
+      ],
+    );
+  }
+
+  Widget _buildStyleSelectorButton({
+    required _MapBaseStyle selectedStyle,
+    required ValueChanged<_MapBaseStyle> onSelected,
+  }) {
+    return Material(
+      color: AppColors.cardBackground.withValues(alpha: 0.92),
+      borderRadius: BorderRadius.circular(10),
+      clipBehavior: Clip.antiAlias,
+      elevation: 2,
+      child: PopupMenuButton<_MapBaseStyle>(
+        tooltip: 'Map style',
+        initialValue: selectedStyle,
+        onSelected: onSelected,
+        color: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        itemBuilder: (_) => _MapBaseStyle.values.map((style) {
+          final isSelected = style == selectedStyle;
+          return PopupMenuItem<_MapBaseStyle>(
+            value: style,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  style.icon,
+                  size: 18,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  style.label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                if (isSelected) ...[
+                  const SizedBox(width: 12),
+                  const Icon(Icons.check, size: 16, color: AppColors.primary),
+                ],
+              ],
+            ),
+          );
+        }).toList(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.layers_outlined,
+                size: 16,
+                color: AppColors.textPrimary,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                selectedStyle.label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(
+                Icons.arrow_drop_down,
+                size: 16,
+                color: AppColors.textSecondary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttributionBadge(_MapBaseStyle style) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        style.attribution,
+        style: const TextStyle(fontSize: 9, color: AppColors.textSecondary),
+      ),
+    );
+  }
+
   void _openFullscreenMap(
     BuildContext context, {
     required CameraFit cameraFit,
@@ -1073,105 +1256,85 @@ class _RouteMapState extends State<RouteMap> {
       useSafeArea: false,
       barrierColor: AppColors.background,
       builder: (dialogContext) {
-        return MasterContainer(
-          scrollable: false,
-          padding: EdgeInsets.zero,
-          children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: FlutterMap(
-                      options: MapOptions(
-                        initialCameraFit: cameraFit,
-                        interactionOptions: const InteractionOptions(
-                          flags: InteractiveFlag.all,
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return MasterContainer(
+              scrollable: false,
+              padding: EdgeInsets.zero,
+              children: [
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: _buildFlutterMap(
+                          cameraFit: cameraFit,
+                          effectiveTileProvider: effectiveTileProvider,
+                          style: _selectedStyle,
+                          interactive: true,
+                          heatmapRaster: heatmapRaster,
+                          polylines: polylines,
+                          markers: markers,
                         ),
                       ),
-                      children: [
-                        TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'ch.campusmotion.app',
-                          tileProvider: effectiveTileProvider,
-                        ),
-                        if (heatmapRaster != null)
-                          OverlayImageLayer(
-                            overlayImages: [
-                              OverlayImage(
-                                bounds: heatmapRaster.bounds,
-                                imageProvider: MemoryImage(
-                                  heatmapRaster.pngBytes,
-                                ),
-                                opacity: 1.0,
-                              ),
-                            ],
-                          ),
-                        if (polylines.isNotEmpty)
-                          PolylineLayer(polylines: polylines),
-                        if (markers.isNotEmpty) MarkerLayer(markers: markers),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    top: 16,
-                    left: 16,
-                    child: SafeArea(
-                      child: Material(
-                        color: AppColors.cardBackground.withValues(alpha: 0.94),
-                        borderRadius: BorderRadius.circular(12),
-                        elevation: 2,
-                        child: IconButton(
-                          tooltip: 'Exit fullscreen',
-                          icon: const Icon(
-                            Icons.fullscreen_exit,
-                            color: AppColors.textPrimary,
-                            size: 22,
-                          ),
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
+                      Positioned(
+                        top: 16,
+                        left: 16,
+                        child: SafeArea(
+                          child: Material(
                             color: AppColors.cardBackground.withValues(
-                              alpha: 0.85,
+                              alpha: 0.94,
                             ),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            '© OpenStreetMap',
-                            style: TextStyle(
-                              fontSize: 9,
-                              color: AppColors.textSecondary,
+                            borderRadius: BorderRadius.circular(12),
+                            elevation: 2,
+                            child: IconButton(
+                              tooltip: 'Exit fullscreen',
+                              icon: const Icon(
+                                Icons.fullscreen_exit,
+                                color: AppColors.textPrimary,
+                                size: 22,
+                              ),
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(),
                             ),
                           ),
                         ),
-                        if (singleAnalysis != null &&
-                            singleAnalysis.records.length > 1)
-                          _buildSingleCoursePaceCard(singleAnalysis),
-                        if (heatmapRaster != null)
-                          _buildHeatmapInfoBox(heatmapRaster),
-                      ],
-                    ),
+                      ),
+                      Positioned(
+                        top: 16,
+                        right: 16,
+                        child: SafeArea(
+                          child: _buildStyleSelectorButton(
+                            selectedStyle: _selectedStyle,
+                            onSelected: (style) {
+                              _selectMapStyle(style);
+                              setDialogState(() {});
+                            },
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 16,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            _buildAttributionBadge(_selectedStyle),
+                            if (singleAnalysis != null &&
+                                singleAnalysis.records.length > 1)
+                              _buildSingleCoursePaceCard(singleAnalysis),
+                            if (heatmapRaster != null)
+                              _buildHeatmapInfoBox(heatmapRaster),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          ],
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -1234,36 +1397,22 @@ class _RouteMapState extends State<RouteMap> {
             borderRadius: BorderRadius.circular(20),
             child: Stack(
               children: [
-                FlutterMap(
-                  options: MapOptions(
-                    initialCameraFit: cameraFit,
-                    interactionOptions: InteractionOptions(
-                      flags: widget.interactive
-                          ? InteractiveFlag.all
-                          : InteractiveFlag.none,
-                    ),
+                _buildFlutterMap(
+                  cameraFit: cameraFit,
+                  effectiveTileProvider: effectiveTileProvider,
+                  style: _selectedStyle,
+                  interactive: widget.interactive,
+                  heatmapRaster: heatmapRaster,
+                  polylines: polylines,
+                  markers: markers,
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: _buildStyleSelectorButton(
+                    selectedStyle: _selectedStyle,
+                    onSelected: _selectMapStyle,
                   ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'ch.campusmotion.app',
-                      tileProvider: effectiveTileProvider,
-                    ),
-                    if (heatmapRaster != null)
-                      OverlayImageLayer(
-                        overlayImages: [
-                          OverlayImage(
-                            bounds: heatmapRaster.bounds,
-                            imageProvider: MemoryImage(heatmapRaster.pngBytes),
-                            opacity: 1.0,
-                          ),
-                        ],
-                      ),
-                    if (polylines.isNotEmpty)
-                      PolylineLayer(polylines: polylines),
-                    if (markers.isNotEmpty) MarkerLayer(markers: markers),
-                  ],
                 ),
                 Positioned(
                   left: 10,
@@ -1300,23 +1449,7 @@ class _RouteMapState extends State<RouteMap> {
                 Positioned(
                   right: 8,
                   bottom: 4,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.cardBackground.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      '© OpenStreetMap',
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
+                  child: _buildAttributionBadge(_selectedStyle),
                 ),
               ],
             ),

@@ -18,7 +18,10 @@ void main() {
     ApiService.mockMode = false;
   });
 
-  Widget buildTestApp({Future<XFile?> Function()? pickFitFile}) {
+  Widget buildTestApp({
+    Future<XFile?> Function()? pickFitFile,
+    Future<List<XFile>?> Function()? pickFitFolder,
+  }) {
     return MaterialApp(
       initialRoute: AppRoutes.trail,
       routes: {
@@ -45,6 +48,7 @@ void main() {
                 name: 'activity.fit',
                 path: 'activity.fit',
               ),
+          pickFitFolder: pickFitFolder,
         ),
         AppRoutes.heatmaps: (_) => const HeatmapScreen(),
         AppRoutes.dashboard: (_) => const Scaffold(body: Text('Dashboard')),
@@ -221,6 +225,96 @@ void main() {
 
         // Confirms dialog is dismissed and success snackbar appears
         expect(find.text('Activity logged successfully!'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'importing a FIT folder ignores non-.fit files and creates an activity for each .fit file',
+      (tester) async {
+        final fitBytes = Uint8List.fromList([
+          14,
+          0x10,
+          0x88,
+          0x08,
+          11,
+          0x00,
+          0x00,
+          0x00,
+          0x2E,
+          0x46,
+          0x49,
+          0x54,
+          0x00,
+          0x00,
+          0x40,
+          0x00,
+          0x00,
+          0x0C,
+          0x00,
+          0x01,
+          0x00,
+          0x01,
+          0x00,
+          0x00,
+          0x01,
+        ]);
+
+        await tester.pumpWidget(
+          buildTestApp(
+            pickFitFolder: () async => [
+              XFile.fromData(fitBytes, name: 'run1.fit', path: 'run1.fit'),
+              XFile.fromData(
+                Uint8List.fromList([1, 2, 3]),
+                name: 'readme.txt',
+                path: 'readme.txt',
+              ),
+              XFile.fromData(fitBytes, name: 'run2.FIT', path: 'run2.FIT'),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Import a .FIT folder'), findsOneWidget);
+
+        await tester.tap(find.text('Import a .FIT folder'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Imported 2 .FIT activities (1 non-.FIT file ignored).'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'importing a folder without any .fit files shows informative message',
+      (tester) async {
+        await tester.pumpWidget(
+          buildTestApp(
+            pickFitFolder: () async => [
+              XFile.fromData(
+                Uint8List.fromList([1, 2, 3]),
+                name: 'image.png',
+                path: 'image.png',
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Import a .FIT folder'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('No .FIT files found in the selected folder.'),
+          findsOneWidget,
+        );
       },
     );
   });

@@ -59,10 +59,28 @@ void main() {
       expect(find.byType(FlutterMap), findsOneWidget);
       expect(find.byIcon(Icons.play_arrow), findsOneWidget);
       expect(find.byIcon(Icons.flag), findsOneWidget);
-      expect(find.text('© OpenStreetMap'), findsOneWidget);
+      // Dark style is the default
+      expect(find.text('Dark'), findsOneWidget);
+      expect(find.text('© Esri'), findsOneWidget);
+      TileLayer currentTileLayer() =>
+          tester.widget<TileLayer>(find.byType(TileLayer));
+      expect(currentTileLayer().urlTemplate, contains('World_Dark_Gray_Base'));
       expect(find.text('Pace Scale (min/km)'), findsOneWidget);
       expect(find.text('Workout Summary'), findsNothing);
       expect(find.byIcon(Icons.fullscreen), findsOneWidget);
+
+      // Switch to Standard (OpenStreetMap)
+      await tester.tap(find.byTooltip('Map style'));
+      await tester.pumpAndSettle();
+      expect(find.text('Standard'), findsOneWidget);
+      expect(find.text('Satellite'), findsOneWidget);
+      await tester.tap(find.text('Standard').last);
+      await tester.pumpAndSettle();
+      expect(find.text('© OpenStreetMap'), findsOneWidget);
+      expect(
+        currentTileLayer().urlTemplate,
+        contains('tile.openstreetmap.org'),
+      );
 
       // Tap fullscreen button to open phone-sized fullscreen map
       await tester.tap(find.byIcon(Icons.fullscreen));
@@ -70,11 +88,20 @@ void main() {
 
       expect(find.byIcon(Icons.fullscreen_exit), findsOneWidget);
 
-      // Tap exit fullscreen button to return to default view
+      // Switch to Satellite inside fullscreen map
+      await tester.tap(find.byTooltip('Map style').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Satellite').last);
+      await tester.pumpAndSettle();
+
+      // Tap exit fullscreen button to return to default view and verify style persisted
       await tester.tap(find.byIcon(Icons.fullscreen_exit));
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.fullscreen_exit), findsNothing);
+      expect(find.text('Satellite'), findsOneWidget);
+      expect(find.text('© Esri'), findsOneWidget);
+      expect(currentTileLayer().urlTemplate, contains('World_Imagery'));
     });
 
     testWidgets(

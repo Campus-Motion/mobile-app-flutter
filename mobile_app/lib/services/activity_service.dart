@@ -8,6 +8,21 @@ import '../models/fit_import_exception.dart';
 import '../models/heatmap.dart';
 import '../models/waypoint.dart';
 import 'fit_decoder.dart';
+import 'fit_folder_picker.dart';
+
+class FitFolderImportResult {
+  final List<Activity> importedActivities;
+  final int skippedNonFitCount;
+  final int failedFitCount;
+
+  const FitFolderImportResult({
+    required this.importedActivities,
+    required this.skippedNonFitCount,
+    this.failedFitCount = 0,
+  });
+
+  int get importedCount => importedActivities.length;
+}
 
 class ActivityService {
   static final ActivityService _instance = ActivityService._internal();
@@ -20,19 +35,122 @@ class ActivityService {
 
   bool get canImportFit => !ApiService.mockMode;
 
+  static XTypeGroup fitTypeGroup() => XTypeGroup(
+    label: 'FIT activities',
+    extensions: const ['fit', 'FIT'],
+    mimeTypes: !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+        ? const ['application/octet-stream', '*/*']
+        : null,
+    uniformTypeIdentifiers:
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS
+        ? const ['public.data', 'public.item']
+        : null,
+  );
+
   Future<XFile?> pickFitFile() => openFile(
-    acceptedTypeGroups: [
-      XTypeGroup(
-        label: 'FIT activities',
-        extensions: const ['fit', 'FIT'],
-        uniformTypeIdentifiers:
-            !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS
-            ? const ['public.data']
-            : null,
-      ),
-    ],
+    acceptedTypeGroups: [fitTypeGroup()],
     confirmButtonText: 'Choose a .fit file',
   );
+
+  Future<List<XFile>?> pickFitFolder() => pickFolderFilesPlatform();
+
+  static bool isFitFilename(String nameOrPath) {
+    final filename = nameOrPath.split(RegExp(r'[/\\]')).last.trim();
+    return filename.toLowerCase().endsWith('.fit');
+  }
+
+  Future<FitFolderImportResult> importFitFolder(
+    List<XFile> files, {
+    String? fallbackType,
+    bool isPublic = false,
+  }) async {
+    final fitFiles = <XFile>[];
+    int skippedNonFitCount = 0;
+
+    for (final file in files) {
+      final name = file.name.isNotEmpty ? file.name : file.path;
+      if (isFitFilename(name)) {
+        fitFiles.add(file);
+      } else {
+        skippedNonFitCount++;
+      }
+    }
+
+    final imported = <Activity>[];
+    int failedFitCount = 0;
+
+    for (final file in fitFiles) {
+      try {
+        final bytes = await file.readAsBytes();
+        final localMeta = FitDecoder.parseMetadata(bytes);
+        var activity = await importFitFile(file);
+
+        final resolvedType =
+            (activity.type.isNotEmpty && activity.type != 'other')
+            ? activity.type
+            : (localMeta.sport != 'other'
+                  ? localMeta.sport
+                  : (fallbackType ?? 'other'));
+
+        final effectiveStart = localMeta.startTime ?? activity.createdAt;
+        final hour = effectiveStart.hour;
+        final timeOfDay = hour < 12
+            ? 'Morning'
+            : (hour < 17 ? 'Afternoon' : 'Evening');
+        const defaultBackendTitles = {
+          'Imported FIT activity',
+          'Running',
+          'Cycling',
+          'Walking',
+          'Hiking',
+          'Swimming',
+        };
+        final resolvedTitle =
+            (activity.title.isNotEmpty &&
+                !defaultBackendTitles.contains(activity.title))
+            ? activity.title
+            : switch (resolvedType) {
+                'run' => '$timeOfDay Run',
+                'cycle' => '$timeOfDay Ride',
+                'walk' => '$timeOfDay Walk',
+                'hike' => '$timeOfDay Hike',
+                'swim' => '$timeOfDay Swim',
+                _ => '$timeOfDay Workout',
+              };
+
+        final dur = (activity.duration != null && activity.duration! > 0)
+            ? activity.duration
+            : localMeta.durationMinutes;
+        final dist = (activity.distanceKm != null && activity.distanceKm! > 0)
+            ? activity.distanceKm
+            : localMeta.distanceKm;
+
+        if (resolvedTitle != activity.title ||
+            resolvedType != activity.type ||
+            isPublic != activity.isPublic ||
+            (dur != null && dur != activity.duration) ||
+            (dist != null && dist != activity.distanceKm)) {
+          activity = await updateActivity(activity.id, <String, dynamic>{
+            'title': resolvedTitle,
+            'type': resolvedType,
+            'is_public': isPublic,
+            'duration': ?dur,
+            'distance_km': ?dist,
+          });
+        }
+
+        imported.add(activity);
+      } catch (_) {
+        failedFitCount++;
+      }
+    }
+
+    return FitFolderImportResult(
+      importedActivities: imported,
+      skippedNonFitCount: skippedNonFitCount,
+      failedFitCount: failedFitCount,
+    );
+  }
 
   Future<Activity> importFitFile(XFile file) async {
     final filename = file.name.isNotEmpty
@@ -259,7 +377,7 @@ class ActivityService {
       return [];
     }
 
-    final activities = await getActivities(type: normalizedSport, limit: 50);
+    final activities = await getActivities(type: normalizedSport, limit: 200);
     final matchingActivities = activities
         .where((a) => a.type.toLowerCase().trim() == normalizedSport)
         .toList();

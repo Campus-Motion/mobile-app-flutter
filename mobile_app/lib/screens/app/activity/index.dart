@@ -17,8 +17,9 @@ import 'package:mobile_app/models/user.dart';
 
 class ActivityIndexScreen extends StatefulWidget {
   final Future<XFile?> Function()? pickFitFile;
+  final Future<List<XFile>?> Function()? pickFitFolder;
 
-  const ActivityIndexScreen({super.key, this.pickFitFile});
+  const ActivityIndexScreen({super.key, this.pickFitFile, this.pickFitFolder});
 
   @override
   State<ActivityIndexScreen> createState() => _ActivityIndexScreenState();
@@ -66,7 +67,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     });
 
     try {
-      final activities = await _activityService.getActivities(limit: 50);
+      final activities = await _activityService.getActivities(limit: 200);
       if (!mounted) return;
       setState(() {
         _myActivities = activities;
@@ -265,6 +266,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     String? importedDistanceText;
     bool showSportWarning = false;
     bool isImportingFit = false;
+    bool isImportingFitFolder = false;
 
     showModalBottomSheet(
       context: context,
@@ -298,142 +300,295 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                       ),
                       const SizedBox(height: 16),
 
-                      // FIT File Import Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          icon: isImportingFit
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
+                      // FIT File & FIT Folder Import Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: isImportingFit
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.file_upload_outlined,
+                                      color: AppColors.primary,
+                                      size: 18,
+                                    ),
+                              label: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  importedActivityId != null
+                                      ? 'FIT file imported'
+                                      : 'Import a .FIT file',
+                                  style: const TextStyle(
                                     color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                )
-                              : const Icon(
-                                  Icons.file_upload_outlined,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
                                   color: AppColors.primary,
                                 ),
-                          label: Text(
-                            importedActivityId != null
-                                ? 'FIT file imported'
-                                : 'Import a .FIT file',
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 8,
+                                ),
+                              ),
+                              onPressed:
+                                  (isImportingFit || isImportingFitFolder)
+                                  ? null
+                                  : () async {
+                                      try {
+                                        final picker =
+                                            widget.pickFitFile ??
+                                            _activityService.pickFitFile;
+                                        final file = await picker();
+                                        if (file == null) {
+                                          return;
+                                        }
+                                        if (!modalContext.mounted) return;
+
+                                        setModalState(() {
+                                          isImportingFit = true;
+                                        });
+
+                                        final bytes = await file.readAsBytes();
+                                        final localMeta =
+                                            FitDecoder.parseMetadata(bytes);
+
+                                        final activity = await _activityService
+                                            .importFitFile(file);
+
+                                        if (!modalContext.mounted) return;
+
+                                        setModalState(() {
+                                          isImportingFit = false;
+                                          importedActivityId = activity.id;
+
+                                          final resolvedType =
+                                              (activity.type.isNotEmpty &&
+                                                  activity.type != 'other')
+                                              ? activity.type
+                                              : localMeta.sport;
+
+                                          selectedType = resolvedType;
+
+                                          if (activity.title.isNotEmpty &&
+                                              activity.title !=
+                                                  'Imported FIT activity') {
+                                            titleController.text =
+                                                activity.title;
+                                          } else {
+                                            final timeLabel =
+                                                switch (resolvedType) {
+                                                  'run' => '$timeOfDay Run',
+                                                  'cycle' => '$timeOfDay Ride',
+                                                  'walk' => '$timeOfDay Walk',
+                                                  'hike' => '$timeOfDay Hike',
+                                                  'swim' => '$timeOfDay Swim',
+                                                  _ => '$timeOfDay Workout',
+                                                };
+                                            titleController.text = timeLabel;
+                                          }
+
+                                          final dur =
+                                              (activity.duration != null &&
+                                                  activity.duration! > 0)
+                                              ? activity.duration
+                                              : localMeta.durationMinutes;
+                                          if (dur != null && dur > 0) {
+                                            importedExactDuration = dur;
+                                            importedDurationText = dur
+                                                .round()
+                                                .toString();
+                                            durationController.text =
+                                                importedDurationText!;
+                                          }
+
+                                          final dist =
+                                              (activity.distanceKm != null &&
+                                                  activity.distanceKm! > 0)
+                                              ? activity.distanceKm
+                                              : localMeta.distanceKm;
+                                          if (dist != null && dist > 0) {
+                                            importedExactDistanceKm = dist;
+                                            importedDistanceText = dist % 1 == 0
+                                                ? dist.toInt().toString()
+                                                : dist.toStringAsFixed(1);
+                                            distanceController.text =
+                                                importedDistanceText!;
+                                          }
+
+                                          showSportWarning =
+                                              (resolvedType == 'other');
+                                        });
+                                      } catch (e) {
+                                        if (modalContext.mounted) {
+                                          setModalState(() {
+                                            isImportingFit = false;
+                                          });
+                                          ScaffoldMessenger.of(
+                                            modalContext,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'FIT import error: $e',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
                             ),
                           ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: AppColors.primary),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: isImportingFitFolder
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.folder_open_outlined,
+                                      color: AppColors.primary,
+                                      size: 18,
+                                    ),
+                              label: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'Import a .FIT folder',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
+                                  color: AppColors.primary,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 8,
+                                ),
+                              ),
+                              onPressed:
+                                  (isImportingFit || isImportingFitFolder)
+                                  ? null
+                                  : () async {
+                                      try {
+                                        final folderPicker =
+                                            widget.pickFitFolder ??
+                                            _activityService.pickFitFolder;
+                                        final files = await folderPicker();
+                                        if (files == null) {
+                                          return;
+                                        }
+                                        if (!modalContext.mounted) return;
+
+                                        final hasAnyFit = files.any(
+                                          (f) => ActivityService.isFitFilename(
+                                            f.name.isNotEmpty ? f.name : f.path,
+                                          ),
+                                        );
+                                        if (!hasAnyFit) {
+                                          ScaffoldMessenger.of(
+                                            modalContext,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'No .FIT files found in the selected folder.',
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        setModalState(() {
+                                          isImportingFitFolder = true;
+                                        });
+
+                                        final result = await _activityService
+                                            .importFitFolder(
+                                              files,
+                                              fallbackType: selectedType,
+                                              isPublic: isPublic,
+                                            );
+
+                                        if (!modalContext.mounted) return;
+
+                                        if (result.importedCount == 0) {
+                                          setModalState(() {
+                                            isImportingFitFolder = false;
+                                          });
+                                          ScaffoldMessenger.of(
+                                            modalContext,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Could not import any valid .FIT activity from the selected folder.',
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        Navigator.pop(modalContext);
+                                        if (!mounted) return;
+
+                                        final count = result.importedCount;
+                                        final actLabel = count == 1
+                                            ? 'activity'
+                                            : 'activities';
+                                        final skipped =
+                                            result.skippedNonFitCount;
+                                        final message = skipped > 0
+                                            ? 'Imported $count .FIT $actLabel ($skipped non-.FIT ${skipped == 1 ? 'file' : 'files'} ignored).'
+                                            : 'Imported $count .FIT $actLabel successfully!';
+
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(content: Text(message)),
+                                        );
+                                        _loadActivities();
+                                      } catch (e) {
+                                        if (modalContext.mounted) {
+                                          setModalState(() {
+                                            isImportingFitFolder = false;
+                                          });
+                                          ScaffoldMessenger.of(
+                                            modalContext,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'FIT folder import error: $e',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          onPressed: isImportingFit
-                              ? null
-                              : () async {
-                                  try {
-                                    final picker =
-                                        widget.pickFitFile ??
-                                        _activityService.pickFitFile;
-                                    final file = await picker();
-                                    if (file == null) {
-                                      return;
-                                    }
-                                    if (!modalContext.mounted) return;
-
-                                    setModalState(() {
-                                      isImportingFit = true;
-                                    });
-
-                                    final bytes = await file.readAsBytes();
-                                    final localMeta = FitDecoder.parseMetadata(
-                                      bytes,
-                                    );
-
-                                    final activity = await _activityService
-                                        .importFitFile(file);
-
-                                    if (!modalContext.mounted) return;
-
-                                    setModalState(() {
-                                      isImportingFit = false;
-                                      importedActivityId = activity.id;
-
-                                      final resolvedType =
-                                          (activity.type.isNotEmpty &&
-                                              activity.type != 'other')
-                                          ? activity.type
-                                          : localMeta.sport;
-
-                                      selectedType = resolvedType;
-
-                                      if (activity.title.isNotEmpty &&
-                                          activity.title !=
-                                              'Imported FIT activity') {
-                                        titleController.text = activity.title;
-                                      } else {
-                                        final timeLabel =
-                                            switch (resolvedType) {
-                                              'run' => '$timeOfDay Run',
-                                              'cycle' => '$timeOfDay Ride',
-                                              'walk' => '$timeOfDay Walk',
-                                              'hike' => '$timeOfDay Hike',
-                                              'swim' => '$timeOfDay Swim',
-                                              _ => '$timeOfDay Workout',
-                                            };
-                                        titleController.text = timeLabel;
-                                      }
-
-                                      final dur =
-                                          (activity.duration != null &&
-                                              activity.duration! > 0)
-                                          ? activity.duration
-                                          : localMeta.durationMinutes;
-                                      if (dur != null && dur > 0) {
-                                        importedExactDuration = dur;
-                                        importedDurationText = dur
-                                            .round()
-                                            .toString();
-                                        durationController.text =
-                                            importedDurationText!;
-                                      }
-
-                                      final dist =
-                                          (activity.distanceKm != null &&
-                                              activity.distanceKm! > 0)
-                                          ? activity.distanceKm
-                                          : localMeta.distanceKm;
-                                      if (dist != null && dist > 0) {
-                                        importedExactDistanceKm = dist;
-                                        importedDistanceText = dist % 1 == 0
-                                            ? dist.toInt().toString()
-                                            : dist.toStringAsFixed(1);
-                                        distanceController.text =
-                                            importedDistanceText!;
-                                      }
-
-                                      showSportWarning =
-                                          (resolvedType == 'other');
-                                    });
-                                  } catch (e) {
-                                    if (modalContext.mounted) {
-                                      setModalState(() {
-                                        isImportingFit = false;
-                                      });
-                                      ScaffoldMessenger.of(
-                                        modalContext,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text('FIT import error: $e'),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                        ),
+                        ],
                       ),
                       const SizedBox(height: 16),
 

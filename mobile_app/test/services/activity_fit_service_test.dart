@@ -144,5 +144,53 @@ void main() {
       final activity = await ActivityService().importFitFile(file);
       expect(activity.id, greaterThan(200));
     });
+
+    test(
+      'importFitFolder filters only .fit files and creates one activity per .fit file',
+      () async {
+        ApiService.mockMode = true;
+        MockDataService().resetMockActivities();
+        final beforeCount = (await ActivityService().getActivities(
+          limit: 200,
+        )).length;
+
+        final folderFiles = [
+          XFile.fromData(
+            Uint8List.fromList([1, 2, 3, 4]),
+            name: 'course_1.fit',
+            path: 'course_1.fit',
+          ),
+          XFile.fromData(
+            Uint8List.fromList([5, 6, 7]),
+            name: 'notes.txt',
+            path: 'notes.txt',
+          ),
+          XFile.fromData(
+            Uint8List.fromList([8, 9, 10, 11]),
+            name: 'course_2.FIT',
+            path: 'course_2.FIT',
+          ),
+          XFile.fromData(
+            Uint8List.fromList([12, 13]),
+            name: 'other_track.gpx',
+            path: 'other_track.gpx',
+          ),
+        ];
+
+        final result = await ActivityService().importFitFolder(
+          folderFiles,
+          fallbackType: 'run',
+        );
+
+        expect(result.importedCount, 2);
+        expect(result.skippedNonFitCount, 2);
+        expect(result.failedFitCount, 0);
+
+        final afterCount = (await ActivityService().getActivities(
+          limit: 200,
+        )).length;
+        expect(afterCount, beforeCount + 2);
+      },
+    );
   });
 }
