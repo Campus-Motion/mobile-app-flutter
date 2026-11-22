@@ -74,7 +74,6 @@ void main() {
         expect(jsonMap['is_public'], isFalse);
       },
     );
-
     test(
       'isTypeLocked, isDurationLocked, and isDistanceLocked reflect FIT status',
       () {

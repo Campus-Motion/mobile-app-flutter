@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/models/activity.dart';
 import 'package:mobile_app/screens/app/activity/details.dart';
 import 'package:mobile_app/screens/app/activity/index.dart';
+import 'package:mobile_app/screens/app/activity/record.dart';
 import 'package:mobile_app/screens/app/events/details.dart';
 import 'package:mobile_app/screens/app/heatmap/index.dart';
 import 'package:mobile_app/screens/app/home/index.dart';
@@ -23,6 +24,7 @@ class AppRoutes {
   static const String dashboard = '/dashboard';
   static const String trail = '/trail';
   static const String heatmap = '/heatmap';
+  static const String recordActivity = '/activity/record';
   static const String social = '/social';
   static const String profile = '/profile';
   static const String editProfile = '/profile/edit';
@@ -60,6 +62,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const ActivityIndexScreen());
       case heatmap:
         return MaterialPageRoute(builder: (_) => const HeatmapScreen());
+      case recordActivity:
+        return MaterialPageRoute(builder: (_) => const ActivityRecordScreen());
       case social:
         return MaterialPageRoute(builder: (_) => const SocialIndexScreen());
       case profile:

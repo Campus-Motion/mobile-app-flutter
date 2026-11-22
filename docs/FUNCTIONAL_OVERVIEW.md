@@ -56,7 +56,7 @@ Any feature that touches health data, location, or what other users can see must
 |---|---|
 | Sign-in, sign-up, demo mode | Working |
 | Home: events carousel and news | Working |
-| Sport: activities (log, list, delete) | Working |
+| Sport: activities (record live, log, list, delete) | Working |
 | Sport: My heatmap | Personal route density for the latest 20 GPS activities; requires the internal heatmap renderer deployment. No street-map background. |
 | Sport: FIT import | Choose a FIT file from My heatmap, confirm, and save it as a private GPS activity. Requires the import-enabled backend; disabled in demo mode. |
 | Sport: events (discover, join, leave) | Working |

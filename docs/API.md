@@ -66,11 +66,11 @@ Special-category data. See [ARCHITECTURE.md](ARCHITECTURE.md#6-privacy-architect
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/activities` | List. Query: `limit`, `cursor`, `type`, `public`. |
+| GET | `/activities` | List. Query: `limit`, `cursor`, `type`, `public`. Returns `duration` (minutes) and optional `distance_km` (kilometres). |
 | GET | `/activities/heatmap` | Personal GPS heatmap from the latest 20 activities with at least two waypoints; 204 when no moving route is available. |
-| GET | `/activities/{id}` | One activity. |
-| POST | `/activities` | Log an activity (`is_public` defaults to `false`). |
-| PUT | `/activities/{id}` | Update fields. |
+| GET | `/activities/{id}` | One activity (includes `duration` and optional `distance_km`). |
+| POST | `/activities` | Log an activity (`is_public` defaults to `false`; accepts `title`, `type`, optional `body`, optional `duration` in minutes, and optional `distance_km` in kilometres). |
+| PUT | `/activities/{id}` | Update fields (including `duration` and `distance_km`). |
 | DELETE | `/activities/{id}` | Delete. |
 
 ### Events (`EventService`)

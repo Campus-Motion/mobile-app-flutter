@@ -53,28 +53,30 @@ class ActivityCard extends StatelessWidget {
     }
   }
 
+  static String getDefaultActivityTitle(String type, {DateTime? now}) {
+    final hour = (now ?? DateTime.now()).hour;
+    final String timeOfDay;
+    if (hour < 12) {
+      timeOfDay = 'Morning';
+    } else if (hour < 17) {
+      timeOfDay = 'Afternoon';
+    } else {
+      timeOfDay = 'Evening';
+    }
+    final normalized = type.trim().toLowerCase();
+    final sportLabel = normalized.isEmpty
+        ? 'Workout'
+        : '${normalized[0].toUpperCase()}${normalized.substring(1)}';
+    return '$timeOfDay $sportLabel';
+  }
+
+  static double getActivitySpeedKmh(String type) =>
+      Activity.defaultSpeedKmh(type);
+
   static double? getActivityDistanceKm(Activity activity) {
     if (activity.distanceKm != null) return activity.distanceKm;
     if (activity.duration == null) return null;
-    double speedKmh = 5.0;
-    switch (activity.type.toLowerCase()) {
-      case 'run':
-        speedKmh = 10.0;
-        break;
-      case 'walk':
-        speedKmh = 5.0;
-        break;
-      case 'cycle':
-        speedKmh = 20.0;
-        break;
-      case 'hike':
-        speedKmh = 4.0;
-        break;
-      case 'swim':
-        speedKmh = 2.0;
-        break;
-    }
-    return speedKmh * (activity.duration! / 60.0);
+    return getActivitySpeedKmh(activity.type) * (activity.duration! / 60.0);
   }
 
   static String getActivityDistanceString(Activity activity) {

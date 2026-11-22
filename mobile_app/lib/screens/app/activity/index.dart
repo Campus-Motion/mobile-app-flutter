@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:file_selector/file_selector.dart';
-import 'package:mobile_app/widgets/activity_card.dart';
-import 'package:mobile_app/widgets/app_button.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/config/routes.dart';
+import 'package:mobile_app/widgets/activity_card.dart';
+import 'package:mobile_app/widgets/app_button.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
 import 'package:mobile_app/constants/colors.dart';
@@ -64,6 +64,12 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
 
   Future<void> _loadAllData() async {
     await Future.wait([_loadActivities(), _loadEventsData()]);
+  }
+
+  Future<void> _openRecordActivity() async {
+    await Navigator.pushNamed(context, AppRoutes.recordActivity);
+    if (!mounted) return;
+    _loadActivities();
   }
 
   Future<void> _loadActivities() async {
@@ -264,19 +270,12 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController();
 
-    // Choose default title based on time
     final hour = DateTime.now().hour;
-    String timeOfDay = 'Workout';
-    if (hour < 12) {
-      timeOfDay = 'Morning';
-    } else if (hour < 17) {
-      timeOfDay = 'Afternoon';
-    } else {
-      timeOfDay = 'Evening';
-    }
-
+    final String timeOfDay = hour < 12
+        ? 'Morning'
+        : (hour < 17 ? 'Afternoon' : 'Evening');
     String selectedType = 'run';
-    titleController.text = '$timeOfDay Run';
+    titleController.text = ActivityCard.getDefaultActivityTitle(selectedType);
 
     final durationController = TextEditingController();
     final distanceController = TextEditingController();
@@ -907,40 +906,6 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
 
   Color _getActivityColor(String type) => ActivityCard.getActivityColor(type);
 
-  String _getActivityDurationString(double? minutes) {
-    if (minutes == null) return '--';
-    final int hrs = (minutes / 60).floor();
-    final int mins = (minutes % 60).round();
-    if (hrs > 0) {
-      return '${hrs}h ${mins}m';
-    }
-    return '${mins}m';
-  }
-
-  String _getActivityDistanceString(double? minutes, String type) {
-    if (minutes == null) return '--';
-    double speedKmh = 5.0;
-    switch (type.toLowerCase()) {
-      case 'run':
-        speedKmh = 10.0;
-        break;
-      case 'walk':
-        speedKmh = 5.0;
-        break;
-      case 'cycle':
-        speedKmh = 20.0;
-        break;
-      case 'hike':
-        speedKmh = 4.0;
-        break;
-      case 'swim':
-        speedKmh = 2.0;
-        break;
-    }
-    final distance = speedKmh * (minutes / 60.0);
-    return '${distance.toStringAsFixed(1)} km';
-  }
-
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -1099,6 +1064,22 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
   // TAB 1: MY PERSONAL ACTIVITIES FEED
   // ==========================================
   Widget _buildActivitiesTab() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+          child: AppButton(
+            text: 'Start activity',
+            icon: Icons.play_arrow,
+            onPressed: _openRecordActivity,
+          ),
+        ),
+        Expanded(child: _buildActivitiesList()),
+      ],
+    );
+  }
+
+  Widget _buildActivitiesList() {
     if (_myActivities.isEmpty) {
       return Center(
         child: Padding(
@@ -1267,10 +1248,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        _getActivityDistanceString(
-                          activity.duration,
-                          activity.type,
-                        ),
+                        ActivityCard.getActivityDistanceString(activity),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
@@ -1278,7 +1256,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _getActivityDurationString(activity.duration),
+                        ActivityCard.getActivityDurationString(
+                          activity.duration,
+                        ),
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 12,

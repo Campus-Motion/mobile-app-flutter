@@ -68,6 +68,10 @@ Check this list before building anything. Reuse first, compose second, create a 
 | `ErrorState` | `error_state.dart` | Error icon, message and optional `onRetry` `AppButton`. |
 | `EmptyState` | `empty_state.dart` | Icon, title and optional subtitle when a section or list has no items. |
 | `RouteMap` | `route_map.dart` | OpenStreetMap route preview for activities and discipline heatmaps with polyline tracks (single track with start/finish badges or multi-track heatmaps), and attribution. |
+| `SportTypeSelector` | `sport_type_selector.dart` | Horizontal selectable sport pills (`run`, `walk`, `cycle`, `hike`, `swim`, `climbing`, `other`) using `ActivityCard` icons and colours. |
+| `WorkoutMetricsPanel` | `workout_metrics_panel.dart` | Live workout telemetry card showing status badge (`Ready`, `Recording`, `Paused`), elapsed time, distance, average pace and optional target loop progress. |
+| `WorkoutControlBar` | `workout_control_bar.dart` | Workout recording controls (`Start activity`, `Pause`, `Resume`, `Finish`, `Discard`) built with `AppButton` variants. |
+| `LoopRouteCard` | `loop_route_card.dart` | Pre-workout route selector toggling between `Free workout` and `Distance loop`, with target distance slider (`1.0` to `30.0` km), `Generate loop` action and loop summary preview. |
 
 ### Building from a Figma screenshot
 

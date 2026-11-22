@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/screens/app/activity/details.dart';
 import 'package:mobile_app/screens/app/activity/index.dart';
+import 'package:mobile_app/screens/app/activity/record.dart';
 import 'package:mobile_app/screens/app/events/details.dart';
 import 'package:mobile_app/screens/app/heatmap/index.dart';
 import 'package:mobile_app/screens/app/home/index.dart';
@@ -34,6 +35,7 @@ void main() {
       AppRoutes.signin: SignInScreen,
       AppRoutes.dashboard: HomeIndexScreen,
       AppRoutes.trail: ActivityIndexScreen,
+      AppRoutes.recordActivity: ActivityRecordScreen,
       AppRoutes.social: SocialIndexScreen,
       AppRoutes.profile: ProfileIndexScreen,
       AppRoutes.editProfile: ProfileEditScreen,
