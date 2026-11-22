@@ -317,5 +317,39 @@ void main() {
         );
       },
     );
+
+    testWidgets(
+      'Past Group Events checkbox filters only events in which the user participated',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        await tester.pumpWidget(buildTestApp());
+        await tester.pumpAndSettle();
+
+        // Switch to Events tab
+        await tester.tap(find.text('Events'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Past Group Events'), findsOneWidget);
+        expect(find.text('Participated only'), findsOneWidget);
+
+        final checkbox = tester.widget<Checkbox>(find.byType(Checkbox));
+        expect(checkbox.value, isFalse);
+
+        // By default (unchecked), both past events (104 and 105) are shown
+        expect(find.text('Past Campus Welcome Run'), findsOneWidget);
+        expect(find.text('Lakeside Track Recovery Session'), findsOneWidget);
+
+        // Check "Participated only" filter
+        await tester.tap(find.text('Participated only'));
+        await tester.pumpAndSettle();
+
+        // Now only Event 104 (where Robin.Doe participated) is shown
+        expect(find.text('Past Campus Welcome Run'), findsOneWidget);
+        expect(find.text('Lakeside Track Recovery Session'), findsNothing);
+      },
+    );
   });
 }

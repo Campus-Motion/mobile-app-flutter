@@ -83,11 +83,11 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       final participants = futures[1] as List<User>;
       final waypoints = futures[2] as List<Waypoint>;
 
-      User? currentUser = _authService.currentUser;
-      if (currentUser == null) {
-        try {
-          currentUser = await _userService.getMe();
-        } catch (_) {}
+      User? currentUser;
+      try {
+        currentUser = await _userService.getMe();
+      } catch (_) {
+        currentUser = _authService.currentUser;
       }
 
       final current = currentUser;
@@ -140,9 +140,16 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         _event!.id,
         file,
       );
+      Event? refreshedEvent;
+      try {
+        refreshedEvent = await _eventService.getEvent(_event!.id);
+      } catch (_) {}
 
       if (!mounted) return;
       setState(() {
+        if (refreshedEvent != null) {
+          _event = refreshedEvent;
+        }
         _eventWaypoints = waypoints;
         _isImportingTrack = false;
       });
@@ -244,6 +251,49 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     return '$dateStr $startTimeStr – ${endFormat.format(end)}';
   }
 
+  (int, int)? _calculateElevationGainLoss() {
+    double ascent = 0.0;
+    double descent = 0.0;
+    bool hasAltitude = false;
+    for (int i = 0; i < _eventWaypoints.length - 1; i++) {
+      final alt1 = _eventWaypoints[i].altitudeM;
+      final alt2 = _eventWaypoints[i + 1].altitudeM;
+      if (alt1 != null && alt2 != null) {
+        hasAltitude = true;
+        final diff = alt2 - alt1;
+        if (diff > 0) {
+          ascent += diff;
+        } else {
+          descent += diff.abs();
+        }
+      }
+    }
+    if (!hasAltitude) return null;
+    return (ascent.round(), descent.round());
+  }
+
+  double? _calculateWaypointsDurationMinutes() {
+    if (_eventWaypoints.length < 2) return null;
+    final secs = _eventWaypoints.last.recordedAt
+        .difference(_eventWaypoints.first.recordedAt)
+        .inSeconds;
+    return secs > 0 ? secs / 60.0 : null;
+  }
+
+  String _calculatePace(double? distanceKm, double? durationMins) {
+    if (distanceKm == null ||
+        distanceKm <= 0 ||
+        durationMins == null ||
+        durationMins <= 0) {
+      return '--';
+    }
+    final paceMin = durationMins / distanceKm;
+    final totalSecs = (paceMin * 60.0).round();
+    final mins = totalSecs ~/ 60;
+    final secs = totalSecs % 60;
+    return "$mins:${secs.toString().padLeft(2, '0')}";
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.eventId == null || widget.eventId! <= 0) {
@@ -341,7 +391,39 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     }
 
     final event = _event!;
-    final durationMinutes = event.endTime.difference(event.startTime).inMinutes;
+    final indicativeDurationMins = event.endTime
+        .difference(event.startTime)
+        .inMinutes;
+    final hasFitTrack = _eventWaypoints.isNotEmpty;
+    final effectiveDurationMins =
+        event.durationMinutes ??
+        (hasFitTrack ? _calculateWaypointsDurationMinutes() : null) ??
+        (indicativeDurationMins > 0 ? indicativeDurationMins.toDouble() : null);
+    final distanceKm = (event.distanceM != null && event.distanceM! > 0)
+        ? event.distanceM! / 1000.0
+        : null;
+    final distanceValue = distanceKm != null
+        ? distanceKm.toStringAsFixed(1)
+        : '--';
+    String durationValue = '--';
+    String? durationUnit;
+    if (effectiveDurationMins != null && effectiveDurationMins > 0) {
+      final totalMins = effectiveDurationMins.round();
+      final hrs = totalMins ~/ 60;
+      final mins = totalMins % 60;
+      durationValue = hrs > 0
+          ? '${hrs}h ${mins.toString().padLeft(2, '0')}'
+          : '$mins';
+      durationUnit = 'min';
+    }
+    final paceStr = _calculatePace(distanceKm, effectiveDurationMins);
+    final showElevation = (event.sport ?? 'run').toLowerCase() != 'swim';
+    final elevation = (hasFitTrack && showElevation)
+        ? _calculateElevationGainLoss()
+        : null;
+    final elevationStr = elevation != null
+        ? '+${elevation.$1} / -${elevation.$2}'
+        : '--';
     final isPastEvent = DateTime.now().isAfter(event.endTime);
     final isOrganizer =
         _currentUser != null &&
@@ -424,24 +506,144 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               const SizedBox(height: 16),
               const Divider(color: AppColors.divider, height: 1),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  StatItem(label: 'Participants', value: '$_participantCount'),
-                  if (event.distanceM != null)
+              if (hasFitTrack)
+                showElevation
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: StatItem(
+                                    label: 'Distance',
+                                    value: distanceValue,
+                                    unit: distanceKm != null ? 'km' : null,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                height: 40,
+                                width: 1,
+                                color: AppColors.divider,
+                              ),
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: StatItem(
+                                    label: 'Duration',
+                                    value: durationValue,
+                                    unit: durationUnit,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Container(
+                              height: 1,
+                              color: AppColors.divider,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: StatItem(
+                                    label: 'Pace',
+                                    value: paceStr,
+                                    unit: paceStr != '--' ? 'min/km' : null,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                height: 40,
+                                width: 1,
+                                color: AppColors.divider,
+                              ),
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: StatItem(
+                                    label: 'Elevation',
+                                    value: elevationStr,
+                                    unit: elevation != null ? 'm' : null,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: StatItem(
+                                label: 'Distance',
+                                value: distanceValue,
+                                unit: distanceKm != null ? 'km' : null,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            height: 40,
+                            width: 1,
+                            color: AppColors.divider,
+                          ),
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: StatItem(
+                                label: 'Duration',
+                                value: durationValue,
+                                unit: durationUnit,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            height: 40,
+                            width: 1,
+                            color: AppColors.divider,
+                          ),
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: StatItem(
+                                label: 'Pace',
+                                value: paceStr,
+                                unit: paceStr != '--' ? 'min/km' : null,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+              else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
                     StatItem(
-                      label: 'Distance',
-                      value: (event.distanceM! / 1000).toStringAsFixed(1),
-                      unit: 'km',
+                      label: 'Participants',
+                      value: '$_participantCount',
                     ),
-                  if (durationMinutes > 0)
-                    StatItem(
-                      label: 'Duration',
-                      value: '$durationMinutes',
-                      unit: 'min',
-                    ),
-                ],
-              ),
+                    if (event.distanceM != null)
+                      StatItem(
+                        label: 'Distance',
+                        value: (event.distanceM! / 1000).toStringAsFixed(1),
+                        unit: 'km',
+                      ),
+                    if (indicativeDurationMins > 0)
+                      StatItem(
+                        label: 'Duration',
+                        value: '$indicativeDurationMins',
+                        unit: 'min',
+                      ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -477,6 +679,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           ),
           RouteMap(
             waypoints: _eventWaypoints,
+            activityType: event.sport,
             height: 260,
             tileProvider: widget.tileProvider,
           ),

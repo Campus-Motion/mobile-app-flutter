@@ -10,7 +10,9 @@ import 'package:mobile_app/constants/colors.dart';
 import 'package:mobile_app/services/fit_decoder.dart';
 import 'package:mobile_app/services/event_service.dart';
 import 'package:mobile_app/services/activity_service.dart';
+import 'package:mobile_app/services/api_service.dart';
 import 'package:mobile_app/services/auth_service.dart';
+import 'package:mobile_app/services/mock_data_service.dart';
 import 'package:mobile_app/models/event.dart';
 import 'package:mobile_app/models/activity.dart';
 import 'package:mobile_app/models/user.dart';
@@ -36,6 +38,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
   List<Activity> _myActivities = [];
   List<Event> _enrolledEvents = [];
   List<Event> _discoverEvents = [];
+  List<Event> _pastEvents = [];
+  Set<int> _participatedPastEventIds = {};
+  bool _onlyParticipatedPastEvents = false;
 
   bool _isLoadingActivities = true;
   bool _isLoadingEvents = true;
@@ -94,15 +99,13 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     });
 
     try {
+      if (_authService.currentUser == null) {
+        await _authService.getProfile();
+      }
       final currentUserId = _authService.currentUser?.id;
       final currentUsername = _authService.currentUser?.username;
-      final currentDate = DateTime.now()
-          .subtract(Duration(hours: 1))
-          .toIso8601String();
-      final events = await _eventService.getEvents(
-        limit: 30,
-        after: currentDate,
-      );
+      final now = DateTime.now();
+      final events = await _eventService.getEvents(limit: 30);
 
       final isEnrolledFlags = await Future.wait(
         events.map((event) async {
@@ -127,20 +130,32 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
         }),
       );
 
-      List<Event> enrolled = [];
-      List<Event> discover = [];
+      final List<Event> enrolled = [];
+      final List<Event> discover = [];
+      final List<Event> past = [];
+      final Set<int> participatedPastIds = {};
 
       for (int i = 0; i < events.length; i++) {
-        if (isEnrolledFlags[i]) {
-          enrolled.add(events[i]);
+        final event = events[i];
+        final isPast = now.isAfter(event.endTime);
+        if (isPast) {
+          past.add(event);
+          if (isEnrolledFlags[i]) {
+            participatedPastIds.add(event.id);
+          }
+        } else if (isEnrolledFlags[i]) {
+          enrolled.add(event);
         } else {
-          discover.add(events[i]);
+          discover.add(event);
         }
       }
 
+      if (!mounted) return;
       setState(() {
         _enrolledEvents = enrolled;
         _discoverEvents = discover;
+        _pastEvents = past;
+        _participatedPastEventIds = participatedPastIds;
         _isLoadingEvents = false;
       });
     } catch (e) {
@@ -152,6 +167,13 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to load events: $e')));
     }
+  }
+
+  Future<void> _switchDemoProfile(int userId) async {
+    await _authService.switchDemoUser(userId);
+    if (!mounted) return;
+    setState(() {});
+    await _loadAllData();
   }
 
   Future<void> _joinEvent(int eventId) async {
@@ -956,6 +978,63 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
 
           const SizedBox(height: 16),
 
+          if (ApiService.mockMode) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  const Text(
+                    'Demo role:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('Organizer (Robin.Doe)'),
+                      ),
+                      selected: MockDataService().currentMockUserId == 1,
+                      selectedColor: AppColors.primaryLight,
+                      labelStyle: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: MockDataService().currentMockUserId == 1
+                            ? AppColors.primary
+                            : AppColors.textPrimary,
+                      ),
+                      onSelected: (_) => _switchDemoProfile(1),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('Participant (Camille.B)'),
+                      ),
+                      selected: MockDataService().currentMockUserId == 2,
+                      selectedColor: AppColors.primaryLight,
+                      labelStyle: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: MockDataService().currentMockUserId == 2
+                            ? AppColors.primary
+                            : AppColors.textPrimary,
+                      ),
+                      onSelected: (_) => _switchDemoProfile(2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: AppButton(
@@ -1142,6 +1221,14 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            if (activity.isFromEvent) ...[
+                              const Icon(
+                                Icons.event,
+                                size: 14,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 6),
+                            ],
                             Icon(
                               activity.isPublic
                                   ? Icons.public
@@ -1299,6 +1386,105 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
               }).toList(),
             ),
           ),
+
+        if (_pastEvents.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Past Group Events',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () {
+                    setState(() {
+                      _onlyParticipatedPastEvents =
+                          !_onlyParticipatedPastEvents;
+                    });
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: _onlyParticipatedPastEvents,
+                          activeColor: AppColors.primary,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          onChanged: (val) {
+                            setState(() {
+                              _onlyParticipatedPastEvents = val ?? false;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Participated only',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 15),
+          Builder(
+            builder: (context) {
+              final displayedPastEvents = _onlyParticipatedPastEvents
+                  ? _pastEvents
+                        .where((e) => _participatedPastEventIds.contains(e.id))
+                        .toList()
+                  : _pastEvents;
+              if (displayedPastEvents.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24.0,
+                    vertical: 12.0,
+                  ),
+                  child: Text(
+                    'No participated past events found.',
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                );
+              }
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  children: displayedPastEvents.map((event) {
+                    final formattedDate = DateFormat(
+                      'EEEE, MMM d, yyyy',
+                    ).format(event.startTime);
+                    final location = event.distanceM != null
+                        ? 'Distance: ${(event.distanceM! / 1000).toStringAsFixed(1)} km'
+                        : 'Campus Trail';
+                    return _buildUpcomingEventCard(
+                      id: event.id,
+                      title: event.title,
+                      date: formattedDate,
+                      location: location,
+                      spotsLeft: event.participantCount,
+                      isPast: true,
+                    );
+                  }).toList(),
+                ),
+              );
+            },
+          ),
+        ],
       ],
     );
   }
@@ -1318,7 +1504,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
           arguments: id,
         );
         if (!mounted) return;
-        _loadEventsData();
+        _loadAllData();
       },
       onLongPress: () {
         showDialog(
@@ -1362,6 +1548,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                 IconButton(
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   icon: const Icon(Icons.cancel, color: Colors.grey, size: 18),
                   onPressed: () => _leaveEvent(id),
                 ),
@@ -1385,23 +1574,22 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     );
   }
 
+  Future<void> _openEventDetails(int id) async {
+    await Navigator.pushNamed(context, AppRoutes.eventDetails, arguments: id);
+    if (!mounted) return;
+    _loadAllData();
+  }
+
   Widget _buildUpcomingEventCard({
     required int id,
     required String title,
     required String date,
     required String location,
     required int spotsLeft,
+    bool isPast = false,
   }) {
     return GestureDetector(
-      onTap: () async {
-        await Navigator.pushNamed(
-          context,
-          AppRoutes.eventDetails,
-          arguments: id,
-        );
-        if (!mounted) return;
-        _loadEventsData();
-      },
+      onTap: () => _openEventDetails(id),
       child: Container(
         margin: const EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
@@ -1436,14 +1624,19 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        date,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                      Expanded(
+                        child: Text(
+                          date,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         '$spotsLeft joined',
                         style: const TextStyle(
@@ -1485,16 +1678,17 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                     width: double.infinity,
                     height: 45,
                     child: ElevatedButton(
-                      onPressed: () => _joinEvent(id),
+                      onPressed: () =>
+                          isPast ? _openEventDetails(id) : _joinEvent(id),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        'Join Event',
-                        style: TextStyle(
+                      child: Text(
+                        isPast ? 'View Details' : 'Join Event',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),

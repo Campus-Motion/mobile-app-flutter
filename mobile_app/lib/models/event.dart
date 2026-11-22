@@ -5,6 +5,8 @@ class Event {
   final DateTime startTime;
   final DateTime endTime;
   final double? distanceM;
+  final double? durationMinutes;
+  final String? sport;
   final int participantCount;
   final DateTime createdAt;
   final int? userId;
@@ -16,6 +18,8 @@ class Event {
     required this.startTime,
     required this.endTime,
     this.distanceM,
+    this.durationMinutes,
+    this.sport,
     required this.participantCount,
     required this.createdAt,
     this.userId,
@@ -41,6 +45,12 @@ class Event {
       distanceM: json['distance_m'] != null
           ? double.tryParse(json['distance_m'].toString())
           : null,
+      durationMinutes: json['duration_minutes'] != null
+          ? double.tryParse(json['duration_minutes'].toString())
+          : (json['duration'] != null
+                ? double.tryParse(json['duration'].toString())
+                : null),
+      sport: (json['sport'] ?? json['type']) as String?,
       participantCount: json['participant_count'] as int? ?? 0,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)?.toLocal() ??

@@ -10,6 +10,7 @@ class Activity {
   final double? distanceKm;
   final String? body;
   final bool hasFit;
+  final bool isFromEvent;
 
   Activity({
     required this.id,
@@ -22,6 +23,7 @@ class Activity {
     this.distanceKm,
     this.body,
     this.hasFit = false,
+    this.isFromEvent = false,
   });
 
   static double? _parseDistanceKm(Map<String, dynamic> json) {
@@ -52,6 +54,9 @@ class Activity {
       distanceKm: _parseDistanceKm(json),
       body: json['body'] as String?,
       hasFit: json['has_fit'] as bool? ?? (json['hasFit'] as bool? ?? false),
+      isFromEvent:
+          json['is_from_event'] as bool? ??
+          (json['isFromEvent'] as bool? ?? (json['event_id'] != null)),
     );
   }
 
@@ -64,6 +69,7 @@ class Activity {
       if (distanceKm != null) 'distance_km': distanceKm,
       'is_public': isPublic,
       if (hasFit) 'has_fit': hasFit,
+      if (isFromEvent) 'is_from_event': isFromEvent,
     };
   }
 

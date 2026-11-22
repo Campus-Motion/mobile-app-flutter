@@ -26,6 +26,26 @@ class MockDataService {
         .toIso8601String(),
   };
 
+  int get currentMockUserId => _mockUser['id'] as int;
+
+  void setMockUserProfile({required int userId}) {
+    if (userId == 2) {
+      _mockUser
+        ..['id'] = 2
+        ..['username'] = 'Camille.B'
+        ..['email'] = 'camille.b@epfl.ch'
+        ..['photo_url'] = null
+        ..['role'] = 'student';
+    } else {
+      _mockUser
+        ..['id'] = 1
+        ..['username'] = 'Robin.Doe'
+        ..['email'] = 'robin.doe@epfl.ch'
+        ..['photo_url'] = null
+        ..['role'] = 'student';
+    }
+  }
+
   // Mock User Preferences
   final Map<String, dynamic> _mockPreferences = {
     'user_id': 1,
@@ -153,6 +173,23 @@ class MockDataService {
       'participant_count': 18,
       'created_at': DateTime.now()
           .subtract(const Duration(days: 5))
+          .toIso8601String(),
+    },
+    {
+      'id': 105,
+      'title': 'Lakeside Track Recovery Session',
+      'body': 'Light recovery session by the lake track.',
+      'user_id': 3,
+      'start_time': DateTime.now()
+          .subtract(const Duration(days: 4))
+          .toIso8601String(),
+      'end_time': DateTime.now()
+          .subtract(const Duration(days: 4, hours: -1))
+          .toIso8601String(),
+      'distance_m': 4000.0,
+      'participant_count': 7,
+      'created_at': DateTime.now()
+          .subtract(const Duration(days: 6))
           .toIso8601String(),
     },
   ];
@@ -713,6 +750,31 @@ class MockDataService {
         'created_at': DateTime.now().toIso8601String(),
       },
     ],
+    104: [
+      {
+        'id': 1,
+        'username': 'Robin.Doe',
+        'email': 'robin.doe@epfl.ch',
+        'role': 'student',
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      {
+        'id': 2,
+        'username': 'Camille.B',
+        'email': 'camille.b@epfl.ch',
+        'role': 'student',
+        'created_at': DateTime.now().toIso8601String(),
+      },
+    ],
+    105: [
+      {
+        'id': 3,
+        'username': 'Marc.V',
+        'email': 'marc.v@unil.ch',
+        'role': 'student',
+        'created_at': DateTime.now().toIso8601String(),
+      },
+    ],
   };
 
   /// Handles GET requests
@@ -904,6 +966,11 @@ class MockDataService {
         activities = activities
             .where((a) => (a['is_public'] as bool? ?? false) == isPublic)
             .toList();
+      } else {
+        final currentUserId = _mockUser['id'];
+        activities = activities
+            .where((a) => a['user_id'] == currentUserId)
+            .toList();
       }
       final limitParam = uri.queryParameters['limit'];
       if (limitParam != null) {
@@ -1053,7 +1120,7 @@ class MockDataService {
         'id': newId,
         'title': data['title'] ?? 'Recorded Activity',
         'type': data['type'] ?? 'run',
-        'user_id': 1,
+        'user_id': _mockUser['id'],
         'is_public': data['is_public'] ?? false,
         'duration': data['duration'] != null
             ? double.tryParse(data['duration'].toString()) ?? 30.0
@@ -1100,8 +1167,9 @@ class MockDataService {
     if (eventParticipantsMatch != null) {
       final eventId = int.parse(eventParticipantsMatch.group(1)!);
       final list = _mockEventParticipants.putIfAbsent(eventId, () => []);
-      if (!list.any((u) => u['id'] == 1)) {
-        list.add(_mockUser);
+      final currentId = _mockUser['id'];
+      if (!list.any((u) => u['id'] == currentId)) {
+        list.add(Map<String, dynamic>.from(_mockUser));
         final ev = _mockEvents.firstWhere(
           (e) => e['id'] == eventId,
           orElse: () => {},
@@ -1270,8 +1338,9 @@ class MockDataService {
     if (eventParticipantsMatch != null) {
       final eventId = int.parse(eventParticipantsMatch.group(1)!);
       final list = _mockEventParticipants[eventId];
+      final currentId = _mockUser['id'];
       if (list != null) {
-        list.removeWhere((u) => u['id'] == 1);
+        list.removeWhere((u) => u['id'] == currentId);
         final ev = _mockEvents.firstWhere(
           (e) => e['id'] == eventId,
           orElse: () => {},
@@ -1357,7 +1426,7 @@ class MockDataService {
         'id': newActivityId,
         'title': defaultTitle,
         'type': meta.sport,
-        'user_id': 1,
+        'user_id': _mockUser['id'],
         'is_public': false,
         'duration': meta.durationMinutes ?? 45.0,
         'distance_km': meta.distanceKm ?? 5.2,
@@ -1426,6 +1495,16 @@ class MockDataService {
         (e) => e['id'] == eventId,
         orElse: () => {},
       );
+      if (event.isNotEmpty) {
+        final resolvedSport = meta.sport != 'other' ? meta.sport : 'run';
+        event['sport'] = resolvedSport;
+        if (meta.distanceKm != null && meta.distanceKm! > 0) {
+          event['distance_m'] = meta.distanceKm! * 1000.0;
+        }
+        if (meta.durationMinutes != null && meta.durationMinutes! > 0) {
+          event['duration_minutes'] = meta.durationMinutes;
+        }
+      }
 
       final participants = _mockEventParticipants[eventId] ?? [_mockUser];
       for (final p in participants) {
@@ -1441,6 +1520,9 @@ class MockDataService {
           'type': meta.sport != 'other' ? meta.sport : 'run',
           'user_id': pId,
           'is_public': true,
+          'has_fit': true,
+          'is_from_event': true,
+          'event_id': eventId,
           'duration': meta.durationMinutes ?? 45.0,
           'distance_km':
               meta.distanceKm ??
@@ -1475,12 +1557,27 @@ class MockDataService {
   void clearEventWaypoints([int? eventId]) {
     if (eventId != null) {
       _mockEventWaypoints.remove(eventId);
+      final ev = _mockEvents.firstWhere(
+        (e) => e['id'] == eventId,
+        orElse: () => {},
+      );
+      if (ev.isNotEmpty) {
+        ev.remove('duration_minutes');
+        ev.remove('sport');
+        if (eventId == 104) ev['distance_m'] = 5000.0;
+      }
     } else {
       _mockEventWaypoints.clear();
+      for (final ev in _mockEvents) {
+        ev.remove('duration_minutes');
+        ev.remove('sport');
+        if (ev['id'] == 104) ev['distance_m'] = 5000.0;
+      }
     }
   }
 
   void resetMockActivities() {
+    setMockUserProfile(userId: 1);
     _mockActivities
       ..clear()
       ..addAll(_buildInitialActivities());
