@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/widgets/activity_card.dart';
@@ -6,15 +7,21 @@ import 'package:mobile_app/widgets/app_button.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
 import 'package:mobile_app/constants/colors.dart';
+import 'package:mobile_app/services/fit_decoder.dart';
 import 'package:mobile_app/services/event_service.dart';
 import 'package:mobile_app/services/activity_service.dart';
+import 'package:mobile_app/services/api_service.dart';
 import 'package:mobile_app/services/auth_service.dart';
+import 'package:mobile_app/services/mock_data_service.dart';
 import 'package:mobile_app/models/event.dart';
 import 'package:mobile_app/models/activity.dart';
 import 'package:mobile_app/models/user.dart';
 
 class ActivityIndexScreen extends StatefulWidget {
-  const ActivityIndexScreen({super.key});
+  final Future<XFile?> Function()? pickFitFile;
+  final Future<List<XFile>?> Function()? pickFitFolder;
+
+  const ActivityIndexScreen({super.key, this.pickFitFile, this.pickFitFolder});
 
   @override
   State<ActivityIndexScreen> createState() => _ActivityIndexScreenState();
@@ -31,6 +38,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
   List<Activity> _myActivities = [];
   List<Event> _enrolledEvents = [];
   List<Event> _discoverEvents = [];
+  List<Event> _pastEvents = [];
+  Set<int> _participatedPastEventIds = {};
+  bool _onlyParticipatedPastEvents = false;
 
   bool _isLoadingActivities = true;
   bool _isLoadingEvents = true;
@@ -68,7 +78,8 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     });
 
     try {
-      final activities = await _activityService.getActivities(limit: 50);
+      final activities = await _activityService.getActivities(limit: 200);
+      if (!mounted) return;
       setState(() {
         _myActivities = activities;
         _isLoadingActivities = false;
@@ -78,9 +89,13 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
       setState(() {
         _isLoadingActivities = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load activities: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Your activities could not be loaded. Please try again.',
+          ),
+        ),
+      );
     }
   }
 
@@ -90,15 +105,13 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     });
 
     try {
+      if (_authService.currentUser == null) {
+        await _authService.getProfile();
+      }
       final currentUserId = _authService.currentUser?.id;
       final currentUsername = _authService.currentUser?.username;
-      final currentDate = DateTime.now()
-          .subtract(Duration(hours: 1))
-          .toIso8601String();
-      final events = await _eventService.getEvents(
-        limit: 30,
-        after: currentDate,
-      );
+      final now = DateTime.now();
+      final events = await _eventService.getEvents(limit: 30);
 
       final isEnrolledFlags = await Future.wait(
         events.map((event) async {
@@ -123,20 +136,32 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
         }),
       );
 
-      List<Event> enrolled = [];
-      List<Event> discover = [];
+      final List<Event> enrolled = [];
+      final List<Event> discover = [];
+      final List<Event> past = [];
+      final Set<int> participatedPastIds = {};
 
       for (int i = 0; i < events.length; i++) {
-        if (isEnrolledFlags[i]) {
-          enrolled.add(events[i]);
+        final event = events[i];
+        final isPast = now.isAfter(event.endTime);
+        if (isPast) {
+          past.add(event);
+          if (isEnrolledFlags[i]) {
+            participatedPastIds.add(event.id);
+          }
+        } else if (isEnrolledFlags[i]) {
+          enrolled.add(event);
         } else {
-          discover.add(events[i]);
+          discover.add(event);
         }
       }
 
+      if (!mounted) return;
       setState(() {
         _enrolledEvents = enrolled;
         _discoverEvents = discover;
+        _pastEvents = past;
+        _participatedPastEventIds = participatedPastIds;
         _isLoadingEvents = false;
       });
     } catch (e) {
@@ -148,6 +173,13 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to load events: $e')));
     }
+  }
+
+  Future<void> _switchDemoProfile(int userId) async {
+    await _authService.switchDemoUser(userId);
+    if (!mounted) return;
+    setState(() {});
+    await _loadAllData();
   }
 
   Future<void> _joinEvent(int eventId) async {
@@ -238,11 +270,24 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     final formKey = GlobalKey<FormState>();
     final titleController = TextEditingController();
 
+    final hour = DateTime.now().hour;
+    final String timeOfDay = hour < 12
+        ? 'Morning'
+        : (hour < 17 ? 'Afternoon' : 'Evening');
     String selectedType = 'run';
     titleController.text = ActivityCard.getDefaultActivityTitle(selectedType);
 
     final durationController = TextEditingController();
+    final distanceController = TextEditingController();
     bool isPublic = false;
+    int? importedActivityId;
+    double? importedExactDuration;
+    double? importedExactDistanceKm;
+    String? importedDurationText;
+    String? importedDistanceText;
+    bool showSportWarning = false;
+    bool isImportingFit = false;
+    bool isImportingFitFolder = false;
 
     showModalBottomSheet(
       context: context,
@@ -262,177 +307,592 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
               ),
               child: Form(
                 key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Log Activity',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Title Field
-                    TextFormField(
-                      controller: titleController,
-                      decoration: InputDecoration(
-                        labelText: 'Activity Name',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Log Activity',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Type Dropdown
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedType,
-                      decoration: InputDecoration(
-                        labelText: 'Activity Type',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'run', child: Text('Run')),
-                        DropdownMenuItem(value: 'walk', child: Text('Walk')),
-                        DropdownMenuItem(value: 'cycle', child: Text('Cycle')),
-                        DropdownMenuItem(value: 'hike', child: Text('Hike')),
-                        DropdownMenuItem(value: 'swim', child: Text('Swim')),
-                        DropdownMenuItem(
-                          value: 'climbing',
-                          child: Text('Climbing'),
-                        ),
-                        DropdownMenuItem(value: 'other', child: Text('Other')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          setModalState(() {
-                            selectedType = val;
-                            titleController.text =
-                                ActivityCard.getDefaultActivityTitle(val);
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Duration Input
-                    TextFormField(
-                      controller: durationController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Duration (minutes)',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter duration';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Please enter a valid number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Public Toggle
-                    SwitchListTile(
-                      title: const Text('Make Activity Public'),
-                      subtitle: const Text(
-                        'Visible to other campus users in their social feeds',
-                      ),
-                      value: isPublic,
-                      activeThumbColor: AppColors.primary,
-                      onChanged: (val) {
-                        setModalState(() {
-                          isPublic = val;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Submit Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          if (formKey.currentState!.validate()) {
-                            Navigator.pop(modalContext); // Close bottom sheet
-
-                            showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (context) => const Center(
-                                child: CircularProgressIndicator(
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            );
-
-                            try {
-                              final activity = Activity(
-                                id: 0,
-                                title: titleController.text,
-                                type: selectedType,
-                                userId: _authService.currentUser?.id ?? 0,
-                                isPublic: isPublic,
-                                createdAt: DateTime.now(),
-                                duration: double.parse(durationController.text),
-                              );
-                              await _activityService.createActivity(activity);
-
-                              if (!mounted) return;
-                              Navigator.pop(context); // Dismiss loading spinner
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Activity logged successfully!',
+                      // FIT File & FIT Folder Import Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: isImportingFit
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.file_upload_outlined,
+                                      color: AppColors.primary,
+                                      size: 18,
+                                    ),
+                              label: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  importedActivityId != null
+                                      ? 'FIT file imported'
+                                      : 'Import a .FIT file',
+                                  style: const TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              );
-                              _loadActivities();
-                            } catch (e) {
-                              if (!mounted) return;
-                              Navigator.pop(context); // Dismiss loading spinner
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Failed to log activity: $e'),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
+                                  color: AppColors.primary,
                                 ),
-                              );
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 8,
+                                ),
+                              ),
+                              onPressed:
+                                  (isImportingFit || isImportingFitFolder)
+                                  ? null
+                                  : () async {
+                                      try {
+                                        final picker =
+                                            widget.pickFitFile ??
+                                            _activityService.pickFitFile;
+                                        final file = await picker();
+                                        if (file == null) {
+                                          return;
+                                        }
+                                        if (!modalContext.mounted) return;
+
+                                        setModalState(() {
+                                          isImportingFit = true;
+                                        });
+
+                                        final bytes = await file.readAsBytes();
+                                        final localMeta =
+                                            FitDecoder.parseMetadata(bytes);
+
+                                        final activity = await _activityService
+                                            .importFitFile(file);
+
+                                        if (!modalContext.mounted) return;
+
+                                        setModalState(() {
+                                          isImportingFit = false;
+                                          importedActivityId = activity.id;
+
+                                          final resolvedType =
+                                              (activity.type.isNotEmpty &&
+                                                  activity.type != 'other')
+                                              ? activity.type
+                                              : localMeta.sport;
+
+                                          selectedType = resolvedType;
+
+                                          if (activity.title.isNotEmpty &&
+                                              activity.title !=
+                                                  'Imported FIT activity') {
+                                            titleController.text =
+                                                activity.title;
+                                          } else {
+                                            final timeLabel =
+                                                switch (resolvedType) {
+                                                  'run' => '$timeOfDay Run',
+                                                  'cycle' => '$timeOfDay Ride',
+                                                  'walk' => '$timeOfDay Walk',
+                                                  'hike' => '$timeOfDay Hike',
+                                                  'swim' => '$timeOfDay Swim',
+                                                  _ => '$timeOfDay Workout',
+                                                };
+                                            titleController.text = timeLabel;
+                                          }
+
+                                          final dur =
+                                              (activity.duration != null &&
+                                                  activity.duration! > 0)
+                                              ? activity.duration
+                                              : localMeta.durationMinutes;
+                                          if (dur != null && dur > 0) {
+                                            importedExactDuration = dur;
+                                            importedDurationText = dur
+                                                .round()
+                                                .toString();
+                                            durationController.text =
+                                                importedDurationText!;
+                                          }
+
+                                          final dist =
+                                              (activity.distanceKm != null &&
+                                                  activity.distanceKm! > 0)
+                                              ? activity.distanceKm
+                                              : localMeta.distanceKm;
+                                          if (dist != null && dist > 0) {
+                                            importedExactDistanceKm = dist;
+                                            importedDistanceText = dist % 1 == 0
+                                                ? dist.toInt().toString()
+                                                : dist.toStringAsFixed(1);
+                                            distanceController.text =
+                                                importedDistanceText!;
+                                          }
+
+                                          showSportWarning =
+                                              (resolvedType == 'other');
+                                        });
+                                      } catch (e) {
+                                        if (modalContext.mounted) {
+                                          setModalState(() {
+                                            isImportingFit = false;
+                                          });
+                                          ScaffoldMessenger.of(
+                                            modalContext,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'FIT import error: $e',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: isImportingFitFolder
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.folder_open_outlined,
+                                      color: AppColors.primary,
+                                      size: 18,
+                                    ),
+                              label: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'Import a .FIT folder',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
+                                  color: AppColors.primary,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 8,
+                                ),
+                              ),
+                              onPressed:
+                                  (isImportingFit || isImportingFitFolder)
+                                  ? null
+                                  : () async {
+                                      try {
+                                        final folderPicker =
+                                            widget.pickFitFolder ??
+                                            _activityService.pickFitFolder;
+                                        final files = await folderPicker();
+                                        if (files == null) {
+                                          return;
+                                        }
+                                        if (!modalContext.mounted) return;
+
+                                        final hasAnyFit = files.any(
+                                          (f) => ActivityService.isFitFilename(
+                                            f.name.isNotEmpty ? f.name : f.path,
+                                          ),
+                                        );
+                                        if (!hasAnyFit) {
+                                          ScaffoldMessenger.of(
+                                            modalContext,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'No .FIT files found in the selected folder.',
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        setModalState(() {
+                                          isImportingFitFolder = true;
+                                        });
+
+                                        final result = await _activityService
+                                            .importFitFolder(
+                                              files,
+                                              fallbackType: selectedType,
+                                              isPublic: isPublic,
+                                            );
+
+                                        if (!modalContext.mounted) return;
+
+                                        if (result.importedCount == 0) {
+                                          setModalState(() {
+                                            isImportingFitFolder = false;
+                                          });
+                                          ScaffoldMessenger.of(
+                                            modalContext,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Could not import any valid .FIT activity from the selected folder.',
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        Navigator.pop(modalContext);
+                                        if (!mounted) return;
+
+                                        final count = result.importedCount;
+                                        final actLabel = count == 1
+                                            ? 'activity'
+                                            : 'activities';
+                                        final skipped =
+                                            result.skippedNonFitCount;
+                                        final message = skipped > 0
+                                            ? 'Imported $count .FIT $actLabel ($skipped non-.FIT ${skipped == 1 ? 'file' : 'files'} ignored).'
+                                            : 'Imported $count .FIT $actLabel successfully!';
+
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(content: Text(message)),
+                                        );
+                                        _loadActivities();
+                                      } catch (e) {
+                                        if (modalContext.mounted) {
+                                          setModalState(() {
+                                            isImportingFitFolder = false;
+                                          });
+                                          ScaffoldMessenger.of(
+                                            modalContext,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'FIT folder import error: $e',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Sport clarification warning if imported without clear sport
+                      if (showSportWarning)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.warning),
+                          ),
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                color: AppColors.warning,
+                                size: 20,
+                              ),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Warning: please specify your sport below. Without a specific discipline, the activity will remain classified as "Other" and will be excluded from all heatmaps.',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      // Title Field
+                      TextFormField(
+                        controller: titleController,
+                        decoration: InputDecoration(
+                          labelText: 'Activity Name',
+                          border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'Save Activity',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter a name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Type Dropdown (harmonized watch standards: run, cycle, walk, hike, swim, other)
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedType,
+                        decoration: InputDecoration(
+                          labelText: 'Activity Type',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'run',
+                            child: Text('Running (run)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'cycle',
+                            child: Text('Cycling (cycle)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'walk',
+                            child: Text('Walking (walk)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'hike',
+                            child: Text('Hiking (hike)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'swim',
+                            child: Text('Swimming (swim)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'other',
+                            child: Text('Other (other)'),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setModalState(() {
+                              selectedType = val;
+                              if (val != 'other') {
+                                showSportWarning = false;
+                              }
+                              if (importedActivityId == null) {
+                                final capitalizedType =
+                                    val[0].toUpperCase() + val.substring(1);
+                                titleController.text =
+                                    '$timeOfDay $capitalizedType';
+                              }
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Duration Input
+                      TextFormField(
+                        controller: durationController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Duration (minutes)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter duration';
+                          }
+                          if (int.tryParse(value) == null) {
+                            return 'Please enter a valid number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Distance Input
+                      TextFormField(
+                        controller: distanceController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Distance (km)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value != null && value.trim().isNotEmpty) {
+                            final parsed = double.tryParse(
+                              value.trim().replaceAll(',', '.'),
+                            );
+                            if (parsed == null || parsed < 0) {
+                              return 'Please enter a valid distance';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Public Toggle
+                      SwitchListTile(
+                        title: const Text('Make Activity Public'),
+                        subtitle: const Text(
+                          'Visible to other campus users in their social feeds',
+                        ),
+                        value: isPublic,
+                        activeThumbColor: AppColors.primary,
+                        onChanged: (val) {
+                          setModalState(() {
+                            isPublic = val;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Submit Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 54,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (formKey.currentState!.validate()) {
+                              Navigator.pop(modalContext); // Close bottom sheet
+
+                              showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (context) => const Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              );
+
+                              try {
+                                final durText = durationController.text.trim();
+                                final parsedDur = double.parse(
+                                  durText.replaceAll(',', '.'),
+                                );
+                                final distText = distanceController.text.trim();
+                                final distKm = distText.isNotEmpty
+                                    ? double.tryParse(
+                                        distText.replaceAll(',', '.'),
+                                      )
+                                    : null;
+
+                                if (importedActivityId != null) {
+                                  final effectiveDuration =
+                                      (importedExactDuration != null &&
+                                          durText == importedDurationText)
+                                      ? importedExactDuration!
+                                      : parsedDur;
+                                  final effectiveDistanceKm =
+                                      (importedExactDistanceKm != null &&
+                                          distText == importedDistanceText)
+                                      ? importedExactDistanceKm
+                                      : distKm;
+                                  await _activityService.updateActivity(
+                                    importedActivityId!,
+                                    <String, dynamic>{
+                                      'title': titleController.text,
+                                      'type': selectedType,
+                                      'is_public': isPublic,
+                                      'duration': effectiveDuration,
+                                      'distance_km': ?effectiveDistanceKm,
+                                    },
+                                  );
+                                } else {
+                                  final activity = Activity(
+                                    id: 0,
+                                    title: titleController.text,
+                                    type: selectedType,
+                                    userId: _authService.currentUser?.id ?? 0,
+                                    isPublic: isPublic,
+                                    createdAt: DateTime.now(),
+                                    duration: parsedDur,
+                                    distanceKm: distKm,
+                                  );
+                                  await _activityService.createActivity(
+                                    activity,
+                                  );
+                                }
+
+                                if (!mounted) return;
+                                Navigator.pop(
+                                  context,
+                                ); // Dismiss loading spinner
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Activity logged successfully!',
+                                    ),
+                                  ),
+                                );
+                                _loadActivities();
+                              } catch (e) {
+                                if (!mounted) return;
+                                Navigator.pop(
+                                  context,
+                                ); // Dismiss loading spinner
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to log activity: $e'),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Save Activity',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
@@ -442,41 +902,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     );
   }
 
-  IconData _getActivityIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'run':
-        return Icons.directions_run;
-      case 'walk':
-        return Icons.directions_walk;
-      case 'cycle':
-        return Icons.pedal_bike;
-      case 'hike':
-        return Icons.terrain;
-      case 'swim':
-        return Icons.pool;
-      case 'climbing':
-        return Icons.filter_hdr;
-      default:
-        return Icons.fitness_center;
-    }
-  }
+  IconData _getActivityIcon(String type) => ActivityCard.getActivityIcon(type);
 
-  Color _getActivityColor(String type) {
-    switch (type.toLowerCase()) {
-      case 'run':
-        return Colors.deepOrange;
-      case 'walk':
-        return Colors.teal;
-      case 'cycle':
-        return Colors.blue;
-      case 'hike':
-        return Colors.green;
-      case 'swim':
-        return Colors.cyan;
-      default:
-        return AppColors.primary;
-    }
-  }
+  Color _getActivityColor(String type) => ActivityCard.getActivityColor(type);
 
   @override
   Widget build(BuildContext context) {
@@ -513,7 +941,79 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+
+          if (ApiService.mockMode) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  const Text(
+                    'Demo role:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('Organizer (Robin.Doe)'),
+                      ),
+                      selected: MockDataService().currentMockUserId == 1,
+                      selectedColor: AppColors.primaryLight,
+                      labelStyle: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: MockDataService().currentMockUserId == 1
+                            ? AppColors.primary
+                            : AppColors.textPrimary,
+                      ),
+                      onSelected: (_) => _switchDemoProfile(1),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ChoiceChip(
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('Participant (Camille.B)'),
+                      ),
+                      selected: MockDataService().currentMockUserId == 2,
+                      selectedColor: AppColors.primaryLight,
+                      labelStyle: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: MockDataService().currentMockUserId == 2
+                            ? AppColors.primary
+                            : AppColors.textPrimary,
+                      ),
+                      onSelected: (_) => _switchDemoProfile(2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: AppButton(
+              text: 'My Heatmaps',
+              icon: Icons.map_outlined,
+              variant: AppButtonVariant.outline,
+              onPressed: () async {
+                await Navigator.pushNamed(context, AppRoutes.heatmaps);
+                if (!mounted) return;
+                _loadActivities();
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
 
           // TabBar (3 Tabs)
           TabBar(
@@ -631,6 +1131,15 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
             side: BorderSide(color: Colors.grey.shade200),
           ),
           child: InkWell(
+            onTap: () async {
+              await Navigator.pushNamed(
+                context,
+                AppRoutes.activityDetails,
+                arguments: activity,
+              );
+              if (!mounted) return;
+              _loadActivities();
+            },
             onLongPress: () {
               showDialog(
                 context: context,
@@ -693,6 +1202,14 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            if (activity.isFromEvent) ...[
+                              const Icon(
+                                Icons.event,
+                                size: 14,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 6),
+                            ],
                             Icon(
                               activity.isPublic
                                   ? Icons.public
@@ -849,6 +1366,105 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
               }).toList(),
             ),
           ),
+
+        if (_pastEvents.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Past Group Events',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () {
+                    setState(() {
+                      _onlyParticipatedPastEvents =
+                          !_onlyParticipatedPastEvents;
+                    });
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: _onlyParticipatedPastEvents,
+                          activeColor: AppColors.primary,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          onChanged: (val) {
+                            setState(() {
+                              _onlyParticipatedPastEvents = val ?? false;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Participated only',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 15),
+          Builder(
+            builder: (context) {
+              final displayedPastEvents = _onlyParticipatedPastEvents
+                  ? _pastEvents
+                        .where((e) => _participatedPastEventIds.contains(e.id))
+                        .toList()
+                  : _pastEvents;
+              if (displayedPastEvents.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24.0,
+                    vertical: 12.0,
+                  ),
+                  child: Text(
+                    'No participated past events found.',
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                );
+              }
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  children: displayedPastEvents.map((event) {
+                    final formattedDate = DateFormat(
+                      'EEEE, MMM d, yyyy',
+                    ).format(event.startTime);
+                    final location = event.distanceM != null
+                        ? 'Distance: ${(event.distanceM! / 1000).toStringAsFixed(1)} km'
+                        : 'Campus Trail';
+                    return _buildUpcomingEventCard(
+                      id: event.id,
+                      title: event.title,
+                      date: formattedDate,
+                      location: location,
+                      spotsLeft: event.participantCount,
+                      isPast: true,
+                    );
+                  }).toList(),
+                ),
+              );
+            },
+          ),
+        ],
       ],
     );
   }
@@ -868,7 +1484,7 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
           arguments: id,
         );
         if (!mounted) return;
-        _loadEventsData();
+        _loadAllData();
       },
       onLongPress: () {
         showDialog(
@@ -912,6 +1528,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                 IconButton(
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   icon: const Icon(Icons.cancel, color: Colors.grey, size: 18),
                   onPressed: () => _leaveEvent(id),
                 ),
@@ -935,23 +1554,22 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     );
   }
 
+  Future<void> _openEventDetails(int id) async {
+    await Navigator.pushNamed(context, AppRoutes.eventDetails, arguments: id);
+    if (!mounted) return;
+    _loadAllData();
+  }
+
   Widget _buildUpcomingEventCard({
     required int id,
     required String title,
     required String date,
     required String location,
     required int spotsLeft,
+    bool isPast = false,
   }) {
     return GestureDetector(
-      onTap: () async {
-        await Navigator.pushNamed(
-          context,
-          AppRoutes.eventDetails,
-          arguments: id,
-        );
-        if (!mounted) return;
-        _loadEventsData();
-      },
+      onTap: () => _openEventDetails(id),
       child: Container(
         margin: const EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
@@ -986,14 +1604,19 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        date,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                      Expanded(
+                        child: Text(
+                          date,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         '$spotsLeft joined',
                         style: const TextStyle(
@@ -1035,16 +1658,17 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
                     width: double.infinity,
                     height: 45,
                     child: ElevatedButton(
-                      onPressed: () => _joinEvent(id),
+                      onPressed: () =>
+                          isPast ? _openEventDetails(id) : _joinEvent(id),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        'Join Event',
-                        style: TextStyle(
+                      child: Text(
+                        isPast ? 'View Details' : 'Join Event',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1077,6 +1701,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     if (t.contains('cycle') || t.contains('bike') || t.contains('cycling')) {
       return Icons.pedal_bike;
     }
+    if (t.contains('walk')) {
+      return Icons.directions_walk;
+    }
     if (t.contains('volleyball')) {
       return Icons.sports_volleyball;
     }
@@ -1091,8 +1718,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     if (t.contains('basketball')) return Colors.orange;
     if (t.contains('yoga')) return Colors.teal;
     if (t.contains('tennis')) return Colors.green;
-    if (t.contains('run')) return Colors.deepOrange;
-    if (t.contains('cycle')) return Colors.blue;
+    if (t.contains('run')) return AppColors.activityRun;
+    if (t.contains('cycle')) return AppColors.activityCycle;
+    if (t.contains('walk')) return AppColors.activityWalk;
     if (t.contains('volleyball')) return Colors.purple;
     return AppColors.primary;
   }

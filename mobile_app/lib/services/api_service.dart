@@ -135,6 +135,36 @@ class ApiService {
     }
   }
 
+  Future<http.Response> uploadFile(
+    String path, {
+    required List<int> bytes,
+    required String filename,
+    required String field,
+    Map<String, String>? fields,
+  }) async {
+    if (mockMode) {
+      return MockDataService().handleUpload(
+        path,
+        bytes: bytes,
+        filename: filename,
+        field: field,
+        fields: fields,
+      );
+    }
+    final request = http.MultipartRequest('POST', Uri.parse(_buildUrl(path)));
+    request.headers.addAll(_getHeaders()..remove('Content-Type'));
+    if (fields != null) {
+      request.fields.addAll(fields);
+    }
+    request.files.add(
+      http.MultipartFile.fromBytes(field, bytes, filename: filename),
+    );
+    final streamed = await request.send().timeout(const Duration(seconds: 45));
+    return http.Response.fromStream(
+      streamed,
+    ).timeout(const Duration(seconds: 45));
+  }
+
   Future<http.Response> put(String path, dynamic body) async {
     if (mockMode) {
       return MockDataService().handlePut(path, body);

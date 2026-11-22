@@ -12,7 +12,7 @@ This document is the technical source of truth: tech stack, layers, repository l
 | State | `StatefulWidget` + `setState`, `FutureBuilder` | No state-management library. Do not add one for a single feature. |
 | Networking | `http` package behind `ApiService` | Bearer JWT, JSON in and out. |
 | Backend | Campus Motion REST API, `https://api.campusmotion.ch` | Self-hosted and GDPR-compliant. **No Firebase.** |
-| Other packages | `intl` (dates), `share_plus` (data export), `flutter_signin_button`, `flutter_secure_storage` (token storage) | Add a package only with team agreement. |
+| Other packages | `intl` (dates), `share_plus` (data export), `flutter_signin_button`, `flutter_secure_storage` (token storage), `file_selector` (user-selected FIT files) | Add a package only with team agreement. |
 | Quality | `flutter_lints`, `dart format`, `flutter test`, coverage floor | Enforced in CI. |
 
 ## 2. History and key decisions
@@ -69,7 +69,7 @@ mobile-app-v2/                      repository root: docs and agent instructions
       main.dart                     entry point, theme, initial route
       config/routes.dart            AppRoutes
       constants/colors.dart         AppColors
-      models/                       activity, event, health, news_item, user, user_preferences
+      models/                       activity, event, health, news_item, user, user_preferences, waypoint
       services/                     api, auth, user, activity, event, news, mock_data
       widgets/                      shared components (catalog in DESIGN.md)
       screens/
@@ -105,12 +105,15 @@ Every screen is registered in `AppRoutes`:
 | `signin` | `/signin` | `SignInScreen` |
 | `dashboard` | `/dashboard` | `HomeIndexScreen` (Home tab) |
 | `trail` | `/trail` | `ActivityIndexScreen` (Sport tab) |
+| `heatmap` | `/heatmap` | `HeatmapScreen` (personal route density, opened from Sport) |
 | `recordActivity` | `/activity/record` | `ActivityRecordScreen` |
 | `social` | `/social` | `SocialIndexScreen` (Social tab) |
 | `profile` | `/profile` | `ProfileIndexScreen` (Profile tab) |
 | `editProfile` | `/profile/edit` | `ProfileEditScreen` |
 | `settings` | `/profile/settings` | `ProfileSettingsScreen` |
 | `eventDetails` | `/events/details` | `EventDetailsScreen` |
+| `activityDetails` | `/activities/details` | `ActivityDetailsScreen` |
+| `heatmaps` | `/heatmaps` | `HeatmapScreen` |
 
 To add a screen: add a constant, add a `case` in `generateRoute`, navigate with `Navigator.pushNamed(context, AppRoutes.<name>)`. Pass arguments through `RouteSettings.arguments`, not by constructing `MaterialPageRoute` inline in a screen. This table must be updated in the same PR.
 

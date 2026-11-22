@@ -1,0 +1,196 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:file_selector/file_selector.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:mobile_app/models/waypoint.dart';
+import 'package:mobile_app/services/activity_service.dart';
+import 'package:mobile_app/services/api_service.dart';
+import 'package:mobile_app/services/mock_data_service.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() => ApiService.mockMode = false);
+  tearDown(() async {
+    ApiService.mockMode = false;
+    await ApiService().clearToken();
+  });
+
+  group('ActivityService FIT import & discipline tracks', () {
+    test('importFit throws exception if bytes are empty', () async {
+      await expectLater(
+        ActivityService().importFit([]),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test(
+      'importFit sends multipart request and parses created activity',
+      () async {
+        await ApiService().setToken('test-token-123');
+        final result = await http.runWithClient(
+          () => ActivityService().importFit([0x0E, 0x10, 0x47]),
+          () => MockClient((request) async {
+            expect(request.url.path, '/activities/import-fit');
+            expect(request.headers['Authorization'], 'Bearer test-token-123');
+            expect(
+              request.headers['content-type'],
+              startsWith('multipart/form-data;'),
+            );
+            return http.Response(
+              json.encode({
+                'id': 301,
+                'user_id': 1,
+                'title': 'Imported FIT activity',
+                'type': 'other',
+                'duration': 40.0,
+                'distance_km': 5.0,
+                'is_public': false,
+                'created_at': '2026-11-17T12:00:00Z',
+              }),
+              201,
+            );
+          }),
+        );
+
+        expect(result.id, 301);
+        expect(result.title, 'Imported FIT activity');
+        expect(result.type, 'other');
+        expect(result.duration, 40.0);
+      },
+    );
+
+    test('importFit works seamlessly in mockMode offline', () async {
+      ApiService.mockMode = true;
+      final beforeCount = (await ActivityService().getActivities()).length;
+
+      final activity = await ActivityService().importFit([
+        1,
+        2,
+        3,
+        4,
+        5,
+      ], filename: 'my_run.fit');
+
+      expect(activity.id, greaterThan(200));
+      expect(activity.title, 'Imported FIT activity');
+      expect(activity.type, 'other');
+
+      // Check waypoints were populated in mock mode
+      final waypoints = await ActivityService().getWaypoints(activity.id);
+      expect(waypoints, isNotEmpty);
+
+      final afterCount = (await ActivityService().getActivities()).length;
+      expect(afterCount, beforeCount + 1);
+    });
+
+    test('getDisciplineTracks excludes "other" discipline', () async {
+      ApiService.mockMode = true;
+      final tracks = await ActivityService().getDisciplineTracks('other');
+      expect(tracks, isEmpty);
+    });
+
+    test(
+      'getDisciplineTracks returns 2 distinct tracks per discipline in mock mode',
+      () async {
+        ApiService.mockMode = true;
+        MockDataService().resetMockActivities();
+        for (final sport in ['run', 'cycle', 'walk', 'hike']) {
+          final tracks = await ActivityService().getDisciplineTracks(sport);
+          expect(tracks.length, 2, reason: 'Expected 2 tracks for $sport');
+          for (final track in tracks) {
+            expect(track.length, greaterThanOrEqualTo(2));
+            expect(track.first, isA<Waypoint>());
+          }
+        }
+        final runTracks = await ActivityService().getDisciplineTracks('run');
+        final cycleTracks = await ActivityService().getDisciplineTracks(
+          'cycle',
+        );
+        expect(
+          runTracks.first.first.latitude,
+          isNot(equals(cycleTracks.first.first.latitude)),
+        );
+      },
+    );
+
+    test('importFitFile rejects non-.fit files', () async {
+      final badFile = XFile.fromData(
+        Uint8List.fromList([1, 2, 3]),
+        name: 'test.gpx',
+        path: 'test.gpx',
+      );
+      await expectLater(
+        ActivityService().importFitFile(badFile),
+        throwsA(
+          predicate(
+            (e) =>
+                e is Exception &&
+                e.toString().contains('Please select a .fit file'),
+          ),
+        ),
+      );
+    });
+
+    test('importFitFile imports valid XFile ending in .fit', () async {
+      ApiService.mockMode = true;
+      final file = XFile.fromData(
+        Uint8List.fromList([1, 2, 3, 4]),
+        name: 'track.FIT',
+        path: 'track.FIT',
+      );
+      final activity = await ActivityService().importFitFile(file);
+      expect(activity.id, greaterThan(200));
+    });
+
+    test(
+      'importFitFolder filters only .fit files and creates one activity per .fit file',
+      () async {
+        ApiService.mockMode = true;
+        MockDataService().resetMockActivities();
+        final beforeCount = (await ActivityService().getActivities(
+          limit: 200,
+        )).length;
+
+        final folderFiles = [
+          XFile.fromData(
+            Uint8List.fromList([1, 2, 3, 4]),
+            name: 'course_1.fit',
+            path: 'course_1.fit',
+          ),
+          XFile.fromData(
+            Uint8List.fromList([5, 6, 7]),
+            name: 'notes.txt',
+            path: 'notes.txt',
+          ),
+          XFile.fromData(
+            Uint8List.fromList([8, 9, 10, 11]),
+            name: 'course_2.FIT',
+            path: 'course_2.FIT',
+          ),
+          XFile.fromData(
+            Uint8List.fromList([12, 13]),
+            name: 'other_track.gpx',
+            path: 'other_track.gpx',
+          ),
+        ];
+
+        final result = await ActivityService().importFitFolder(
+          folderFiles,
+          fallbackType: 'run',
+        );
+
+        expect(result.importedCount, 2);
+        expect(result.skippedNonFitCount, 2);
+        expect(result.failedFitCount, 0);
+
+        final afterCount = (await ActivityService().getActivities(
+          limit: 200,
+        )).length;
+        expect(afterCount, beforeCount + 2);
+      },
+    );
+  });
+}

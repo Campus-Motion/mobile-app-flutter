@@ -67,6 +67,7 @@ Special-category data. See [ARCHITECTURE.md](ARCHITECTURE.md#6-privacy-architect
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/activities` | List. Query: `limit`, `cursor`, `type`, `public`. Returns `duration` (minutes) and optional `distance_km` (kilometres). |
+| GET | `/activities/heatmap` | Personal GPS heatmap from the latest 20 activities with at least two waypoints; 204 when no moving route is available. |
 | GET | `/activities/{id}` | One activity (includes `duration` and optional `distance_km`). |
 | POST | `/activities` | Log an activity (`is_public` defaults to `false`; accepts `title`, `type`, optional `body`, optional `duration` in minutes, and optional `distance_km` in kilometres). |
 | PUT | `/activities/{id}` | Update fields (including `duration` and `distance_km`). |
@@ -99,3 +100,37 @@ Each response is parsed into a model in `mobile_app/lib/models/`: `User`, `UserP
 3. Add the handler to `MockDataService` with realistic data.
 4. Add a test that runs the service in mock mode.
 5. Update the tables on this page.
+
+### Personal heatmap response
+
+`ActivityService.getHeatmap()` calls `GET /activities/heatmap` with the existing
+Bearer token. No user ID is accepted: the backend selects the signed-in owner's
+activities, including private routes and excluding everyone else's public routes.
+The internal renderer receives only latitude, longitude and recorded timestamps.
+A 200 response contains `image` (PNG data URL), `bounds` (`[[south, west],
+[north, east]]`), `runs`, `points`, `pixel_m` and `saturation`. No GPS tracks,
+images or identity are cached or stored by the rendering flow. Responses use
+`Cache-Control: no-store`. No qualifying data returns 204, excessive GPS data
+returns 413 and an unavailable renderer returns 503.
+
+The app displays the raster in a zoomable viewer without third-party map tiles.
+Mock mode uses a synthetic route image. Manually logged activities have no GPS
+route; activities populated through FIT import or the existing waypoint endpoint appear.
+
+### FIT imports and activity export
+
+The import-enabled backend accepts `POST /activities/import-fit` with Bearer
+JWT and multipart field `file`. It creates one private activity (`type: other`,
+`title: Imported FIT activity`) plus its GPS waypoints, returning the activity
+with HTTP 201. The original file and health/sensor fields are discarded. Limits
+are one FIT file, 10 MiB and 100,000 GPS points; unsupported/corrupt files return
+422, oversized input 413, expired login 401 and an unavailable decoder 503.
+Each import creates a new activity; duplicate uploads are not deduplicated.
+
+`ActivityService.importFit` uses the shared `ApiService.uploadFile`. Multipart
+writes never fall back to mock success. Demo mode returns a controlled error
+without retaining the file or inventing a saved activity. `GET /activities/export`
+returns all owned activities with GPS waypoints for the Settings data export;
+other users' public activities are excluded. Import and export responses use
+`Cache-Control: no-store`. A backend and renderer deployment is needed to use
+these endpoints with real data.

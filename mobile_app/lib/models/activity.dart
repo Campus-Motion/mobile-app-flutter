@@ -9,6 +9,8 @@ class Activity {
   duration; // In minutes, hours, or seconds depending on frontend representation
   final double? distanceKm;
   final String? body;
+  final bool hasFit;
+  final bool isFromEvent;
 
   Activity({
     required this.id,
@@ -20,6 +22,8 @@ class Activity {
     this.duration,
     this.distanceKm,
     this.body,
+    this.hasFit = false,
+    this.isFromEvent = false,
   });
 
   /// Default cruising speed in km/h for a sport type, used when estimating
@@ -68,6 +72,10 @@ class Activity {
           : null,
       distanceKm: _parseDistanceKm(json),
       body: json['body'] as String?,
+      hasFit: json['has_fit'] as bool? ?? (json['hasFit'] as bool? ?? false),
+      isFromEvent:
+          json['is_from_event'] as bool? ??
+          (json['isFromEvent'] as bool? ?? (json['event_id'] != null)),
     );
   }
 
@@ -79,6 +87,18 @@ class Activity {
       if (duration != null) 'duration': duration,
       if (distanceKm != null) 'distance_km': distanceKm,
       'is_public': isPublic,
+      if (hasFit) 'has_fit': hasFit,
+      if (isFromEvent) 'is_from_event': isFromEvent,
     };
   }
+
+  /// Returns whether the sport type is locked (i.e. auto-detected by FIT and not 'other').
+  bool get isTypeLocked => hasFit && type.toLowerCase() != 'other';
+
+  /// Returns whether the duration is locked (i.e. auto-detected by FIT and > 0).
+  bool get isDurationLocked => hasFit && (duration != null && duration! > 0);
+
+  /// Returns whether the distance is locked (i.e. auto-detected by FIT and > 0).
+  bool get isDistanceLocked =>
+      hasFit && (distanceKm != null && distanceKm! > 0);
 }

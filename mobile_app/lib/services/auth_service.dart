@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'user_service.dart';
 import 'api_service.dart';
+import 'mock_data_service.dart';
 import '../models/user.dart';
 
 class AuthService {
@@ -18,7 +19,18 @@ class AuthService {
   /// Activates the developer mock bypass and sets up a local demo session.
   Future<User> enterDemoMode() async {
     _apiService.enableMockMode();
+    MockDataService().setMockUserProfile(userId: 1);
     await _apiService.setToken('mock-dev-jwt-token');
+    final user = await UserService().getMe();
+    _currentUser = user;
+    return user;
+  }
+
+  /// Switches between demo profiles (1 = Organizer Robin.Doe, 2 = Participant Camille.B)
+  /// while in mock mode.
+  Future<User> switchDemoUser(int userId) async {
+    _apiService.enableMockMode();
+    MockDataService().setMockUserProfile(userId: userId);
     final user = await UserService().getMe();
     _currentUser = user;
     return user;

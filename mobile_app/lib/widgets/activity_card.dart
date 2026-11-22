@@ -139,6 +139,14 @@ class ActivityCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (activity.isFromEvent) ...[
+                        const Icon(
+                          Icons.event,
+                          size: 14,
+                          color: AppColors.textMuted,
+                        ),
+                        const SizedBox(width: 6),
+                      ],
                       Icon(
                         activity.isPublic ? Icons.public : Icons.lock_outline,
                         size: 14,

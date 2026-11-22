@@ -1,22 +1,33 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/constants/colors.dart';
 import 'package:mobile_app/models/event.dart';
 import 'package:mobile_app/models/user.dart';
+import 'package:mobile_app/models/waypoint.dart';
 import 'package:mobile_app/services/auth_service.dart';
 import 'package:mobile_app/services/event_service.dart';
 import 'package:mobile_app/services/user_service.dart';
 import 'package:mobile_app/widgets/app_button.dart';
 import 'package:mobile_app/widgets/app_card.dart';
 import 'package:mobile_app/widgets/master_container.dart';
+import 'package:mobile_app/widgets/route_map.dart';
 import 'package:mobile_app/widgets/section_header.dart';
 import 'package:mobile_app/widgets/stat_item.dart';
 import 'package:mobile_app/widgets/user_list_tile.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   final int? eventId;
+  final TileProvider? tileProvider;
+  final Future<XFile?> Function()? pickFitFile;
 
-  const EventDetailsScreen({super.key, required this.eventId});
+  const EventDetailsScreen({
+    super.key,
+    required this.eventId,
+    this.tileProvider,
+    this.pickFitFile,
+  });
 
   @override
   State<EventDetailsScreen> createState() => _EventDetailsScreenState();
@@ -29,11 +40,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   Event? _event;
   List<User> _participants = [];
+  List<Waypoint> _eventWaypoints = [];
   User? _currentUser;
   int _participantCount = 0;
   bool _isJoined = false;
   bool _isLoading = true;
   bool _isActionLoading = false;
+  bool _isImportingTrack = false;
   bool _hasError = false;
   String? _errorMessage;
 
@@ -60,14 +73,21 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     });
 
     try {
-      final event = await _eventService.getEvent(widget.eventId!);
-      final participants = await _eventService.getParticipants(widget.eventId!);
+      final futures = await Future.wait([
+        _eventService.getEvent(widget.eventId!),
+        _eventService.getParticipants(widget.eventId!),
+        _eventService.getEventWaypoints(widget.eventId!),
+      ]);
 
-      User? currentUser = _authService.currentUser;
-      if (currentUser == null) {
-        try {
-          currentUser = await _userService.getMe();
-        } catch (_) {}
+      final event = futures[0] as Event;
+      final participants = futures[1] as List<User>;
+      final waypoints = futures[2] as List<Waypoint>;
+
+      User? currentUser;
+      try {
+        currentUser = await _userService.getMe();
+      } catch (_) {
+        currentUser = _authService.currentUser;
       }
 
       final current = currentUser;
@@ -85,6 +105,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       setState(() {
         _event = event;
         _participants = List<User>.from(participants);
+        _eventWaypoints = waypoints;
         _currentUser = currentUser;
         _participantCount = event.participantCount > participants.length
             ? event.participantCount
@@ -100,6 +121,52 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         _hasError = true;
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
       });
+    }
+  }
+
+  Future<void> _importEventTrack() async {
+    if (_event == null) return;
+
+    try {
+      final picker = widget.pickFitFile ?? _eventService.pickFitFile;
+      final file = await picker();
+      if (file == null) {
+        return;
+      }
+
+      setState(() => _isImportingTrack = true);
+
+      final waypoints = await _eventService.importEventFitFile(
+        _event!.id,
+        file,
+      );
+      Event? refreshedEvent;
+      try {
+        refreshedEvent = await _eventService.getEvent(_event!.id);
+      } catch (_) {}
+
+      if (!mounted) return;
+      setState(() {
+        if (refreshedEvent != null) {
+          _event = refreshedEvent;
+        }
+        _eventWaypoints = waypoints;
+        _isImportingTrack = false;
+      });
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('GPS route added and shared with participants!'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isImportingTrack = false);
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error importing route: $e')));
     }
   }
 
@@ -182,6 +249,49 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
     final endFormat = DateFormat('MMM d, HH:mm');
     return '$dateStr $startTimeStr – ${endFormat.format(end)}';
+  }
+
+  (int, int)? _calculateElevationGainLoss() {
+    double ascent = 0.0;
+    double descent = 0.0;
+    bool hasAltitude = false;
+    for (int i = 0; i < _eventWaypoints.length - 1; i++) {
+      final alt1 = _eventWaypoints[i].altitudeM;
+      final alt2 = _eventWaypoints[i + 1].altitudeM;
+      if (alt1 != null && alt2 != null) {
+        hasAltitude = true;
+        final diff = alt2 - alt1;
+        if (diff > 0) {
+          ascent += diff;
+        } else {
+          descent += diff.abs();
+        }
+      }
+    }
+    if (!hasAltitude) return null;
+    return (ascent.round(), descent.round());
+  }
+
+  double? _calculateWaypointsDurationMinutes() {
+    if (_eventWaypoints.length < 2) return null;
+    final secs = _eventWaypoints.last.recordedAt
+        .difference(_eventWaypoints.first.recordedAt)
+        .inSeconds;
+    return secs > 0 ? secs / 60.0 : null;
+  }
+
+  String _calculatePace(double? distanceKm, double? durationMins) {
+    if (distanceKm == null ||
+        distanceKm <= 0 ||
+        durationMins == null ||
+        durationMins <= 0) {
+      return '--';
+    }
+    final paceMin = durationMins / distanceKm;
+    final totalSecs = (paceMin * 60.0).round();
+    final mins = totalSecs ~/ 60;
+    final secs = totalSecs % 60;
+    return "$mins:${secs.toString().padLeft(2, '0')}";
   }
 
   @override
@@ -281,7 +391,46 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     }
 
     final event = _event!;
-    final durationMinutes = event.endTime.difference(event.startTime).inMinutes;
+    final indicativeDurationMins = event.endTime
+        .difference(event.startTime)
+        .inMinutes;
+    final hasFitTrack = _eventWaypoints.isNotEmpty;
+    final effectiveDurationMins =
+        event.durationMinutes ??
+        (hasFitTrack ? _calculateWaypointsDurationMinutes() : null) ??
+        (indicativeDurationMins > 0 ? indicativeDurationMins.toDouble() : null);
+    final distanceKm = (event.distanceM != null && event.distanceM! > 0)
+        ? event.distanceM! / 1000.0
+        : null;
+    final distanceValue = distanceKm != null
+        ? distanceKm.toStringAsFixed(1)
+        : '--';
+    String durationValue = '--';
+    String? durationUnit;
+    if (effectiveDurationMins != null && effectiveDurationMins > 0) {
+      final totalMins = effectiveDurationMins.round();
+      final hrs = totalMins ~/ 60;
+      final mins = totalMins % 60;
+      durationValue = hrs > 0
+          ? '${hrs}h ${mins.toString().padLeft(2, '0')}'
+          : '$mins';
+      durationUnit = 'min';
+    }
+    final paceStr = _calculatePace(distanceKm, effectiveDurationMins);
+    final showElevation = (event.sport ?? 'run').toLowerCase() != 'swim';
+    final elevation = (hasFitTrack && showElevation)
+        ? _calculateElevationGainLoss()
+        : null;
+    final elevationStr = elevation != null
+        ? '+${elevation.$1} / -${elevation.$2}'
+        : '--';
+    final isPastEvent = DateTime.now().isAfter(event.endTime);
+    final isOrganizer =
+        _currentUser != null &&
+        (event.userId == null ||
+            event.userId == _currentUser!.id ||
+            _currentUser!.role == 'admin' ||
+            _currentUser!.role == 'moderator');
 
     return MasterContainer(
       onRefresh: _loadEventDetails,
@@ -357,38 +506,185 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               const SizedBox(height: 16),
               const Divider(color: AppColors.divider, height: 1),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  StatItem(label: 'Participants', value: '$_participantCount'),
-                  if (event.distanceM != null)
+              if (hasFitTrack)
+                showElevation
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: StatItem(
+                                    label: 'Distance',
+                                    value: distanceValue,
+                                    unit: distanceKm != null ? 'km' : null,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                height: 40,
+                                width: 1,
+                                color: AppColors.divider,
+                              ),
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: StatItem(
+                                    label: 'Duration',
+                                    value: durationValue,
+                                    unit: durationUnit,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Container(
+                              height: 1,
+                              color: AppColors.divider,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: StatItem(
+                                    label: 'Pace',
+                                    value: paceStr,
+                                    unit: paceStr != '--' ? 'min/km' : null,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                height: 40,
+                                width: 1,
+                                color: AppColors.divider,
+                              ),
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: StatItem(
+                                    label: 'Elevation',
+                                    value: elevationStr,
+                                    unit: elevation != null ? 'm' : null,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: StatItem(
+                                label: 'Distance',
+                                value: distanceValue,
+                                unit: distanceKm != null ? 'km' : null,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            height: 40,
+                            width: 1,
+                            color: AppColors.divider,
+                          ),
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: StatItem(
+                                label: 'Duration',
+                                value: durationValue,
+                                unit: durationUnit,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            height: 40,
+                            width: 1,
+                            color: AppColors.divider,
+                          ),
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: StatItem(
+                                label: 'Pace',
+                                value: paceStr,
+                                unit: paceStr != '--' ? 'min/km' : null,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+              else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
                     StatItem(
-                      label: 'Distance',
-                      value: (event.distanceM! / 1000).toStringAsFixed(1),
-                      unit: 'km',
+                      label: 'Participants',
+                      value: '$_participantCount',
                     ),
-                  if (durationMinutes > 0)
-                    StatItem(
-                      label: 'Duration',
-                      value: '$durationMinutes',
-                      unit: 'min',
-                    ),
-                ],
-              ),
+                    if (event.distanceM != null)
+                      StatItem(
+                        label: 'Distance',
+                        value: (event.distanceM! / 1000).toStringAsFixed(1),
+                        unit: 'km',
+                      ),
+                    if (indicativeDurationMins > 0)
+                      StatItem(
+                        label: 'Duration',
+                        value: '$indicativeDurationMins',
+                        unit: 'min',
+                      ),
+                  ],
+                ),
             ],
           ),
         ),
 
-        // Action Button
-        AppButton(
-          text: _isJoined ? 'Leave Event' : 'Join Event',
-          variant: _isJoined
-              ? AppButtonVariant.outline
-              : AppButtonVariant.primary,
-          isLoading: _isActionLoading,
-          onPressed: _toggleJoinLeave,
-        ),
-        const SizedBox(height: 28),
+        // Action Buttons: If past event and organizer without track, allow importing track.
+        // Otherwise, if upcoming, allow joining/leaving.
+        if (isPastEvent) ...[
+          if (isOrganizer && _eventWaypoints.isEmpty) ...[
+            AppButton(
+              text: 'Add GPS route (.fit)',
+              isLoading: _isImportingTrack,
+              onPressed: _importEventTrack,
+            ),
+            const SizedBox(height: 20),
+          ],
+        ] else ...[
+          AppButton(
+            text: _isJoined ? 'Leave Event' : 'Join Event',
+            variant: _isJoined
+                ? AppButtonVariant.outline
+                : AppButtonVariant.primary,
+            isLoading: _isActionLoading,
+            onPressed: _toggleJoinLeave,
+          ),
+          const SizedBox(height: 28),
+        ],
+
+        // GPS Route Map (conditioned to presence of GPS points)
+        if (_eventWaypoints.isNotEmpty) ...[
+          const SectionHeader(
+            title: 'GPS Route',
+            padding: EdgeInsets.only(bottom: 12),
+          ),
+          RouteMap(
+            waypoints: _eventWaypoints,
+            activityType: event.sport,
+            height: 260,
+            tileProvider: widget.tileProvider,
+          ),
+          const SizedBox(height: 24),
+        ],
 
         // Description Section
         const SectionHeader(title: 'About the Event'),

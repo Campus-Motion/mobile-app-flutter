@@ -17,7 +17,7 @@ Project skills are in `.claude/skills/` (mirrored in `.agents/skills/`; keep bot
 
 ## Commands
 
-Run from `mobile_app/`.
+Run from `mobile_app/`. On Windows in sandboxed runners, execute `flutter` commands outside the sandbox (`BypassSandbox: true`) to prevent `flutter.bat.lock` hangs.
 
 - Install: `flutter pub get`
 - Format: `dart format .`

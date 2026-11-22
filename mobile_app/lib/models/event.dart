@@ -5,8 +5,11 @@ class Event {
   final DateTime startTime;
   final DateTime endTime;
   final double? distanceM;
+  final double? durationMinutes;
+  final String? sport;
   final int participantCount;
   final DateTime createdAt;
+  final int? userId;
 
   Event({
     required this.id,
@@ -15,8 +18,11 @@ class Event {
     required this.startTime,
     required this.endTime,
     this.distanceM,
+    this.durationMinutes,
+    this.sport,
     required this.participantCount,
     required this.createdAt,
+    this.userId,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -39,11 +45,18 @@ class Event {
       distanceM: json['distance_m'] != null
           ? double.tryParse(json['distance_m'].toString())
           : null,
+      durationMinutes: json['duration_minutes'] != null
+          ? double.tryParse(json['duration_minutes'].toString())
+          : (json['duration'] != null
+                ? double.tryParse(json['duration'].toString())
+                : null),
+      sport: (json['sport'] ?? json['type']) as String?,
       participantCount: json['participant_count'] as int? ?? 0,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)?.toLocal() ??
                 DateTime.now()
           : DateTime.now(),
+      userId: json['user_id'] as int?,
     );
   }
 
@@ -54,6 +67,7 @@ class Event {
       'start_time': startTime.toUtc().toIso8601String(),
       'end_time': endTime.toUtc().toIso8601String(),
       if (distanceM != null) 'distance_m': distanceM,
+      if (userId != null) 'user_id': userId,
     };
   }
 }

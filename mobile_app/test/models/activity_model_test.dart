@@ -74,6 +74,53 @@ void main() {
         expect(jsonMap['is_public'], isFalse);
       },
     );
+    test(
+      'isTypeLocked, isDurationLocked, and isDistanceLocked reflect FIT status',
+      () {
+        final manual = Activity(
+          id: 1,
+          title: 'Manual Run',
+          type: 'run',
+          userId: 1,
+          isPublic: false,
+          createdAt: DateTime.now(),
+          duration: 30,
+          distanceKm: 5,
+          hasFit: false,
+        );
+        expect(manual.isTypeLocked, isFalse);
+        expect(manual.isDurationLocked, isFalse);
+        expect(manual.isDistanceLocked, isFalse);
+
+        final withFit = Activity(
+          id: 2,
+          title: 'Fit Run',
+          type: 'run',
+          userId: 1,
+          isPublic: false,
+          createdAt: DateTime.now(),
+          duration: 35,
+          distanceKm: 6.2,
+          hasFit: true,
+        );
+        expect(withFit.isTypeLocked, isTrue);
+        expect(withFit.isDurationLocked, isTrue);
+        expect(withFit.isDistanceLocked, isTrue);
+
+        final fitOtherNoStats = Activity(
+          id: 3,
+          title: 'Fit Other',
+          type: 'other',
+          userId: 1,
+          isPublic: false,
+          createdAt: DateTime.now(),
+          hasFit: true,
+        );
+        expect(fitOtherNoStats.isTypeLocked, isFalse);
+        expect(fitOtherNoStats.isDurationLocked, isFalse);
+        expect(fitOtherNoStats.isDistanceLocked, isFalse);
+      },
+    );
   });
 
   group('ActivityCard formatting helpers', () {

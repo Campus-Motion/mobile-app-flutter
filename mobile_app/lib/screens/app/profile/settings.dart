@@ -92,11 +92,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         health = null;
       }
 
-      List<dynamic> activitiesJson = [];
-      try {
-        final activities = await ActivityService().getActivities(limit: 100);
-        activitiesJson = activities.map((a) => a.toJson()).toList();
-      } catch (_) {}
+      final activitiesJson = await ActivityService().exportActivities();
 
       final exportMap = {
         'exported_at': DateTime.now().toUtc().toIso8601String(),
@@ -118,9 +114,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Dismiss loading dialog
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to export data: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to export data. Please try again.'),
+        ),
+      );
     }
   }
 
