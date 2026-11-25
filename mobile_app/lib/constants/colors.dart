@@ -28,10 +28,10 @@ class AppColors {
   // Activity Category Tokens (Used in Activity & Profile screens)
   static const Color activityRun = Colors.deepOrange;
   static const Color activityWalk = Color(0xFFEAB308);
-  static const Color activityCycle = Colors.blue;
+  static const Color activityCycle = Colors.purple;
   static const Color activityHike = Colors.green;
-  static const Color activitySwim = Colors.cyan;
-  static const Color activityDefault = AppColors.primary;
+  static const Color activitySwim = Colors.blue;
+  static const Color activityDefault = Color(0xFF757575);
 
   // Trail / Pace Colormap Tokens (from Trail/onecourse.py)
   static const Color paceFast = Color(0xFF2DC653);

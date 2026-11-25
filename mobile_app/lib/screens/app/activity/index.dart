@@ -3,7 +3,10 @@ import 'package:file_selector/file_selector.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/widgets/activity_card.dart';
+import 'package:mobile_app/widgets/activity_type_filter_bar.dart';
+import 'package:mobile_app/widgets/activity_type_filter_dropdown.dart';
 import 'package:mobile_app/widgets/app_button.dart';
+import 'package:mobile_app/widgets/empty_state.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
 import 'package:mobile_app/constants/colors.dart';
@@ -36,6 +39,9 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
   late TabController _tabController;
 
   List<Activity> _myActivities = [];
+  final Set<String> _selectedActivityTypes = Set<String>.from(
+    ActivityTypeFilterBar.allTypeKeys,
+  );
   List<Event> _enrolledEvents = [];
   List<Event> _discoverEvents = [];
   List<Event> _pastEvents = [];
@@ -1000,21 +1006,6 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
             const SizedBox(height: 12),
           ],
 
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: AppButton(
-              text: 'My Heatmaps',
-              icon: Icons.map_outlined,
-              variant: AppButtonVariant.outline,
-              onPressed: () async {
-                await Navigator.pushNamed(context, AppRoutes.heatmaps);
-                if (!mounted) return;
-                _loadActivities();
-              },
-            ),
-          ),
-          const SizedBox(height: 16),
-
           // TabBar (3 Tabs)
           TabBar(
             controller: _tabController,
@@ -1060,6 +1051,16 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
     );
   }
 
+  void _toggleActivityTypeFilter(String type) {
+    setState(() {
+      if (_selectedActivityTypes.contains(type)) {
+        _selectedActivityTypes.remove(type);
+      } else {
+        _selectedActivityTypes.add(type);
+      }
+    });
+  }
+
   // ==========================================
   // TAB 1: MY PERSONAL ACTIVITIES FEED
   // ==========================================
@@ -1072,6 +1073,17 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
             text: 'Start activity',
             icon: Icons.play_arrow,
             onPressed: _openRecordActivity,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: ActivityTypeFilterDropdown(
+              selectedTypes: _selectedActivityTypes,
+              onToggle: _toggleActivityTypeFilter,
+            ),
           ),
         ),
         Expanded(child: _buildActivitiesList()),
@@ -1113,11 +1125,33 @@ class _ActivityIndexScreenState extends State<ActivityIndexScreen>
       );
     }
 
+    final filteredActivities = _myActivities
+        .where(
+          (a) => _selectedActivityTypes.contains(
+            ActivityTypeFilterBar.normalizeType(a.type),
+          ),
+        )
+        .toList();
+
+    if (filteredActivities.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.0),
+          child: EmptyState(
+            icon: Icons.filter_list_off,
+            title: 'No matching activities',
+            subtitle:
+                'Select one or more activity types above to see your workouts.',
+          ),
+        ),
+      );
+    }
+
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-      itemCount: _myActivities.length,
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+      itemCount: filteredActivities.length,
       itemBuilder: (context, index) {
-        final activity = _myActivities[index];
+        final activity = filteredActivities[index];
         final formattedDate = DateFormat(
           'MMMM d, yyyy - HH:mm',
         ).format(activity.createdAt);

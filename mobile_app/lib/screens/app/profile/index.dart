@@ -3,6 +3,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/widgets/activity_card.dart';
+import 'package:mobile_app/widgets/app_button.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
 import 'package:mobile_app/constants/colors.dart';
@@ -30,10 +31,6 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
   List<Activity> _activities = [];
   bool _isLoading = true;
 
-  int _activityCount = 0;
-  double _totalDistanceKm = 0.0;
-  double _totalDurationMinutes = 0.0;
-
   @override
   void initState() {
     super.initState();
@@ -56,35 +53,22 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
 
       final activities = await _activityService.getActivities(limit: 50);
 
-      double durationSum = 0.0;
-      double distanceSum = 0.0;
-
-      for (var act in activities) {
-        if (act.duration != null) {
-          durationSum += act.duration!;
-        }
-        final distanceKm = ActivityCard.getActivityDistanceKm(act);
-        if (distanceKm != null) {
-          distanceSum += distanceKm;
-        }
-      }
-
+      if (!mounted) return;
       setState(() {
         _user = user;
         _preferences = prefs;
         _activities = activities;
-        _activityCount = activities.length;
-        _totalDurationMinutes = durationSum;
-        _totalDistanceKm = distanceSum;
         _isLoading = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load profile data: $e')),
+        const SnackBar(
+          content: Text('Could not load profile data. Please try again.'),
+        ),
       );
     }
   }
@@ -237,25 +221,20 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
             ],
           ),
 
-          const SizedBox(height: 40),
+          const SizedBox(height: 32),
 
-          // Stats Section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildStatCard('Activities', '$_activityCount'),
-              _buildStatCard(
-                'Distance',
-                '${_totalDistanceKm.toStringAsFixed(0)} km',
-              ),
-              _buildStatCard(
-                'Active Time',
-                ActivityCard.getActivityDurationString(_totalDurationMinutes),
-              ),
-            ],
+          AppButton(
+            text: 'My Heatmaps & Statistics',
+            icon: Icons.map_outlined,
+            variant: AppButtonVariant.outline,
+            onPressed: () async {
+              await Navigator.pushNamed(context, AppRoutes.heatmaps);
+              if (!mounted) return;
+              _loadProfileData();
+            },
           ),
 
-          const SizedBox(height: 40),
+          const SizedBox(height: 32),
 
           // Recent Activities
           const Align(
@@ -306,30 +285,6 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
               );
             }),
         ],
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primary,
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
       ],
     );
   }

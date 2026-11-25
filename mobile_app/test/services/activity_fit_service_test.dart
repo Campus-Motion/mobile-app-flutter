@@ -4,6 +4,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:mobile_app/models/activity.dart';
 import 'package:mobile_app/models/waypoint.dart';
 import 'package:mobile_app/services/activity_service.dart';
 import 'package:mobile_app/services/api_service.dart';
@@ -190,6 +191,62 @@ void main() {
           limit: 200,
         )).length;
         expect(afterCount, beforeCount + 2);
+      },
+    );
+
+    test(
+      'getDisciplineSummary counts activities without .fit and omits elevation for swim',
+      () async {
+        ApiService.mockMode = true;
+        MockDataService().resetMockActivities();
+
+        // Add a manual run without a .fit GPS track
+        await ActivityService().createActivity(
+          Activity(
+            id: 0,
+            title: 'Treadmill Run',
+            type: 'run',
+            userId: 1,
+            isPublic: false,
+            createdAt: DateTime.now(),
+            duration: 30.0,
+            distanceKm: 5.0,
+          ),
+        );
+
+        final runSummary = await ActivityService().getDisciplineSummary('run');
+        // 2 initial GPS runs + 1 manual run without .fit
+        expect(runSummary.activityCount, 3);
+        expect(runSummary.tracks.length, 2);
+        expect(runSummary.totalDistanceKm, closeTo(6.2 + 5.1 + 5.0, 0.01));
+        expect(
+          runSummary.totalDurationMinutes,
+          closeTo(34.5 + 28.0 + 30.0, 0.01),
+        );
+        expect(runSummary.elevationGainLoss, isNotNull);
+
+        // Add a swim activity: elevationGainLoss must be null even if queried
+        await ActivityService().createActivity(
+          Activity(
+            id: 0,
+            title: 'Pool Laps',
+            type: 'swim',
+            userId: 1,
+            isPublic: false,
+            createdAt: DateTime.now(),
+            duration: 45.0,
+            distanceKm: 1.5,
+          ),
+        );
+
+        final swimSummary = await ActivityService().getDisciplineSummary(
+          'swim',
+        );
+        expect(swimSummary.activityCount, 1);
+        expect(swimSummary.tracks, isEmpty);
+        expect(swimSummary.totalDistanceKm, closeTo(1.5, 0.01));
+        expect(swimSummary.totalDurationMinutes, closeTo(45.0, 0.01));
+        expect(swimSummary.elevationGainLoss, isNull);
       },
     );
   });

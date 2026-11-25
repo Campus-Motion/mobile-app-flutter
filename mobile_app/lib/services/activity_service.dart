@@ -24,6 +24,62 @@ class FitFolderImportResult {
   int get importedCount => importedActivities.length;
 }
 
+class DisciplineSummary {
+  final int activityCount;
+  final double totalDistanceKm;
+  final double totalDurationMinutes;
+  final (int, int)? elevationGainLoss;
+  final List<List<Waypoint>> tracks;
+
+  const DisciplineSummary({
+    required this.activityCount,
+    required this.totalDistanceKm,
+    required this.totalDurationMinutes,
+    required this.elevationGainLoss,
+    required this.tracks,
+  });
+
+  static const DisciplineSummary empty = DisciplineSummary(
+    activityCount: 0,
+    totalDistanceKm: 0.0,
+    totalDurationMinutes: 0.0,
+    elevationGainLoss: null,
+    tracks: [],
+  );
+
+  factory DisciplineSummary.fromTracks(
+    List<List<Waypoint>> rawTracks, {
+    required String sport,
+  }) {
+    final normalizedSport = sport.toLowerCase().trim();
+    final validTracks = normalizedSport == 'other'
+        ? const <List<Waypoint>>[]
+        : rawTracks.where((t) => t.length >= 2).toList();
+    double distanceKm = 0.0;
+    double durationMinutes = 0.0;
+    for (final track in rawTracks) {
+      if (track.length >= 2) {
+        distanceKm += Waypoint.trackDistanceKm(track);
+        final spanMin =
+            track.last.recordedAt.difference(track.first.recordedAt).inSeconds /
+            60.0;
+        if (spanMin > 0) {
+          durationMinutes += spanMin;
+        }
+      }
+    }
+    return DisciplineSummary(
+      activityCount: rawTracks.length,
+      totalDistanceKm: distanceKm,
+      totalDurationMinutes: durationMinutes,
+      elevationGainLoss: normalizedSport == 'swim'
+          ? null
+          : Waypoint.calculateTotalElevationGainLoss(rawTracks),
+      tracks: validTracks,
+    );
+  }
+}
+
 class ActivityService {
   static final ActivityService _instance = ActivityService._internal();
   factory ActivityService() => _instance;
@@ -371,20 +427,67 @@ class ActivityService {
     }
   }
 
+  Future<DisciplineSummary> getDisciplineSummary(String sport) async {
+    final normalizedSport = sport.toLowerCase().trim();
+    final activities = await getActivities(type: normalizedSport, limit: 200);
+    final matchingActivities = activities
+        .where((a) => a.type.toLowerCase().trim() == normalizedSport)
+        .toList();
+    final waypointsByActivity = await Future.wait(
+      matchingActivities.map((activity) => getWaypoints(activity.id)),
+    );
+
+    double totalDistanceKm = 0.0;
+    double totalDurationMinutes = 0.0;
+    for (int i = 0; i < matchingActivities.length; i++) {
+      final act = matchingActivities[i];
+      final wp = waypointsByActivity[i];
+
+      double? dur = act.duration;
+      if ((dur == null || dur <= 0) && wp.length >= 2) {
+        final spanMin =
+            wp.last.recordedAt.difference(wp.first.recordedAt).inSeconds / 60.0;
+        if (spanMin > 0) dur = spanMin;
+      }
+      if (dur != null && dur > 0) {
+        totalDurationMinutes += dur;
+      }
+
+      double? dist = act.distanceKm;
+      if (dist == null && wp.length >= 2) {
+        dist = Waypoint.trackDistanceKm(wp);
+      } else if (dist == null && dur != null && dur > 0) {
+        dist = Activity.defaultSpeedKmh(act.type) * (dur / 60.0);
+      }
+      if (dist != null && dist > 0) {
+        totalDistanceKm += dist;
+      }
+    }
+
+    final elevationGainLoss = normalizedSport == 'swim'
+        ? null
+        : Waypoint.calculateTotalElevationGainLoss(waypointsByActivity);
+
+    final tracks = normalizedSport == 'other'
+        ? const <List<Waypoint>>[]
+        : waypointsByActivity.where((track) => track.length >= 2).toList();
+
+    return DisciplineSummary(
+      activityCount: matchingActivities.length,
+      totalDistanceKm: totalDistanceKm,
+      totalDurationMinutes: totalDurationMinutes,
+      elevationGainLoss: elevationGainLoss,
+      tracks: tracks,
+    );
+  }
+
   Future<List<List<Waypoint>>> getDisciplineTracks(String sport) async {
     final normalizedSport = sport.toLowerCase().trim();
     if (normalizedSport == 'other') {
       return [];
     }
 
-    final activities = await getActivities(type: normalizedSport, limit: 200);
-    final matchingActivities = activities
-        .where((a) => a.type.toLowerCase().trim() == normalizedSport)
-        .toList();
-    final tracks = await Future.wait(
-      matchingActivities.map((activity) => getWaypoints(activity.id)),
-    );
-
-    return tracks.where((track) => track.length >= 2).toList();
+    final summary = await getDisciplineSummary(normalizedSport);
+    return summary.tracks;
   }
 }

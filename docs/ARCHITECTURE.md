@@ -105,7 +105,7 @@ Every screen is registered in `AppRoutes`:
 | `signin` | `/signin` | `SignInScreen` |
 | `dashboard` | `/dashboard` | `HomeIndexScreen` (Home tab) |
 | `trail` | `/trail` | `ActivityIndexScreen` (Sport tab) |
-| `heatmap` | `/heatmap` | `HeatmapScreen` (personal route density, opened from Sport) |
+| `heatmap` | `/heatmap` | `HeatmapScreen` (personal route density and per-discipline statistics, opened from Profile) |
 | `recordActivity` | `/activity/record` | `ActivityRecordScreen` |
 | `social` | `/social` | `SocialIndexScreen` (Social tab) |
 | `profile` | `/profile` | `ProfileIndexScreen` (Profile tab) |
@@ -113,7 +113,7 @@ Every screen is registered in `AppRoutes`:
 | `settings` | `/profile/settings` | `ProfileSettingsScreen` |
 | `eventDetails` | `/events/details` | `EventDetailsScreen` |
 | `activityDetails` | `/activities/details` | `ActivityDetailsScreen` |
-| `heatmaps` | `/heatmaps` | `HeatmapScreen` |
+| `heatmaps` | `/heatmaps` | `HeatmapScreen` (My Heatmaps & Statistics, opened from Profile) |
 
 To add a screen: add a constant, add a `case` in `generateRoute`, navigate with `Navigator.pushNamed(context, AppRoutes.<name>)`. Pass arguments through `RouteSettings.arguments`, not by constructing `MaterialPageRoute` inline in a screen. This table must be updated in the same PR.
 

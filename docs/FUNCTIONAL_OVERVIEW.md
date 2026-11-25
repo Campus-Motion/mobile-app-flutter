@@ -33,7 +33,7 @@ After sign-in, the bottom bar gives access to four tabs. Each tab is one top-lev
 | **Home** | Upcoming events (horizontal carousel) and the latest campus sport news. |
 | **Sport** | Three sub-tabs: **Activities** (your logged activities, with a button to log a new one), **Events** (events you joined and events to discover, with join and leave), and **Connected Trail** (trail stats; trail tracking is coming soon). |
 | **Social** | Three sub-tabs: **Following**, **Followers** and **Find User**, to follow or unfollow other members. |
-| **Profile** | Your profile and activity summary, with access to profile editing and settings. |
+| **Profile** | Your profile, access to **My Heatmaps & Statistics** (per-discipline statistics and GPS route heatmaps), recent activities, profile editing and settings. |
 
 Before sign-in, a welcome screen offers sign-in, sign-up and an offline demo mode.
 
@@ -57,7 +57,7 @@ Any feature that touches health data, location, or what other users can see must
 | Sign-in, sign-up, demo mode | Working |
 | Home: events carousel and news | Working |
 | Sport: activities (record live, log, list, delete) | Working |
-| Sport: My heatmap | Personal route density for the latest 20 GPS activities; requires the internal heatmap renderer deployment. No street-map background. |
+| Profile: My heatmaps & statistics | Per-discipline activity count, total distance, total time, total elevation (except swimming) and GPS route density heatmap. |
 | Sport: FIT import | Choose a FIT file from My heatmap, confirm, and save it as a private GPS activity. Requires the import-enabled backend; disabled in demo mode. |
 | Sport: events (discover, join, leave) | Working |
 | Sport: connected trail | Placeholder ("coming soon") |

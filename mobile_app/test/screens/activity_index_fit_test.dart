@@ -59,20 +59,59 @@ void main() {
   }
 
   group('ActivityIndexScreen FIT import & heatmaps tests', () {
-    testWidgets('renders "My Heatmaps" button and navigates on tap', (
+    testWidgets('does not render heatmap button on ActivityIndexScreen', (
       tester,
     ) async {
       await tester.pumpWidget(buildTestApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('My Heatmaps'), findsOneWidget);
-
-      // Tap button
-      await tester.tap(find.text('My Heatmaps'));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(HeatmapScreen), findsOneWidget);
+      expect(find.text('My Heatmaps'), findsNothing);
+      expect(find.text('My Heatmaps & Statistics'), findsNothing);
     });
+
+    testWidgets(
+      'filters activities via discreet dropdown menu with all types checked by default',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        await tester.pumpWidget(buildTestApp());
+        await tester.pumpAndSettle();
+
+        // Discreet Filter dropdown button is visible and all types are checked by default
+        expect(find.text('Filter'), findsOneWidget);
+        expect(find.text('Morning Campus Run'), findsOneWidget);
+        expect(find.text('Dorigny Lakefront Cycle'), findsOneWidget);
+
+        // Open the vertical dropdown menu
+        await tester.tap(find.text('Filter'));
+        await tester.pumpAndSettle();
+
+        // Uncheck Running: run activities disappear, cycling remains
+        await tester.tap(find.text('Running'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Filter (5/6)'), findsOneWidget);
+        expect(find.text('Morning Campus Run'), findsNothing);
+        expect(find.text('Dorigny Lakefront Cycle'), findsOneWidget);
+
+        // Uncheck Cycling while menu is still open: cycling disappears, walking remains
+        await tester.tap(find.text('Cycling'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Filter (4/6)'), findsOneWidget);
+        expect(find.text('Dorigny Lakefront Cycle'), findsNothing);
+        expect(find.text('Campus Trail Walk'), findsOneWidget);
+
+        // Re-check Running: run activities reappear
+        await tester.tap(find.text('Running'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Filter (5/6)'), findsOneWidget);
+        expect(find.text('Morning Campus Run'), findsOneWidget);
+      },
+    );
 
     testWidgets('log activity dialog has harmonized sports and FIT import', (
       tester,
