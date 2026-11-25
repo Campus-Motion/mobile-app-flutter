@@ -72,6 +72,9 @@ Check this list before building anything. Reuse first, compose second, create a 
 | `WorkoutMetricsPanel` | `workout_metrics_panel.dart` | Live workout telemetry card showing status badge (`Ready`, `Recording`, `Paused`), elapsed time, distance, average pace and optional target loop progress. |
 | `WorkoutControlBar` | `workout_control_bar.dart` | Workout recording controls (`Start activity`, `Pause`, `Resume`, `Finish`, `Discard`) built with `AppButton` variants. |
 | `LoopRouteCard` | `loop_route_card.dart` | Pre-workout route selector toggling between `Free workout` and `Distance loop`, with target distance slider (`1.0` to `30.0` km), `Generate loop` action and loop summary preview. |
+| `DisciplineStatsCard` | `discipline_stats_card.dart` | Per-discipline summary card displaying activity count, total distance, total time, optional total elevation gain/loss (hidden for swimming), count-only mode for `Other`, and a GPS `.fit` coverage note when some activities lack GPS tracks. |
+| `ActivityTypeFilterBar` | `activity_type_filter_bar.dart` | Horizontal bar of harmonized activity-type filter chips (`Running`, `Cycling`, `Walking`, `Hiking`, `Swimming`, `Other`) supporting single-select or multi-select filtering. |
+| `ActivityTypeFilterDropdown` | `activity_type_filter_dropdown.dart` | Discreet dropdown button opening a vertical multi-select column of activity-type checkboxes for filtering the Activity Hub list. |
 
 ### Building from a Figma screenshot
 

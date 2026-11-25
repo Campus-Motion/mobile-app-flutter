@@ -104,26 +104,8 @@ class _ActivityDetailsScreenState extends State<ActivityDetailsScreen> {
     return "$mins:${secs.toString().padLeft(2, '0')}";
   }
 
-  (int, int)? _calculateElevationGainLoss() {
-    double ascent = 0.0;
-    double descent = 0.0;
-    bool hasAltitude = false;
-    for (int i = 0; i < _waypoints.length - 1; i++) {
-      final alt1 = _waypoints[i].altitudeM;
-      final alt2 = _waypoints[i + 1].altitudeM;
-      if (alt1 != null && alt2 != null) {
-        hasAltitude = true;
-        final diff = alt2 - alt1;
-        if (diff > 0) {
-          ascent += diff;
-        } else {
-          descent += diff.abs();
-        }
-      }
-    }
-    if (!hasAltitude) return null;
-    return (ascent.round(), descent.round());
-  }
+  (int, int)? _calculateElevationGainLoss() =>
+      Waypoint.calculateElevationGainLoss(_waypoints);
 
   Future<void> _addFitFile() async {
     final picker = widget.pickFitFile ?? _activityService.pickFitFile;

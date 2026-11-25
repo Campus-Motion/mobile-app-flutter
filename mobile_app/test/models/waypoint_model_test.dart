@@ -57,5 +57,60 @@ void main() {
       expect(json['altitude_m'], 400.0);
       expect(json['recorded_at'], '2026-11-17T10:30:00.000Z');
     });
+
+    test('calculateTotalElevationGainLoss sums per-track gain and loss', () {
+      final track1 = [
+        Waypoint(
+          id: 1,
+          sequenceOrder: 0,
+          recordedAt: DateTime.utc(2026, 11, 17, 8, 0),
+          latitude: 46.520,
+          longitude: 6.565,
+          altitudeM: 400.0,
+        ),
+        Waypoint(
+          id: 2,
+          sequenceOrder: 1,
+          recordedAt: DateTime.utc(2026, 11, 17, 8, 5),
+          latitude: 46.521,
+          longitude: 6.566,
+          altitudeM: 415.0,
+        ),
+        Waypoint(
+          id: 3,
+          sequenceOrder: 2,
+          recordedAt: DateTime.utc(2026, 11, 17, 8, 10),
+          latitude: 46.522,
+          longitude: 6.567,
+          altitudeM: 410.0,
+        ),
+      ];
+      final track2 = [
+        Waypoint(
+          id: 4,
+          sequenceOrder: 0,
+          recordedAt: DateTime.utc(2026, 11, 18, 9, 0),
+          latitude: 46.530,
+          longitude: 6.570,
+          altitudeM: 500.0,
+        ),
+        Waypoint(
+          id: 5,
+          sequenceOrder: 1,
+          recordedAt: DateTime.utc(2026, 11, 18, 9, 10),
+          latitude: 46.532,
+          longitude: 6.572,
+          altitudeM: 525.0,
+        ),
+      ];
+
+      expect(Waypoint.calculateElevationGainLoss(track1), (15, 5));
+      expect(Waypoint.calculateTotalElevationGainLoss([track1, track2]), (
+        40,
+        5,
+      ));
+      expect(Waypoint.calculateTotalElevationGainLoss(const []), isNull);
+      expect(Waypoint.trackDistanceKm(track1), greaterThan(0.2));
+    });
   });
 }

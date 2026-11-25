@@ -4,6 +4,8 @@ import 'package:mobile_app/constants/colors.dart';
 import 'package:mobile_app/models/waypoint.dart';
 import 'package:mobile_app/services/activity_service.dart';
 import 'package:mobile_app/widgets/activity_card.dart';
+import 'package:mobile_app/widgets/activity_type_filter_bar.dart';
+import 'package:mobile_app/widgets/discipline_stats_card.dart';
 import 'package:mobile_app/widgets/empty_state.dart';
 import 'package:mobile_app/widgets/error_state.dart';
 import 'package:mobile_app/widgets/loading_state.dart';
@@ -13,9 +15,15 @@ import 'package:mobile_app/widgets/section_header.dart';
 
 class HeatmapScreen extends StatefulWidget {
   final Future<List<List<Waypoint>>> Function(String discipline)? loadTracks;
+  final Future<DisciplineSummary> Function(String discipline)? loadSummary;
   final TileProvider? tileProvider;
 
-  const HeatmapScreen({super.key, this.loadTracks, this.tileProvider});
+  const HeatmapScreen({
+    super.key,
+    this.loadTracks,
+    this.loadSummary,
+    this.tileProvider,
+  });
 
   @override
   State<HeatmapScreen> createState() => _HeatmapScreenState();
@@ -24,39 +32,42 @@ class HeatmapScreen extends StatefulWidget {
 class _HeatmapScreenState extends State<HeatmapScreen> {
   final ActivityService _activityService = ActivityService();
 
-  // Allowed disciplines per specification (other is never included)
-  static const List<Map<String, dynamic>> _disciplines = [
-    {'key': 'run', 'label': 'Running', 'icon': Icons.directions_run},
-    {'key': 'cycle', 'label': 'Cycling', 'icon': Icons.pedal_bike},
-    {'key': 'walk', 'label': 'Walking', 'icon': Icons.directions_walk},
-    {'key': 'hike', 'label': 'Hiking', 'icon': Icons.terrain},
-  ];
-
   String _selectedDiscipline = 'run';
-  List<List<Waypoint>> _tracks = [];
+  DisciplineSummary _summary = DisciplineSummary.empty;
   bool _isLoading = true;
   bool _hasError = false;
 
   @override
   void initState() {
     super.initState();
-    _loadTracks();
+    _loadDisciplineData();
   }
 
-  Future<void> _loadTracks() async {
+  Future<void> _loadDisciplineData() async {
     setState(() {
       _isLoading = true;
       _hasError = false;
     });
 
     try {
-      final tracks = widget.loadTracks != null
-          ? await widget.loadTracks!(_selectedDiscipline)
-          : await _activityService.getDisciplineTracks(_selectedDiscipline);
+      final DisciplineSummary summary;
+      if (widget.loadSummary != null) {
+        summary = await widget.loadSummary!(_selectedDiscipline);
+      } else if (widget.loadTracks != null) {
+        final tracks = await widget.loadTracks!(_selectedDiscipline);
+        summary = DisciplineSummary.fromTracks(
+          tracks,
+          sport: _selectedDiscipline,
+        );
+      } else {
+        summary = await _activityService.getDisciplineSummary(
+          _selectedDiscipline,
+        );
+      }
 
       if (!mounted) return;
       setState(() {
-        _tracks = tracks;
+        _summary = summary;
         _isLoading = false;
         _hasError = false;
       });
@@ -74,15 +85,17 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
     setState(() {
       _selectedDiscipline = disciplineKey;
     });
-    _loadTracks();
+    _loadDisciplineData();
   }
 
   @override
   Widget build(BuildContext context) {
     final activeColor = ActivityCard.getActivityColor(_selectedDiscipline);
+    final showElevation = _selectedDiscipline != 'swim';
+    final isOther = _selectedDiscipline == 'other';
 
     return MasterContainer(
-      onRefresh: _loadTracks,
+      onRefresh: _loadDisciplineData,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Top Navigation Header
@@ -97,12 +110,14 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
               tooltip: 'Back',
             ),
             const SizedBox(width: 4),
-            const Text(
-              'My Heatmaps',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+            const Expanded(
+              child: Text(
+                'My Heatmaps & Statistics',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
           ],
@@ -113,88 +128,75 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 4.0),
           child: Text(
-            'View all your GPS routes by discipline.',
+            'View your statistics and GPS routes by discipline.',
             style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
         ),
         const SizedBox(height: 16),
 
         // Discipline Filter Chips
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: _disciplines.map((d) {
-              final key = d['key'] as String;
-              final label = d['label'] as String;
-              final icon = d['icon'] as IconData;
-              final isSelected = key == _selectedDiscipline;
-              final color = ActivityCard.getActivityColor(key);
-
-              return Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: FilterChip(
-                  selected: isSelected,
-                  avatar: Icon(
-                    icon,
-                    size: 18,
-                    color: isSelected ? Colors.white : color,
-                  ),
-                  label: Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.w500,
-                      color: isSelected ? Colors.white : AppColors.textPrimary,
-                    ),
-                  ),
-                  backgroundColor: AppColors.surfaceLight,
-                  selectedColor: color,
-                  checkmarkColor: Colors.white,
-                  showCheckmark: false,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(
-                      color: isSelected ? color : AppColors.divider,
-                    ),
-                  ),
-                  onSelected: (_) => _onSelectDiscipline(key),
-                ),
-              );
-            }).toList(),
-          ),
+        ActivityTypeFilterBar(
+          selectedTypes: {_selectedDiscipline},
+          onToggle: _onSelectDiscipline,
+          showCheckmark: false,
         ),
         const SizedBox(height: 20),
 
-        // Map Section Header
-        const SectionHeader(
-          title: 'Map & Routes',
-          padding: EdgeInsets.only(bottom: 12),
-        ),
-
-        // Heatmap Content
         if (_isLoading)
           const LoadingState(height: 360)
         else if (_hasError)
-          ErrorState(message: 'Unable to load heatmap.', onRetry: _loadTracks)
-        else if (_tracks.isEmpty)
-          const SizedBox(
-            height: 360,
-            child: EmptyState(
-              icon: Icons.map_outlined,
-              title: 'No GPS data',
-              subtitle: 'No GPS activities recorded for this discipline.',
-            ),
+          ErrorState(
+            message: 'Unable to load heatmap.',
+            onRetry: _loadDisciplineData,
           )
-        else
-          RouteMap(
-            tracks: _tracks,
-            routeColor: activeColor,
-            activityType: _selectedDiscipline,
-            height: 380,
-            tileProvider: widget.tileProvider,
+        else ...[
+          const SectionHeader(
+            title: 'Statistics',
+            padding: EdgeInsets.only(bottom: 12),
           ),
+          DisciplineStatsCard(
+            activityCount: _summary.activityCount,
+            totalDistanceKm: _summary.totalDistanceKm,
+            totalDurationMinutes: _summary.totalDurationMinutes,
+            elevationGainLoss: _summary.elevationGainLoss,
+            showElevation: showElevation,
+            showCountOnly: isOther,
+            accentColor: activeColor,
+            analyzedCount: isOther ? null : _summary.tracks.length,
+          ),
+          const SizedBox(height: 8),
+          const SectionHeader(
+            title: 'Heatmap',
+            padding: EdgeInsets.only(bottom: 12),
+          ),
+          if (isOther)
+            const SizedBox(
+              height: 240,
+              child: EmptyState(
+                icon: Icons.map_outlined,
+                title: 'No heatmap for Other',
+                subtitle:
+                    'Activities classified as "Other" are excluded from heatmaps.',
+              ),
+            )
+          else if (_summary.tracks.isEmpty)
+            const SizedBox(
+              height: 360,
+              child: EmptyState(
+                icon: Icons.map_outlined,
+                title: 'No GPS data',
+                subtitle: 'No GPS activities recorded for this discipline.',
+              ),
+            )
+          else
+            RouteMap(
+              tracks: _summary.tracks,
+              routeColor: activeColor,
+              activityType: _selectedDiscipline,
+              height: 380,
+              tileProvider: widget.tileProvider,
+            ),
+        ],
         const SizedBox(height: 24),
       ],
     );
