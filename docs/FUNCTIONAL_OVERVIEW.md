@@ -32,7 +32,7 @@ After sign-in, the bottom bar gives access to four tabs. Each tab is one top-lev
 |---|---|
 | **Home** | Upcoming events (horizontal carousel) and the latest campus sport news. |
 | **Sport** | Three sub-tabs: **Activities** (your logged activities, with a button to log a new one), **Events** (events you joined and events to discover, with join and leave), and **Connected Trail** (trail stats; trail tracking is coming soon). |
-| **Social** | Three sub-tabs: **Following**, **Followers** and **Find User**, to follow or unfollow other members. |
+| **Social** | Three sub-tabs: **Following**, **Followers** and **Find people** (search by username), to follow or unfollow other members. |
 | **Profile** | Your profile, access to **My Heatmaps & Statistics** (per-discipline statistics and GPS route heatmaps), recent activities, profile editing and settings. |
 
 Before sign-in, a welcome screen offers sign-in, sign-up and an offline demo mode.
