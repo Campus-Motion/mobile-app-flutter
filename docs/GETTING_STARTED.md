@@ -7,7 +7,7 @@ This guide takes you from a fresh clone to a running app and shows how to run th
 - **Flutter SDK** `3.47.6` on the stable channel (pinned in `mobile_app/pubspec.yaml` and CI; Dart 3.11.5 or later). Check with `flutter --version`.
 - **Git**.
 - **Chrome**, to run the web build, which is the fastest way to try the app.
-- Optional: **Java 17** and Android Studio for Android builds, Xcode (macOS only) for iOS builds.
+- Optional: **Java 17** and Android Studio for Android builds, Xcode (macOS only) for iOS and macOS builds. The app requires **iOS 15.0** or later and **macOS 12.0** or later; iOS and macOS plugins are linked with Swift Package Manager, so CocoaPods is not needed.
 - An editor with the Flutter and Dart extensions: VS Code, Cursor or Android Studio.
 
 Run `flutter doctor` and fix anything it reports for the platforms you plan to use.
