@@ -15,7 +15,15 @@ import 'package:mobile_app/models/activity.dart';
 import 'package:mobile_app/models/user_preferences.dart';
 
 class ProfileIndexScreen extends StatefulWidget {
-  const ProfileIndexScreen({super.key});
+  final Future<void> Function(String text)? onShare;
+
+  const ProfileIndexScreen({super.key, this.onShare});
+
+  static String buildShareProfileMessage(User user) {
+    final link = AppRoutes.userProfileUrl(user.id);
+    return 'Check out ${user.username}\'s Campus Motion profile! '
+        'Join me and track your campus activities: $link';
+  }
 
   @override
   State<ProfileIndexScreen> createState() => _ProfileIndexScreenState();
@@ -73,14 +81,15 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
     }
   }
 
-  void _shareProfile() {
-    final username = _user?.username ?? 'a Campus Motion member';
-    SharePlus.instance.share(
-      ShareParams(
-        text:
-            'Check out $username\'s Campus Motion profile! Join me and track your campus activities.',
-      ),
-    );
+  Future<void> _shareProfile() async {
+    final user = _user;
+    if (user == null) return;
+    final message = ProfileIndexScreen.buildShareProfileMessage(user);
+    if (widget.onShare != null) {
+      await widget.onShare!(message);
+      return;
+    }
+    await SharePlus.instance.share(ShareParams(text: message));
   }
 
   IconData _getActivityIcon(String type) {
@@ -150,7 +159,8 @@ class _ProfileIndexScreenState extends State<ProfileIndexScreen> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.ios_share),
-                  onPressed: _shareProfile,
+                  tooltip: 'Share profile',
+                  onPressed: _user == null ? null : _shareProfile,
                   color: AppColors.primary,
                 ),
                 IconButton(

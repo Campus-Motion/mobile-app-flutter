@@ -14,8 +14,34 @@ class MyHttpOverrides extends HttpOverrides {
   }
 }
 
-Future<String> resolveInitialRoute() async {
+String detectRequestedRoute() {
+  final platformRoute =
+      WidgetsBinding.instance.platformDispatcher.defaultRouteName;
+  if (platformRoute.isNotEmpty && platformRoute != Navigator.defaultRouteName) {
+    return platformRoute;
+  }
+  if (kIsWeb && Uri.base.path.isNotEmpty && Uri.base.path != '/') {
+    return Uri.base.path;
+  }
+  return AppRoutes.login;
+}
+
+Future<String> resolveInitialRoute({String? requestedRoute}) async {
   final restored = await AuthService().restoreSession();
+  if (AppRoutes.isUserProfileRoute(requestedRoute) && requestedRoute != null) {
+    if (restored) {
+      AppRoutes.clearPendingRoute();
+      final userId = AppRoutes.parseUserProfileId(requestedRoute);
+      if (userId != null && AuthService().currentUser?.id == userId) {
+        return AppRoutes.profile;
+      }
+      return requestedRoute;
+    }
+    AppRoutes.setPendingRoute(requestedRoute);
+    return AppRoutes.signin;
+  }
+
+  AppRoutes.clearPendingRoute();
   return restored ? AppRoutes.dashboard : AppRoutes.login;
 }
 
@@ -24,7 +50,10 @@ Future<void> main() async {
   if (kDebugMode) {
     HttpOverrides.global = MyHttpOverrides();
   }
-  final initialRoute = await resolveInitialRoute();
+  final requestedRoute = detectRequestedRoute();
+  final initialRoute = await resolveInitialRoute(
+    requestedRoute: requestedRoute,
+  );
   runApp(MyApp(initialRoute: initialRoute));
 }
 
@@ -43,6 +72,12 @@ class MyApp extends StatelessWidget {
       ),
       //Routes
       initialRoute: initialRoute,
+      onGenerateInitialRoutes: (String initialRouteName) {
+        final effectiveRoute = initialRoute != AppRoutes.login
+            ? initialRoute
+            : initialRouteName;
+        return AppRoutes.generateInitialRoutes(effectiveRoute);
+      },
       onGenerateRoute: AppRoutes.generateRoute,
     );
   }

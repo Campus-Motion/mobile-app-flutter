@@ -61,7 +61,7 @@ Any feature that touches health data, location, or what other users can see must
 | Sport: FIT import | Choose a FIT file from My heatmap, confirm, and save it as a private GPS activity. Requires the import-enabled backend; disabled in demo mode. |
 | Sport: events (discover, join, leave) | Working |
 | Sport: connected trail | Placeholder ("coming soon") |
-| Social: follow, unfollow, search | Working |
+| Social: follow, unfollow, search, member profiles and profile sharing | Working |
 | Profile, edit profile, settings, data export, deletion | Working |
 | Event details screen | In progress |
 | Events feed from partner clubs (Strava) | Planned (epic) |

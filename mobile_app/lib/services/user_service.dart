@@ -4,6 +4,15 @@ import '../models/user.dart';
 import '../models/user_preferences.dart';
 import '../models/health.dart';
 
+class UserNotFoundException implements Exception {
+  final int userId;
+
+  const UserNotFoundException(this.userId);
+
+  @override
+  String toString() => 'User $userId not found';
+}
+
 class UserService {
   static final UserService _instance = UserService._internal();
   factory UserService() => _instance;
@@ -28,6 +37,8 @@ class UserService {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return User.fromJson(data);
+    } else if (response.statusCode == 404) {
+      throw UserNotFoundException(id);
     } else {
       throw Exception('Failed to load user');
     }

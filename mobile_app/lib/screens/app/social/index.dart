@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:mobile_app/config/routes.dart';
 import 'package:mobile_app/widgets/master_container.dart';
 import 'package:mobile_app/widgets/bottom_bar.dart';
 import 'package:mobile_app/constants/colors.dart';
@@ -225,6 +225,33 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
     );
   }
 
+  Future<void> _openUserProfile(User user) async {
+    await Navigator.pushNamed(context, AppRoutes.userProfilePath(user.id));
+    if (!mounted) return;
+    _loadSocialData();
+  }
+
+  Widget _buildFollowButton(User user, bool isFollowing) {
+    return ElevatedButton(
+      onPressed: () => _toggleFollowUser(user, isFollowing),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isFollowing
+            ? AppColors.surfaceLight
+            : AppColors.primary,
+        foregroundColor: isFollowing
+            ? AppColors.textPrimary
+            : AppColors.background,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
+      child: Text(
+        isFollowing ? 'Unfollow' : 'Follow',
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
   Widget _buildUserList(List<User> users, {required bool isFollowingTab}) {
     if (users.isEmpty) {
       return Center(
@@ -253,24 +280,8 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
 
         return UserListTile(
           user: user,
-          trailing: ElevatedButton(
-            onPressed: () => _toggleFollowUser(user, isFollowing),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isFollowing
-                  ? Colors.grey.shade200
-                  : AppColors.primary,
-              foregroundColor: isFollowing ? Colors.black87 : Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-            child: Text(
-              isFollowing ? 'Unfollow' : 'Follow',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-            ),
-          ),
+          onTap: () => _openUserProfile(user),
+          trailing: _buildFollowButton(user, isFollowing),
         );
       },
     );
@@ -358,83 +369,12 @@ class _SocialIndexScreenState extends State<SocialIndexScreen> {
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
             )
-          else if (_searchedUser != null) ...[
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade200),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    backgroundImage: _searchedUser!.photoUrl != null
-                        ? NetworkImage(_searchedUser!.fullPhotoUrl!)
-                        : const AssetImage('assets/images/splash-icon.png')
-                              as ImageProvider,
-                    radius: 40,
-                    backgroundColor: Colors.grey.shade200,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _searchedUser!.username,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Role: ${_searchedUser!.role.toUpperCase()}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Member since: ${DateFormat('yyyy-MM-dd').format(_searchedUser!.createdAt)}',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: () => _toggleFollowUser(
-                        _searchedUser!,
-                        isFollowingSearched,
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isFollowingSearched
-                            ? Colors.grey.shade200
-                            : AppColors.primary,
-                        foregroundColor: isFollowingSearched
-                            ? Colors.black87
-                            : Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        isFollowingSearched ? 'Unfollow User' : 'Follow User',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          else if (_searchedUser != null)
+            UserListTile(
+              user: _searchedUser!,
+              onTap: () => _openUserProfile(_searchedUser!),
+              trailing: _buildFollowButton(_searchedUser!, isFollowingSearched),
             ),
-          ],
         ],
       ),
     );

@@ -682,7 +682,7 @@ class MockDataService {
   final Map<int, List<Map<String, dynamic>>> _mockEventWaypoints = {};
 
   // Mock Followers & Following
-  final List<Map<String, dynamic>> _mockFollowers = [
+  static List<Map<String, dynamic>> _buildInitialFollowers() => [
     {
       'id': 2,
       'username': 'Camille.B',
@@ -703,7 +703,7 @@ class MockDataService {
     },
   ];
 
-  final List<Map<String, dynamic>> _mockFollowing = [
+  static List<Map<String, dynamic>> _buildInitialFollowing() => [
     {
       'id': 4,
       'username': 'Sarah.L',
@@ -714,6 +714,52 @@ class MockDataService {
           .toIso8601String(),
     },
   ];
+
+  late final List<Map<String, dynamic>> _mockFollowers =
+      _buildInitialFollowers();
+
+  late final List<Map<String, dynamic>> _mockFollowing =
+      _buildInitialFollowing();
+
+  late final List<Map<String, dynamic>> _mockKnownUsers = [
+    ..._buildInitialFollowers(),
+    ..._buildInitialFollowing(),
+  ];
+
+  /// Restores the mock social lists to their initial state for tests.
+  void resetMockSocial() {
+    _mockFollowers
+      ..clear()
+      ..addAll(_buildInitialFollowers());
+    _mockFollowing
+      ..clear()
+      ..addAll(_buildInitialFollowing());
+  }
+
+  Map<String, dynamic>? _findMockUserById(int userId) {
+    if (userId == _mockUser['id']) {
+      return _mockUser;
+    }
+    for (final user
+        in _mockFollowers
+            .followedBy(_mockFollowing)
+            .followedBy(_mockKnownUsers)) {
+      if (user['id'] == userId) {
+        return user;
+      }
+    }
+    return null;
+  }
+
+  Map<String, dynamic> _toPublicProfile(Map<String, dynamic> user) {
+    return {
+      'id': user['id'],
+      'username': user['username'],
+      if (user['photo_url'] != null) 'photo_url': user['photo_url'],
+      'role': user['role'],
+      'created_at': user['created_at'],
+    };
+  }
 
   final Map<int, List<Map<String, dynamic>>> _mockEventParticipants = {
     101: [
@@ -1041,28 +1087,19 @@ class MockDataService {
     final singleUserMatch = RegExp(r'^/users/(\d+)$').firstMatch(cleanPath);
     if (singleUserMatch != null) {
       final userId = int.parse(singleUserMatch.group(1)!);
-      if (userId == 1) {
+      final user = _findMockUserById(userId);
+      if (user == null) {
         return http.Response(
-          json.encode(_mockUser),
-          200,
+          json.encode({'message': 'User not found'}),
+          404,
           headers: _jsonHeaders,
         );
       }
-      final other = _mockFollowers
-          .followedBy(_mockFollowing)
-          .firstWhere(
-            (u) => u['id'] == userId,
-            orElse: () => {
-              'id': userId,
-              'username': 'Student_$userId',
-              'email': 'student$userId@epfl.ch',
-              'role': 'student',
-              'created_at': DateTime.now()
-                  .subtract(const Duration(days: 10))
-                  .toIso8601String(),
-            },
-          );
-      return http.Response(json.encode(other), 200, headers: _jsonHeaders);
+      return http.Response(
+        json.encode(_toPublicProfile(user)),
+        200,
+        headers: _jsonHeaders,
+      );
     }
 
     return http.Response(json.encode({'data': []}), 200, headers: _jsonHeaders);
@@ -1188,14 +1225,16 @@ class MockDataService {
     final followMatch = RegExp(r'^/users/(\d+)/follow$').firstMatch(cleanPath);
     if (followMatch != null) {
       final targetId = int.parse(followMatch.group(1)!);
+      final existing = _findMockUserById(targetId);
+      if (existing == null) {
+        return http.Response(
+          json.encode({'message': 'User not found'}),
+          404,
+          headers: _jsonHeaders,
+        );
+      }
       if (!_mockFollowing.any((u) => u['id'] == targetId)) {
-        _mockFollowing.add({
-          'id': targetId,
-          'username': 'Student_$targetId',
-          'email': 'student$targetId@epfl.ch',
-          'role': 'student',
-          'created_at': DateTime.now().toIso8601String(),
-        });
+        _mockFollowing.add(_toPublicProfile(existing));
       }
       return http.Response(
         json.encode({'message': 'Followed user'}),
