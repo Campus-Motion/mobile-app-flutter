@@ -63,7 +63,11 @@ class _SignInScreenState extends State<SignInScreen> {
       await AuthService().login(email, password);
       if (mounted) {
         Navigator.pop(context); // Dismiss loading dialog
-        Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.consumePostAuthRoute(),
+          (route) => false,
+        );
       }
     } catch (error) {
       if (mounted) {
@@ -263,13 +267,17 @@ class _SignInScreenState extends State<SignInScreen> {
           onPressed: () async {
             await AuthService().enterDemoMode();
             if (!context.mounted) return;
-            Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.consumePostAuthRoute(),
+              (route) => false,
+            );
           },
         ),
         const SizedBox(height: 32),
 
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
           children: [
             const Text(
               "Don't have an account? ",

@@ -109,6 +109,7 @@ Every screen is registered in `AppRoutes`:
 | `recordActivity` | `/activity/record` | `ActivityRecordScreen` |
 | `social` | `/social` | `SocialIndexScreen` (Social tab) |
 | `profile` | `/profile` | `ProfileIndexScreen` (Profile tab) |
+| `userProfile` | `/users/<id>` | `UserProfileScreen` (another member's public profile; own ID redirects to `profile`, signed-out links go through `signin`) |
 | `editProfile` | `/profile/edit` | `ProfileEditScreen` |
 | `settings` | `/profile/settings` | `ProfileSettingsScreen` |
 | `eventDetails` | `/events/details` | `EventDetailsScreen` |

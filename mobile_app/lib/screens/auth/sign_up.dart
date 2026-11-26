@@ -85,7 +85,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Welcome to Campus Motion!")),
         );
-        Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.consumePostAuthRoute(),
+          (route) => false,
+        );
       }
     } catch (error) {
       if (mounted) {

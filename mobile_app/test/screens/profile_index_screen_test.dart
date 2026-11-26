@@ -48,4 +48,28 @@ void main() {
       expect(find.byType(HeatmapScreen), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'ProfileIndexScreen shares a message containing a link ending in /users/<id>',
+    (tester) async {
+      String? sharedText;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ProfileIndexScreen(
+            onShare: (text) async {
+              sharedText = text;
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Share profile'));
+      await tester.pumpAndSettle();
+
+      expect(sharedText, isNotNull);
+      expect(sharedText, contains(AppRoutes.appBaseUrl));
+      expect(sharedText!.endsWith('/users/1'), isTrue);
+    },
+  );
 }

@@ -47,7 +47,11 @@ class WelcomeScreen extends StatelessWidget {
           onPressed: () async {
             await AuthService().enterDemoMode();
             if (!context.mounted) return;
-            Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              AppRoutes.consumePostAuthRoute(),
+              (route) => false,
+            );
           },
         ),
         const SizedBox(height: 24),
