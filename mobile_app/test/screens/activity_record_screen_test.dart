@@ -78,6 +78,9 @@ class _FailingPreferencesUserService implements UserService {
   Future<List<User>> getFollowers(int id) => throw UnimplementedError();
 
   @override
+  Future<List<User>> searchUsers(String query) => throw UnimplementedError();
+
+  @override
   Future<List<User>> getFollowing(int id) => throw UnimplementedError();
 
   @override
